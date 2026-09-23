@@ -10,7 +10,7 @@ import io.restassured.filter.FilterContext;
 import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
-
+//deneme2
 public class ApiClient {
     private final ThreadLocal<RequestSpecification> spec = ThreadLocal.withInitial(() ->
             new RequestSpecBuilder()
