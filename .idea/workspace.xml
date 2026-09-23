@@ -2,12 +2,45 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="bb67636e-0798-47b0-aa36-dcace8eb63e5" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/org/example/Main.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/Users/User.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/Users/UserDataReader.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/Users/user.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/client/ApiClient.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/client/TokenProvider.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/config/ApiConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/requests/AddressRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/requests/UserCreateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/requests/UserLoginRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/requests/UserSearchRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/requests/UserUpdateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/responses/AddressResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/responses/AuthResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/responses/ErrorResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/responses/PagedUsersResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/models/responses/UserResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/services/UsersApi.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/tests/AuthApiTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/tests/BaseApiTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/tests/UserApiTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/api/tests/UserSearchApiTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/factory/PlaywrightFactory.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/locators/LocatorReader.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/locators/locators.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/pages/BasePage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/pages/LoginPage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/pages/ProductsPage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/tests/BaseTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/tests/LoginTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/tests/ScrollTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/utils/ConfigReader.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/utils/DBUtil.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/utils/ExtentManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/utils/LogUtils.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/utils/RetryAnalyzer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/utils/RetryListener.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/utils/TestListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,9 +62,15 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true"
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "C:/Users/aydina/IdeaProjects/untitled/src/test"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\aydina\IdeaProjects\untitled\src\test" />
+    </key>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
