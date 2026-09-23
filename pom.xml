@@ -89,9 +89,18 @@
     </dependencies>
 
     <build>
+
         <sourceDirectory>src/main/java</sourceDirectory>
         <testSourceDirectory>src/test/java</testSourceDirectory>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>false</filtering>
+            </testResource>
+        </testResources>
+
         <plugins>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -108,7 +117,6 @@
                 <version>3.1.0</version>
             </plugin>
 
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -117,11 +125,14 @@
                     <suiteXmlFiles>
                         <suiteXmlFile>${project.basedir}/testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
+
                     <argLine>
                         -Dfile.encoding=UTF-8
                     </argLine>
                 </configuration>
             </plugin>
+
         </plugins>
+
     </build>
 </project>

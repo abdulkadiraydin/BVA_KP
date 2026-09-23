@@ -8,7 +8,7 @@ import org.testng.annotations.Test;
 
 public class GirisTest extends BaseTest {
 
-    /*@Test
+   /* @Test
     public void girisSayfasiAcilsin() throws InterruptedException {
 
         ReportManager.step("Ana sayfa açılıyor.");
