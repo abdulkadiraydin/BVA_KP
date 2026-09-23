@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="Sauce Demo Test Suite" parallel="methods" thread-count="5">
-    <listeners>
-        <listener class-name="utils.TestListener"/>
-        <listener class-name="utils.RetryListener"/>
-    </listeners>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<suite name="BVA KP Test Suite" parallel="methods" thread-count="5">
+
     <test name="Functional Tests">
         <classes>
-            <class name="tests.LoginTest"/>
-            <class name="tests.ScrollTest"/>
-            <class name="api.tests.UserApiTest"/>
+            <class name="com.bvakp.automation.tests.GirisTest"/>
         </classes>
     </test>
-</suite> 
+
+</suite>
