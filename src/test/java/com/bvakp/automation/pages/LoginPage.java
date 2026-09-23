@@ -8,6 +8,7 @@ public class LoginPage extends BasePage {
     private final Locator usernameInput;
     private final Locator passwordInput;
     private final Locator loginButton;
+    private final Locator loginErrorMessage;
 
     public LoginPage(Page page) {
 
@@ -15,7 +16,8 @@ public class LoginPage extends BasePage {
 
         this.usernameInput = page.locator("#username");
         this.passwordInput = page.locator("#password");
-        this.loginButton = page.locator("#loginButton");
+        this.loginButton = page.locator("#kc-login");
+        this.loginErrorMessage = page.locator(".kc-feedback-text");
     }
 
     public LoginPage open() {
@@ -44,6 +46,13 @@ public class LoginPage extends BasePage {
         loginButton.click();
 
         return this;
+    }
+    public boolean isLoginPageDisplayed() {
+        return usernameInput.isVisible();
+    }
+
+    public String getLoginErrorMessage() {
+        return loginErrorMessage.innerText().trim();
     }
 
 

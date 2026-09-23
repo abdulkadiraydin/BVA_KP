@@ -1,4 +1,5 @@
 package com.bvakp.automation.core.playwright;
+import java.util.Locale;
 
 public enum BrowserName {
 
@@ -8,6 +9,7 @@ public enum BrowserName {
 
     public static BrowserName from(String value) {
 
+        System.out.println("BROWSER DEGERI = [" + value + "]");
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(
                     "Browser adı boş olamaz."
@@ -16,7 +18,7 @@ public enum BrowserName {
 
         try {
             return BrowserName.valueOf(
-                    value.trim().toUpperCase()
+                    value.trim().toUpperCase(Locale.ROOT)
             );
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
