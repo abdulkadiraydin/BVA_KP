@@ -11,10 +11,11 @@ public abstract class BasePage {
         this.page = page;
     }
 
+    /**
+     * Config dosyasında tanımlanan base URL'i açmak için kullanılır.
+     */
     public void openBaseUrl() {
-        page.navigate(
-                ConfigManager.get("base.url")
-        );
+        page.navigate(ConfigManager.get("base.url"));
     }
 
     public String getCurrentUrl() {

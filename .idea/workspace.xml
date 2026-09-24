@@ -4,7 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bb67636e-0798-47b0-aa36-dcace8eb63e5" name="Changes" comment="" />
+    <list default="true" id="bb67636e-0798-47b0-aa36-dcace8eb63e5" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/base/AvpBaseTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/companents/KaynakEkleModal.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/core/auth/AvpAuthStateManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/pages/AcikVeriPage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/pages/DashboardPage.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/tests/AvpGirisTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/tests/AvpKaynakEklemeTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/utils/TestDataUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/base/BaseTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/base/BaseTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/core/playwright/PlaywrightManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/core/playwright/PlaywrightManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/pages/BasePage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/pages/BasePage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/pages/LoginPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/pages/LoginPage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/bvakp/automation/tests/GirisTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/resources/config/config.properties" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/resources/config/config.properties" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,7 +41,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "TestNG.GirisTest.executor": "Run",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "rahmi",
     "last_opened_file_path": "C:/Users/aydina/IdeaProjects/untitled/src/test"
   }
 }]]></component>
