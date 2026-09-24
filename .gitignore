@@ -1,4 +1,8 @@
+### Maven / Test Outputs ###
 target/
+allure-results/
+test-output/
+
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -33,5 +37,3 @@ build/
 
 ### Mac OS ###
 .DS_Store
-.idea/encodings.xml
-test-output/

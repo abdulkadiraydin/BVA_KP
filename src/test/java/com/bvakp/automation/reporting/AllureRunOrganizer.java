@@ -5,32 +5,54 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 public final class AllureRunOrganizer {
 
-    private static final Path ALLURE_RESULTS =
-            Paths.get("target", "allure-results");
+    /*
+     * Allure'un test çalışırken ham json ve attachment
+     * dosyalarını oluşturduğu geçici klasör.
+     */
+    private static final Path ALLURE_SOURCE =
+            Paths.get("allure-results");
 
+    /*
+     * Tamamlanan test koşularının arşivleneceği klasör.
+     */
+    private static final Path ALLURE_RUNS =
+            Paths.get("target", "allure-runs");
+
+    /*
+     * Organizer'ın birden fazla kez initialize edilmesini engeller.
+     */
     private static final AtomicBoolean INITIALIZED =
             new AtomicBoolean(false);
 
+    /*
+     * Koşuda herhangi bir hata oluşup oluşmadığını tutar.
+     */
     private static final AtomicBoolean RUN_FAILED =
             new AtomicBoolean(false);
 
-    private static final Instant RUN_START =
-            ProcessHandle.current()
-                    .info()
-                    .startInstant()
-                    .orElse(Instant.now());
+    /*
+     * Aynı koşudaki bütün testlerin aynı klasörde toplanması için
+     * tarih/saat bir kere oluşturulur.
+     */
+    private static final String RUN_DATE_TIME =
+            LocalDateTime.now()
+                    .format(
+                            DateTimeFormatter.ofPattern(
+                                    "yyyy-MM-dd_HH-mm-ss"
+                            )
+                    );
 
     private AllureRunOrganizer() {
     }
+
 
     public static void initialize() {
 
@@ -46,102 +68,123 @@ public final class AllureRunOrganizer {
         );
     }
 
+
     public static void markFailed() {
+
         RUN_FAILED.set(true);
     }
 
-    private static String createRunFolderName() {
 
-        String dateTime =
-                LocalDateTime.ofInstant(
-                        RUN_START,
-                        ZoneId.systemDefault()
-                ).format(
-                        DateTimeFormatter.ofPattern(
-                                "yyyy-MM-dd_HH-mm-ss"
-                        )
-                );
+    private static String createRunFolderName() {
 
         String status =
                 RUN_FAILED.get()
                         ? "HATALI"
                         : "BASARILI";
 
-        return "kosu_" + dateTime + "_" + status;
+        return "kosu_"
+                + RUN_DATE_TIME
+                + "_"
+                + status;
     }
+
 
     private static void organizeResults() {
 
-        if (!Files.exists(ALLURE_RESULTS)) {
+        if (!Files.exists(ALLURE_SOURCE)) {
             return;
         }
 
-        Path runDirectory =
-                ALLURE_RESULTS.resolve(
-                        createRunFolderName()
-                );
+        try (Stream<Path> stream =
+                     Files.list(ALLURE_SOURCE)) {
 
-        try {
+            List<Path> files =
+                    stream
+                            .filter(Files::isRegularFile)
+                            .toList();
 
-            Files.createDirectories(runDirectory);
-
-            try (Stream<Path> files =
-                         Files.list(ALLURE_RESULTS)) {
-
-                files
-                        .filter(Files::isRegularFile)
-                        .filter(AllureRunOrganizer::belongsToCurrentRun)
-                        .forEach(file ->
-                                moveFile(file, runDirectory)
-                        );
+            /*
+             * Allure sonucu oluşmamışsa boş koşu klasörü oluşturma.
+             */
+            if (files.isEmpty()) {
+                return;
             }
 
+            /*
+             * Örnek:
+             *
+             * target/allure-runs/
+             * kosu_2026-09-24_11-30-15_BASARILI/
+             */
+            Path runDirectory =
+                    ALLURE_RUNS.resolve(
+                            createRunFolderName()
+                    );
+
+            /*
+             * Allure teknik dosyalarının tutulacağı klasör.
+             */
+            Path resultsDirectory =
+                    runDirectory.resolve("results");
+
+            Files.createDirectories(
+                    resultsDirectory
+            );
+
+            /*
+             * JSON, PNG ve diğer attachment dosyalarını
+             * results klasörüne taşı.
+             */
+            for (Path file : files) {
+
+                Files.move(
+                        file,
+                        resultsDirectory.resolve(
+                                file.getFileName()
+                        ),
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+            }
+
+            /*
+             * İnsan tarafından okunabilir HTML özet raporunu
+             * koşu klasörünün içine oluştur.
+             */
+            HtmlReportManager.generateReport(
+                    runDirectory
+            );
+
+            /*
+             * Geçici allure-results klasörü boş kaldıysa sil.
+             */
+            deleteSourceDirectoryIfEmpty();
+
         } catch (IOException e) {
 
             System.err.println(
-                    "Allure sonuçları klasörlenirken hata oluştu: "
+                    "Allure sonuçları düzenlenirken hata oluştu: "
                             + e.getMessage()
             );
         }
     }
 
-    private static boolean belongsToCurrentRun(Path file) {
 
-        try {
+    private static void deleteSourceDirectoryIfEmpty()
+            throws IOException {
 
-            Instant modifiedTime =
-                    Files.getLastModifiedTime(file)
-                            .toInstant();
-
-            return !modifiedTime.isBefore(RUN_START);
-
-        } catch (IOException e) {
-            return false;
+        if (!Files.exists(ALLURE_SOURCE)) {
+            return;
         }
-    }
 
-    private static void moveFile(
-            Path file,
-            Path runDirectory) {
+        try (Stream<Path> stream =
+                     Files.list(ALLURE_SOURCE)) {
 
-        try {
+            if (stream.findAny().isEmpty()) {
 
-            Files.move(
-                    file,
-                    runDirectory.resolve(
-                            file.getFileName()
-                    ),
-                    StandardCopyOption.REPLACE_EXISTING
-            );
-
-        } catch (IOException e) {
-
-            System.err.println(
-                    "Dosya taşınamadı: "
-                            + file
-                            + " | "
-                            + e.getMessage()
-            );
+                Files.deleteIfExists(
+                        ALLURE_SOURCE
+                );
+            }
         }
     }
 }

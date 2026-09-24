@@ -2,6 +2,7 @@ package com.bvakp.automation.reporting;
 
 import io.qameta.allure.Allure;
 import org.slf4j.Logger;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -20,17 +21,22 @@ public final class ReportManager {
         logger.info("STEP | {}", message);
 
         Allure.step(message);
+
+        HtmlReportManager.addStep(message);
     }
 
     public static void info(String message) {
+
         logger.info("INFO | {}", message);
     }
 
     public static void warn(String message) {
+
         logger.warn("WARN | {}", message);
     }
 
     public static void error(String message) {
+
         logger.error("ERROR | {}", message);
     }
 
@@ -53,8 +59,14 @@ public final class ReportManager {
             return;
         }
 
+        HtmlReportManager.setScreenshot(
+                screenshotPath
+        );
+
         try (InputStream inputStream =
-                     Files.newInputStream(screenshotPath)) {
+                     Files.newInputStream(
+                             screenshotPath
+                     )) {
 
             Allure.addAttachment(
                     name,
@@ -64,7 +76,7 @@ public final class ReportManager {
             );
 
             logger.info(
-                    "ATTACHMENT | Screenshot Allure raporuna eklendi: {}",
+                    "ATTACHMENT | Screenshot rapora eklendi: {}",
                     screenshotPath
             );
 
@@ -76,15 +88,4 @@ public final class ReportManager {
             );
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 }

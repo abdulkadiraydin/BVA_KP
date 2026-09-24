@@ -8,7 +8,7 @@ import org.testng.annotations.Test;
 
 public class GirisTest extends BaseTest {
 
-   /* @Test
+   @Test
     public void girisSayfasiAcilsin() throws InterruptedException {
 
         ReportManager.step("Ana sayfa açılıyor.");
@@ -19,10 +19,10 @@ public class GirisTest extends BaseTest {
         ReportManager.step("Ana sayfa açıldı.");
 
         Thread.sleep(10_000);
-    }*/
+    }
 
 
-    @Test
+    /*@Test
     public void girisSayfasiAcilsin() throws InterruptedException {
 
         ReportManager.step("Ana sayfa açılıyor.");
@@ -34,6 +34,8 @@ public class GirisTest extends BaseTest {
 
         Thread.sleep(3000);
 
+        ReportManager.step("Bilinçli hata alındı.");
+
         Assert.fail("Screenshot test etmek için bilinçli hata.");
-    }
+    }*/
 }
