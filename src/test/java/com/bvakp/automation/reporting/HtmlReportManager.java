@@ -7,8 +7,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -18,8 +21,14 @@ public final class HtmlReportManager {
     private static final Map<String, TestResultData> TEST_RESULTS =
             new ConcurrentHashMap<>();
 
+    private static final List<String> TEST_ORDER =
+            new CopyOnWriteArrayList<>();
+
     private static final ThreadLocal<String> CURRENT_TEST =
             new ThreadLocal<>();
+
+    private static final DateTimeFormatter FILE_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
     private HtmlReportManager() {
     }
@@ -38,7 +47,8 @@ public final class HtmlReportManager {
         TestResultData testResult =
                 new TestResultData(
                         className,
-                        testName
+                        testName,
+                        LocalDateTime.now()
                 );
 
         TEST_RESULTS.put(
@@ -46,6 +56,7 @@ public final class HtmlReportManager {
                 testResult
         );
 
+        TEST_ORDER.add(testId);
         CURRENT_TEST.set(testId);
     }
 
@@ -118,13 +129,75 @@ public final class HtmlReportManager {
                 getCurrentTest();
 
         if (test != null) {
-            test.screenshotPath =
-                    screenshotPath;
+            test.screenshotPath = screenshotPath;
         }
     }
 
+    /**
+     * Bu test koşusunda rapora düşen class adlarını
+     * ilk çalıştırılma sırasına göre döndürür.
+     */
+    public static List<String> getExecutedClassNames() {
+
+        Set<String> classNames =
+                new LinkedHashSet<>();
+
+        for (String testId : TEST_ORDER) {
+
+            TestResultData test =
+                    TEST_RESULTS.get(testId);
+
+            if (test != null) {
+                classNames.add(test.className);
+            }
+        }
+
+        return new ArrayList<>(classNames);
+    }
+
+    /**
+     * Belirtilen class içerisindeki testlerden en az biri
+     * hatalıysa true döndürür.
+     */
+    public static boolean classFailed(
+            String className) {
+
+        return getTestsForClass(className)
+                .stream()
+                .anyMatch(
+                        test -> "HATALI".equals(test.status)
+                );
+    }
+
+    /**
+     * Geriye dönük uyumluluk için tüm testleri tek raporda üretir.
+     */
     public static void generateReport(
             Path runDirectory) {
+
+        generateReportInternal(
+                runDirectory,
+                null
+        );
+    }
+
+    /**
+     * Yalnızca belirtilen test class'ına ait testleri içeren
+     * HTML raporunu üretir.
+     */
+    public static void generateReport(
+            Path runDirectory,
+            String className) {
+
+        generateReportInternal(
+                runDirectory,
+                className
+        );
+    }
+
+    private static void generateReportInternal(
+            Path runDirectory,
+            String className) {
 
         try {
 
@@ -141,10 +214,16 @@ public final class HtmlReportManager {
                     screenshotDirectory
             );
 
+            List<TestResultData> tests =
+                    className == null
+                            ? getAllTestsInOrder()
+                            : getTestsForClass(className);
+
             String html =
                     createHtml(
-                            runDirectory,
-                            screenshotDirectory
+                            screenshotDirectory,
+                            tests,
+                            className
                     );
 
             Path reportFile =
@@ -167,17 +246,56 @@ public final class HtmlReportManager {
         }
     }
 
+    private static List<TestResultData> getAllTestsInOrder() {
+
+        List<TestResultData> tests =
+                new ArrayList<>();
+
+        for (String testId : TEST_ORDER) {
+
+            TestResultData test =
+                    TEST_RESULTS.get(testId);
+
+            if (test != null) {
+                tests.add(test);
+            }
+        }
+
+        return tests;
+    }
+
+    private static List<TestResultData> getTestsForClass(
+            String className) {
+
+        List<TestResultData> tests =
+                new ArrayList<>();
+
+        for (String testId : TEST_ORDER) {
+
+            TestResultData test =
+                    TEST_RESULTS.get(testId);
+
+            if (test != null
+                    && test.className.equals(className)) {
+
+                tests.add(test);
+            }
+        }
+
+        return tests;
+    }
+
     private static String createHtml(
-            Path runDirectory,
-            Path screenshotDirectory)
+            Path screenshotDirectory,
+            List<TestResultData> tests,
+            String className)
             throws IOException {
 
         int total =
-                TEST_RESULTS.size();
+                tests.size();
 
         long passed =
-                TEST_RESULTS.values()
-                        .stream()
+                tests.stream()
                         .filter(
                                 test ->
                                         "BASARILI"
@@ -186,8 +304,7 @@ public final class HtmlReportManager {
                         .count();
 
         long failed =
-                TEST_RESULTS.values()
-                        .stream()
+                tests.stream()
                         .filter(
                                 test ->
                                         "HATALI"
@@ -196,8 +313,7 @@ public final class HtmlReportManager {
                         .count();
 
         long skipped =
-                TEST_RESULTS.values()
-                        .stream()
+                tests.stream()
                         .filter(
                                 test ->
                                         "ATLANDI"
@@ -213,8 +329,7 @@ public final class HtmlReportManager {
         StringBuilder testBlocks =
                 new StringBuilder();
 
-        for (TestResultData test :
-                TEST_RESULTS.values()) {
+        for (TestResultData test : tests) {
 
             String statusClass =
                     switch (test.status) {
@@ -252,9 +367,11 @@ public final class HtmlReportManager {
             )) {
 
                 String fileName =
-                        test.testName
+                        sanitizeFileName(test.testName)
                                 + "_"
-                                + System.nanoTime()
+                                + test.startedAt.format(FILE_DATE_FORMAT)
+                                + "_"
+                                + test.status
                                 + ".png";
 
                 Path targetScreenshot =
@@ -351,6 +468,11 @@ public final class HtmlReportManager {
                                         "dd.MM.yyyy HH:mm:ss"
                                 )
                         );
+
+        String classInfo =
+                className == null
+                        ? "Tüm Test Class'ları"
+                        : className;
 
         return """
                 <!DOCTYPE html>
@@ -484,6 +606,11 @@ public final class HtmlReportManager {
                             </h1>
 
                             <p>
+                                <strong>Test Class:</strong>
+                                %s
+                            </p>
+
+                            <p>
                                 <strong>Koşu Tarihi:</strong>
                                 %s
                             </p>
@@ -531,6 +658,7 @@ public final class HtmlReportManager {
 
                 </html>
                 """.formatted(
+                escapeHtml(classInfo),
                 reportTime,
                 overallStatus,
                 total,
@@ -553,6 +681,19 @@ public final class HtmlReportManager {
         return TEST_RESULTS.get(testId);
     }
 
+    private static String sanitizeFileName(
+            String value) {
+
+        if (value == null || value.isBlank()) {
+            return "test";
+        }
+
+        return value.replaceAll(
+                "[^a-zA-Z0-9._-]",
+                "_"
+        );
+    }
+
     private static String escapeHtml(
             String value) {
 
@@ -568,12 +709,11 @@ public final class HtmlReportManager {
                 .replace("'", "&#39;");
     }
 
-
     private static final class TestResultData {
 
         private final String className;
-
         private final String testName;
+        private final LocalDateTime startedAt;
 
         private final List<String> steps =
                 new CopyOnWriteArrayList<>();
@@ -582,20 +722,17 @@ public final class HtmlReportManager {
                 "CALISIYOR";
 
         private long duration;
-
         private String errorMessage;
-
         private Path screenshotPath;
 
         private TestResultData(
                 String className,
-                String testName) {
+                String testName,
+                LocalDateTime startedAt) {
 
-            this.className =
-                    className;
-
-            this.testName =
-                    testName;
+            this.className = className;
+            this.testName = testName;
+            this.startedAt = startedAt;
         }
     }
 }

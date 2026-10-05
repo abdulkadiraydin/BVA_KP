@@ -8,35 +8,21 @@ public class LoginPage extends BasePage {
 
     private final Locator usernameInput;
     private final Locator passwordInput;
-    private final Locator signInButton;
-    private final Locator girisHataMesaji;
+    private final Locator loginButton;
+    private final Locator loginErrorMessage;
 
     public LoginPage(Page page) {
         super(page);
 
-        usernameInput =
-                page.getByLabel("Username or email");
-
-        passwordInput =
-                page.getByLabel(
-                        "Password",
-                        new Page.GetByLabelOptions().setExact(true)
-                );
-
-        signInButton =
-                page.getByRole(
-                        AriaRole.BUTTON,
-                        new Page.GetByRoleOptions().setName("Sign In")
-                );
-
-        girisHataMesaji = page.getByText(
-                "Invalid username or password.",
-                new Page.GetByTextOptions().setExact(true)
-        );
+        this.usernameInput = page.locator("#username");
+        this.passwordInput = page.locator("#password");
+        this.loginButton = page.locator("#kc-login");
+        this.loginErrorMessage = page.locator(".kc-feedback-text");
     }
 
-    public void open() {
+    public LoginPage open() {
         openBaseUrl();
+        return this;
     }
 
     /**
@@ -63,6 +49,22 @@ public class LoginPage extends BasePage {
      */
     public void girisButonunaTiklama() {
         signInButton.click();
+    }
+    public boolean isLoginPageDisplayed() {
+        try {
+            usernameInput.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10_000)
+            );
+
+            return usernameInput.isVisible();
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    public String getLoginErrorMessage() {
+        return loginErrorMessage.innerText().trim();
     }
 
     public boolean isLoginPageVisible() {
