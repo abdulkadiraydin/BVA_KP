@@ -8,12 +8,9 @@ import java.nio.file.Paths;
 import java.util.Properties;
 
 public final class ConfigManager {
-
     private static final Properties properties = new Properties();
-
     private static final String CONFIG_RESOURCE =
             "config/config.properties";
-
     private static final Path CONFIG_FILE =
             Paths.get(
                     "src",
@@ -26,10 +23,8 @@ public final class ConfigManager {
     static {
         loadProperties();
     }
-
     private ConfigManager() {
     }
-
     private static void loadProperties() {
 
         InputStream inputStream =

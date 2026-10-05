@@ -8,8 +8,6 @@ public enum BrowserName {
     WEBKIT;
 
     public static BrowserName from(String value) {
-
-        System.out.println("BROWSER DEGERI = [" + value + "]");
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(
                     "Browser adı boş olamaz."

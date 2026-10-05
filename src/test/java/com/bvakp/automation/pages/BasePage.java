@@ -2,6 +2,7 @@ package com.bvakp.automation.pages;
 
 import com.bvakp.automation.core.config.ConfigManager;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.WaitUntilState;
 
 public abstract class BasePage {
 
@@ -12,11 +13,8 @@ public abstract class BasePage {
     }
 
     public void openBaseUrl() {
-        page.navigate(
-                ConfigManager.get("base.url")
-        );
+        page.navigate(ConfigManager.get("base.url"));
     }
-
     public String getCurrentUrl() {
         return page.url();
     }

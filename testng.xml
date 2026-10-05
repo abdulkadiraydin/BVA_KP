@@ -1,11 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 
-<suite name="BVA KP Test Suite" parallel="methods" thread-count="5">
+<suite name="BVA Test Suite" parallel="methods" thread-count="1">
 
-    <test name="Functional Tests">
+    <test name="Login Tests">
         <classes>
-            <class name="com.bvakp.automation.tests.GirisTest"/>
+            <class name="com.bvakp.automation.tests.LoginTest">
+                <methods>
+                    <include name="girisSayfasiAcilsin"/>
+                    <include name="basariliGiris"/>
+                    <include name="hataliGiris"/>
+                </methods>
+            </class>
         </classes>
     </test>
 

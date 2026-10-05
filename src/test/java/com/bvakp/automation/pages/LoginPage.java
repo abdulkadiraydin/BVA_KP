@@ -21,9 +21,7 @@ public class LoginPage extends BasePage {
     }
 
     public LoginPage open() {
-
         openBaseUrl();
-
         return this;
     }
 
@@ -48,9 +46,18 @@ public class LoginPage extends BasePage {
         return this;
     }
     public boolean isLoginPageDisplayed() {
-        return usernameInput.isVisible();
-    }
+        try {
+            usernameInput.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10_000)
+            );
 
+            return usernameInput.isVisible();
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
     public String getLoginErrorMessage() {
         return loginErrorMessage.innerText().trim();
     }
