@@ -4,29 +4,64 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="
              http://maven.apache.org/POM/4.0.0
-             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.example</groupId>
-    <artifactId>sauce-demo-playwright</artifactId>
+    <groupId>com.bvakp.automation</groupId>
+    <artifactId>bvakp-automation</artifactId>
     <version>1.0-SNAPSHOT</version>
+
+    <name>BVA KP Automation</name>
+
+
+    <!-- ========================================================= -->
+    <!-- Project Properties                                        -->
+    <!-- ========================================================= -->
 
     <properties>
 
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <!-- Java -->
+        <maven.compiler.release>21</maven.compiler.release>
 
-        <project.build.sourceEncoding>
-            UTF-8
-        </project.build.sourceEncoding>
+        <!-- Encoding -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+        <!-- Framework Versions -->
         <playwright.version>1.41.0</playwright.version>
         <testng.version>7.8.0</testng.version>
+        <allure.version>2.35.5</allure.version>
         <extentreports.version>4.1.7</extentreports.version>
+
+        <!-- Logging -->
+        <slf4j.version>2.0.9</slf4j.version>
+        <logback.version>1.4.14</logback.version>
+
+        <!-- Data / API -->
+        <jackson.version>2.16.1</jackson.version>
+        <gson.version>2.10.1</gson.version>
+        <postgresql.version>42.7.3</postgresql.version>
+        <restassured.version>5.4.0</restassured.version>
+        <assertj.version>3.24.2</assertj.version>
+
+        <!-- Utility -->
+        <dotenv.version>3.2.0</dotenv.version>
+
+        <!-- Mail -->
+        <javax.mail.version>1.6.2</javax.mail.version>
+        <javax.activation.version>1.2.0</javax.activation.version>
+
+        <!-- Maven Plugins -->
+        <compiler.plugin.version>3.11.0</compiler.plugin.version>
+        <surefire.plugin.version>3.2.3</surefire.plugin.version>
 
     </properties>
 
+
+    <!-- ========================================================= -->
+    <!-- Dependencies                                              -->
+    <!-- ========================================================= -->
 
     <dependencies>
 
@@ -35,14 +70,7 @@
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
             <version>${playwright.version}</version>
-        </dependency>
-
-
-        <!-- Allure TestNG -->
-        <dependency>
-            <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-testng</artifactId>
-            <version>2.35.5</version>
+            <scope>test</scope>
         </dependency>
 
 
@@ -55,39 +83,57 @@
         </dependency>
 
 
+        <!-- Allure TestNG -->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-testng</artifactId>
+            <version>${allure.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <!-- Extent Reports -->
         <dependency>
             <groupId>com.aventstack</groupId>
             <artifactId>extentreports</artifactId>
             <version>${extentreports.version}</version>
+            <scope>test</scope>
         </dependency>
 
 
-        <!-- Logging -->
+        <!-- SLF4J -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>2.0.9</version>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
         </dependency>
 
+
+        <!-- Logback -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.14</version>
+            <version>${logback.version}</version>
+            <scope>test</scope>
         </dependency>
 
 
-        <!-- JSON -->
+        <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.16.1</version>
+            <version>${jackson.version}</version>
+            <scope>test</scope>
         </dependency>
 
+
+        <!-- Gson -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.10.1</version>
+            <version>${gson.version}</version>
+            <scope>test</scope>
         </dependency>
 
 
@@ -95,7 +141,8 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.3</version>
+            <version>${postgresql.version}</version>
+            <scope>test</scope>
         </dependency>
 
 
@@ -103,14 +150,16 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <version>5.4.0</version>
+            <version>${restassured.version}</version>
             <scope>test</scope>
         </dependency>
 
+
+        <!-- JSON Schema Validation -->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>5.4.0</version>
+            <version>${restassured.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -119,142 +168,105 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
 
 
-        <!-- .env.mail dosyasını okumak için -->
+        <!-- .env dosyaları -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
-            <version>3.2.0</version>
+            <version>${dotenv.version}</version>
+            <scope>test</scope>
         </dependency>
 
 
-        <!-- Java Mail / SMTP -->
+        <!-- Java Mail -->
         <dependency>
             <groupId>com.sun.mail</groupId>
             <artifactId>javax.mail</artifactId>
-            <version>1.6.2</version>
+            <version>${javax.mail.version}</version>
+            <scope>test</scope>
         </dependency>
 
 
-        <!-- Mail attachment desteği -->
+        <!-- Mail Attachment -->
         <dependency>
             <groupId>com.sun.activation</groupId>
             <artifactId>javax.activation</artifactId>
-            <version>1.2.0</version>
+            <version>${javax.activation.version}</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
 
 
+    <!-- ========================================================= -->
+    <!-- Build                                                     -->
+    <!-- ========================================================= -->
+
     <build>
-
-        <sourceDirectory>
-            src/main/java
-        </sourceDirectory>
-
-        <testSourceDirectory>
-            src/test/java
-        </testSourceDirectory>
-
-        <testResources>
-
-            <testResource>
-
-                <directory>
-                    src/test/resources
-                </directory>
-
-                <filtering>
-                    false
-                </filtering>
-
-            </testResource>
-
-        </testResources>
-
 
         <plugins>
 
-            <!-- Java Compiler -->
+            <!-- Java 21 Compiler -->
             <plugin>
-
-                <groupId>
-                    org.apache.maven.plugins
-                </groupId>
-
-                <artifactId>
-                    maven-compiler-plugin
-                </artifactId>
-
-                <version>
-                    3.11.0
-                </version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler.plugin.version}</version>
 
                 <configuration>
-
-                    <source>
-                        ${maven.compiler.source}
-                    </source>
-
-                    <target>
-                        ${maven.compiler.target}
-                    </target>
-
+                    <release>${maven.compiler.release}</release>
+                    <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
-
             </plugin>
 
 
-            <!-- Allure -->
+            <!-- TestNG Runner -->
             <plugin>
-
-                <groupId>
-                    io.qameta.allure
-                </groupId>
-
-                <artifactId>
-                    allure-maven
-                </artifactId>
-
-                <version>
-                    3.1.0
-                </version>
-
-            </plugin>
-
-
-            <!-- TestNG / Surefire -->
-            <plugin>
-
-                <groupId>
-                    org.apache.maven.plugins
-                </groupId>
-
-                <artifactId>
-                    maven-surefire-plugin
-                </artifactId>
-
-                <version>
-                    3.2.3
-                </version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.plugin.version}</version>
 
                 <configuration>
 
+                    <!--
+                        Proje kökündeki testng.xml çalıştırılır.
+                    -->
                     <suiteXmlFiles>
-
                         <suiteXmlFile>
                             ${project.basedir}/testng.xml
                         </suiteXmlFile>
-
                     </suiteXmlFiles>
 
-                    <argLine>
-                        -Dfile.encoding=UTF-8
-                    </argLine>
+
+                    <!--
+                        Test bulunamazsa build sessizce geçmesin.
+                    -->
+                    <failIfNoTests>true</failIfNoTests>
+
+
+                    <!--
+                        Stack trace'leri hata analizinde tam görelim.
+                    -->
+                    <trimStackTrace>false</trimStackTrace>
+
+
+                    <!--
+                        Allure çıktılarının tek yerde tutulması.
+                    -->
+                    <systemPropertyVariables>
+
+                        <allure.results.directory>
+                            ${project.build.directory}/allure-results
+                        </allure.results.directory>
+
+                        <file.encoding>
+                            UTF-8
+                        </file.encoding>
+
+                    </systemPropertyVariables>
 
                 </configuration>
 

@@ -1,120 +1,307 @@
 package com.bvakp.automation.base;
 
-import com.bvakp.automation.core.auth.AvpAuthStateManager;
-import com.bvakp.automation.core.playwright.PlaywrightManager;
-import com.bvakp.automation.pages.DashboardPage;
+import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.pages.LoginPage;
 import com.bvakp.automation.reporting.ReportManager;
-import org.testng.Assert;
-
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.options.WaitUntilState;
+import com.bvakp.automation.core.auth.AvpAuthStateManager;
+import com.bvakp.automation.core.playwright.PlaywrightManager;
+import com.microsoft.playwright.BrowserContext;
 public class AvpBaseTest extends BaseTest {
 
     /**
-     * AVP testlerinde daha önce kaydedilmiş authentication
-     * bilgisinin kullanılmasını sağlamak için kullanılır.
+     * AVP testlerinde kayıtlı authentication
+     * state kullanılmasını sağlar.
      *
-     * @return AVP testlerinde auth state kullanılacağı için true
+     * @return auth state kullanılacaksa true
      */
     @Override
-    protected boolean authStateKullanimi() {
+    protected boolean authStateKullan() {
         return true;
     }
 
+
     /**
-     * AVP testleri başlamadan önce portalı açmak ve
-     * kullanılabilir bir kullanıcı oturumu sağlamak için kullanılır.
+     * AVP testleri için kullanıcı oturumunu hazırlar.
      *
-     * Kayıtlı authentication state geçerliyse tekrar kullanıcı adı
-     * ve şifre girilmez. Login ekranı görüntülenirse environment
-     * variable bilgileriyle giriş yapılır ve yeni oturum kaydedilir.
+     * Portal açıldıktan sonra login ekranı veya
+     * Gösterge Panosu oluşana kadar beklenir.
      *
-     * @return giriş sonrası kullanılacak DashboardPage nesnesi
+     * Login ekranı açılırsa giriş yapılır.
+     * Gösterge Panosu açılırsa mevcut auth state kullanılır.
      */
-    protected DashboardPage avpGirisYapma() {
+    protected void avpOturumuHazirlama() {
 
-        LoginPage loginPage = new LoginPage(page);
-        DashboardPage dashboardPage = new DashboardPage(page);
-
-        ReportManager.step("AVP portalı açılıyor.");
-        loginPage.open();
-
-        ReportManager.step("AVP oturum durumu kontrol ediliyor.");
-
-        /*
-         * Portal yönlendirmesi tamamlanana kadar Login ekranı veya
-         * Dashboard ekranından birinin görünmesi beklenir.
-         */
-        page.waitForCondition(() ->
-                loginPage.girisEkraniGoruntuleniyorMu()
-                        || dashboardPage.gostergePanosuGorunuyorMu()
+        ReportManager.step(
+                "AVP portalı açılıyor."
         );
 
+        avpPortaliniAcma();
+
+
+        LoginPage loginPage =
+                new LoginPage(page);
+
+
+        ReportManager.step(
+                "AVP oturum durumu bekleniyor."
+        );
+
+
         /*
-         * Login ekranı açılmışsa kayıtlı oturum yoktur
-         * veya mevcut oturumun süresi dolmuştur.
+         * OAuth / Keycloak yönlendirmesi asenkron çalıştığı için
+         * login veya dashboard ekranlarından biri oluşana kadar
+         * kontrollü şekilde beklenir.
          */
-        if (loginPage.girisEkraniGoruntuleniyorMu()) {
+        int maksimumBeklemeSaniye =
+                30;
 
-            ReportManager.step(
-                    "Aktif AVP oturumu bulunamadı. Giriş işlemi gerçekleştiriliyor."
-            );
+        boolean loginEkraniAcildi =
+                false;
 
-            String kullaniciAdi = System.getenv("BVA_USERNAME");
-            String sifre = System.getenv("BVA_PASSWORD");
+        boolean dashboardAcildi =
+                false;
 
-            Assert.assertNotNull(
-                    kullaniciAdi,
-                    "BVA_USERNAME environment variable tanımlı değil."
-            );
 
-            Assert.assertFalse(
-                    kullaniciAdi.isBlank(),
-                    "BVA_USERNAME environment variable boş."
-            );
+        for (int saniye = 0;
+             saniye < maksimumBeklemeSaniye;
+             saniye++) {
 
-            Assert.assertNotNull(
-                    sifre,
-                    "BVA_PASSWORD environment variable tanımlı değil."
-            );
+            /*
+             * Önce geçerli oturum kontrol edilir.
+             */
+            if (loginPage.gostergePanosuGorunurMu()) {
 
-            Assert.assertFalse(
-                    sifre.isBlank(),
-                    "BVA_PASSWORD environment variable boş."
-            );
+                dashboardAcildi =
+                        true;
 
-            ReportManager.step("Kullanıcı adı giriliyor.");
-            loginPage.kullaniciAdiGirme(kullaniciAdi);
+                break;
+            }
 
-            ReportManager.step("Şifre giriliyor.");
-            loginPage.sifreGirme(sifre);
 
-            ReportManager.step("Sign In butonuna tıklanıyor.");
-            loginPage.girisButonunaTiklama();
+            /*
+             * Auth state geçersizse Keycloak login
+             * ekranının açılması beklenir.
+             */
+            if (loginPage.loginEkraniGorunurMu()) {
 
-        } else {
+                loginEkraniAcildi =
+                        true;
 
-            ReportManager.step(
-                    "Kayıtlı AVP oturumu bulundu. Login adımları atlanıyor."
+                break;
+            }
+
+
+            page.waitForTimeout(
+                    1000
             );
         }
 
-        ReportManager.step(
-                "Gösterge Panosu ekranının açıldığı doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                dashboardPage.gostergePanosuGoruntulenmeKontrolu(),
-                "Gösterge Panosu görüntülenemedi."
-        );
 
         /*
-         * Başarılı ve geçerli oturum sonraki testlerde
-         * kullanılmak üzere tekrar kaydedilir.
+         * Mevcut auth state ile dashboard açılmışsa
+         * login işlemi yapılmadan devam edilir.
          */
-        AvpAuthStateManager.authStateKaydetme(
-                PlaywrightManager.getContext()
-        );
+        if (dashboardAcildi) {
 
-        return dashboardPage;
+            ReportManager.info(
+                    "Geçerli authentication state kullanıldı."
+            );
+
+            return;
+        }
+
+
+        /*
+         * Login ekranı oluştuysa kullanıcı bilgileri girilir.
+         */
+        if (loginEkraniAcildi) {
+
+            ReportManager.info(
+                    "Aktif AVP oturumu bulunamadı. "
+                            + "Giriş işlemi gerçekleştirilecek."
+            );
+
+
+            ReportManager.step(
+                    "Geçerli kullanıcı adı giriliyor."
+            );
+
+            loginPage
+                    .kullaniciAdiGirme(
+                            ConfigManager.get("username")
+                    );
+
+
+            ReportManager.step(
+                    "Geçerli kullanıcı şifresi giriliyor."
+            );
+
+            loginPage
+                    .sifreGirme(
+                            ConfigManager.get("password")
+                    );
+
+
+            ReportManager.step(
+                    "Sign In butonuna tıklanıyor."
+            );
+
+            loginPage
+                    .girisButonunaTiklama();
+
+
+            /*
+             * Login işleminden sonra Recorder'dan alınan
+             * Gösterge Panosu elementi doğrulanır.
+             */
+            ReportManager.step(
+                    "Gösterge Panosu ekranının açıldığı doğrulanıyor."
+            );
+
+            if (!loginPage.basariliGirisYapildiMi()) {
+
+                throw new IllegalStateException(
+                        "AVP kullanıcı girişi başarısız. "
+                                + "Gösterge Panosu görüntülenemedi."
+                );
+            }
+
+
+            /*
+             * Başarılı login sonrasında yeni authentication
+             * bilgileri sonraki testlerde kullanılmak üzere kaydedilir.
+             */
+            ReportManager.step(
+                    "AVP authentication state kaydediliyor."
+            );
+
+            PlaywrightManager
+                    .getContext()
+                    .storageState(
+                            new BrowserContext.StorageStateOptions()
+                                    .setPath(
+                                            AvpAuthStateManager
+                                                    .authStatePathAlma()
+                                    )
+                    );
+
+
+            ReportManager.info(
+                    "AVP authentication state güncellendi."
+            );
+
+            ReportManager.info(
+                    "AVP kullanıcı girişi başarılı."
+            );
+
+            return;
+        }
+
+
+        /*
+         * 30 saniye içerisinde ne login ne de dashboard
+         * oluşmuşsa ortam beklenen duruma ulaşmamıştır.
+         */
+        throw new IllegalStateException(
+                "AVP oturum durumu 30 saniye içerisinde belirlenemedi. "
+                        + "Login ekranı veya Gösterge Panosu görüntülenemedi. "
+                        + "Mevcut URL: "
+                        + page.url()
+        );
+    }
+
+    /**
+     * AVP portalını açar.
+     *
+     * Chromium tarafından geçici ERR_NETWORK_CHANGED
+     * hatası dönerse navigation işlemini bir kez tekrarlar.
+     */
+    private void avpPortaliniAcma() {
+
+        String portalUrl =
+                ConfigManager.get("base.url");
+
+        int maksimumDeneme =
+                2;
+
+
+        for (int deneme = 1;
+             deneme <= maksimumDeneme;
+             deneme++) {
+
+            try {
+
+                ReportManager.info(
+                        "AVP portal navigation denemesi: "
+                                + deneme
+                                + "/"
+                                + maksimumDeneme
+                );
+
+
+                page.navigate(
+                        portalUrl,
+                        new Page.NavigateOptions()
+                                .setWaitUntil(
+                                        WaitUntilState.DOMCONTENTLOADED
+                                )
+                                .setTimeout(
+                                        30000
+                                )
+                );
+
+
+                ReportManager.info(
+                        "AVP portal navigation tamamlandı | URL: "
+                                + page.url()
+                );
+
+                return;
+
+
+            } catch (PlaywrightException e) {
+
+                boolean networkChanged =
+                        e.getMessage() != null
+                                && e.getMessage()
+                                .contains(
+                                        "ERR_NETWORK_CHANGED"
+                                );
+
+
+                /*
+                 * ERR_NETWORK_CHANGED dışında bir hata oluşmuşsa
+                 * doğrudan üst katmana iletilir.
+                 */
+                if (!networkChanged) {
+
+                    throw e;
+                }
+
+
+                /*
+                 * Son denemede de aynı hata oluşmuşsa
+                 * test hata ile sonlandırılır.
+                 */
+                if (deneme == maksimumDeneme) {
+
+                    throw e;
+                }
+
+
+                ReportManager.info(
+                        "Geçici ERR_NETWORK_CHANGED hatası oluştu. "
+                                + "Portal navigation tekrar denenecek."
+                );
+
+
+                page.waitForTimeout(
+                        1500
+                );
+            }
+        }
     }
 }

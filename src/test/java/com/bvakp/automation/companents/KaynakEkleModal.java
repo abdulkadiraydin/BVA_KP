@@ -2,7 +2,9 @@ package com.bvakp.automation.companents;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.WaitForSelectorState;
 
 public class KaynakEkleModal {
 
@@ -11,8 +13,15 @@ public class KaynakEkleModal {
     private final Locator adAlani;
     private final Locator tabloAlani;
     private final Locator aciklamaAlani;
-    private final Locator kaynakEkleBasligi;
+    private final Locator veriOnizleme;
+    private final Locator kaynakEkleButonu;
 
+
+    /**
+     * Kaynak Ekle modalındaki elementleri tanımlar.
+     *
+     * @param page aktif Playwright sayfası
+     */
     public KaynakEkleModal(Page page) {
 
         this.page = page;
@@ -31,19 +40,66 @@ public class KaynakEkleModal {
                 page.getByLabel(
                         "Açıklama"
                 );
-        this.kaynakEkleBasligi =
+
+        this.veriOnizleme =
+                page.getByText(
+                        "Veri Önizleme",
+                        new Page.GetByTextOptions()
+                                .setExact(true)
+                );
+
+        this.kaynakEkleButonu =
                 page.getByRole(
-                        AriaRole.HEADING,
+                        AriaRole.BUTTON,
                         new Page.GetByRoleOptions()
                                 .setName("Kaynak Ekle")
                                 .setExact(true)
                 );
     }
 
+
     /**
-     * Kaynak adını girer.
+     * Kaynak Ekle formundaki temel alanların
+     * görüntülendiğini kontrol eder.
+     *
+     * @return form alanları görünüyorsa true
      */
-    public void adGirme(
+    public boolean kaynakEkleFormuGoruntulendiMi() {
+
+        try {
+
+            adAlani.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            tabloAlani.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            aciklamaAlani.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            return adAlani.isVisible()
+                    && tabloAlani.isVisible()
+                    && aciklamaAlani.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+
+
+    /**
+     * Kaynak adı alanına verilen değeri girer.
+     *
+     * @param kaynakAdi oluşturulacak kaynak adı
+     */
+    public void kaynakAdiGirme(
             String kaynakAdi) {
 
         adAlani.fill(
@@ -51,30 +107,66 @@ public class KaynakEkleModal {
         );
     }
 
+
     /**
-     * Tablo listesini açar ve listedeki ilk tabloyu seçer.
+     * Kaynak adı alanındaki mevcut değeri döndürür.
+     *
+     * @return kaynak adı alanındaki değer
      */
-    public void ilkTabloyuSecme() {
+    public String kaynakAdiAlma() {
+
+        return adAlani
+                .inputValue()
+                .trim();
+    }
+
+
+    /**
+     * Tablo seçim alanını açar ve belirtilen
+     * kaynak tablosunu seçer.
+     *
+     * @param tabloAdi seçilecek tablo adı
+     */
+    public void kaynakTablosuSecme(
+            String tabloAdi) {
 
         tabloAlani.click();
 
-        Locator ilkTablo =
-                page.getByRole(
-                        AriaRole.OPTION
-                ).first();
+        Locator tabloSecenegi =
+                page.getByText(
+                        tabloAdi,
+                        new Page.GetByTextOptions()
+                                .setExact(true)
+                );
 
-        ilkTablo.waitFor(
+        tabloSecenegi.waitFor(
                 new Locator.WaitForOptions()
                         .setTimeout(10000)
         );
 
-        ilkTablo.click();
+        tabloSecenegi.click();
     }
 
+
     /**
-     * Kaynak açıklamasını girer.
+     * Tablo alanındaki seçili değeri döndürür.
+     *
+     * @return seçili tablo adı
      */
-    public void aciklamaGirme(
+    public String seciliTabloyuAlma() {
+
+        return tabloAlani
+                .inputValue()
+                .trim();
+    }
+
+
+    /**
+     * Kaynak açıklaması alanına verilen değeri girer.
+     *
+     * @param aciklama kaynak açıklaması
+     */
+    public void kaynakAciklamasiGirme(
             String aciklama) {
 
         aciklamaAlani.fill(
@@ -82,142 +174,82 @@ public class KaynakEkleModal {
         );
     }
 
+
     /**
-     * Veri Önizleme bölümünün görüntülendiğini kontrol eder.
+     * Kaynak açıklaması alanındaki mevcut değeri döndürür.
+     *
+     * @return açıklama alanındaki değer
+     */
+    public String kaynakAciklamasiAlma() {
+
+        return aciklamaAlani
+                .inputValue()
+                .trim();
+    }
+
+
+    /**
+     * Tablo seçimi sonrasında Veri Önizleme
+     * bölümünün görüntülendiğini kontrol eder.
+     *
+     * @return Veri Önizleme görünüyorsa true
      */
     public boolean veriOnizlemeGoruntulendiMi() {
 
-        Locator veriOnizleme =
-                page.getByText(
-                        "Veri Önizleme",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
+        try {
 
-        veriOnizleme.waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(15000)
-        );
+            veriOnizleme.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(15000)
+            );
 
-        return veriOnizleme.isVisible();
+            return veriOnizleme.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
     }
 
+
     /**
-     * Kaynak ekleme işlemini tamamlar.
+     * Kaynak Ekle butonuna tıklayarak
+     * kaynak oluşturma işlemini tamamlar.
      */
     public void kaynakEkleme() {
 
-        page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions()
-                        .setName("Kaynak Ekle")
-                        .setExact(true)
-        ).click();
-    }
-    /**
-     * Kaynak Ekle ekranının görüntülendiğini kontrol eder.
-     */
-    public boolean kaynakEkleModalGoruntulendiMi() {
-
-        kaynakEkleBasligi.waitFor(
+        kaynakEkleButonu.waitFor(
                 new Locator.WaitForOptions()
                         .setTimeout(10000)
         );
 
-        return kaynakEkleBasligi.isVisible();
+        kaynakEkleButonu.click();
     }
+
+
     /**
-     * Veri Önizleme tablosundaki veri satırı sayısını döndürür.
+     * Kaynak oluşturma sonrasında formun
+     * kapandığını kontrol eder.
      *
-     * @return önizleme tablosundaki satır sayısı
+     * @return form kapandıysa true
      */
-    public int veriOnizlemeSatirSayisiAlma() {
-
-        Locator veriOnizlemeBasligi =
-                page.getByText(
-                        "Veri Önizleme",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        veriOnizlemeBasligi.waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(15000)
-        );
-
-        Locator satirlar =
-                veriOnizlemeBasligi.locator(
-                        "xpath=following::table[1]//tbody/tr"
-                );
-
-        satirlar.first().waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(15000)
-        );
-
-        return satirlar.count();
-    }
-    /**
-     * Kaynak Ekle modalının kapandığını kontrol eder.
-     *
-     * @return modal kapandıysa true
-     */
-    public boolean kaynakEkleModalKapandiMi() {
+    public boolean kaynakEkleFormuKapandiMi() {
 
         try {
 
-            kaynakEkleBasligi.waitFor(
+            adAlani.waitFor(
                     new Locator.WaitForOptions()
                             .setState(
-                                    com.microsoft.playwright.options.WaitForSelectorState.HIDDEN
+                                    WaitForSelectorState.HIDDEN
                             )
                             .setTimeout(15000)
             );
 
             return true;
 
-        } catch (Exception e) {
+        } catch (PlaywrightException e) {
 
             return false;
         }
-    }
-    /**
-     * Kaynak adı zorunluluk uyarısının görüntülendiğini kontrol eder.
-     */
-    public boolean kaynakAdiZorunluUyarisiGoruntulendiMi() {
-
-        Locator uyari =
-                page.getByText(
-                        "Kaynak adı zorunludur.",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        uyari.waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(10000)
-        );
-
-        return uyari.isVisible();
-    }
-
-    /**
-     * Tablo zorunluluk uyarısının görüntülendiğini kontrol eder.
-     */
-    public boolean tabloZorunluUyarisiGoruntulendiMi() {
-
-        Locator uyari =
-                page.getByText(
-                        "Bir tablo seçin.",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        uyari.waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(10000)
-        );
-
-        return uyari.isVisible();
     }
 }

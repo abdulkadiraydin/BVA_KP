@@ -24,7 +24,15 @@ import java.util.stream.Stream;
 public final class AllureRunOrganizer {
 
     private static final Path ALLURE_SOURCE =
-            Paths.get("allure-results");
+            Paths.get(
+                    System.getProperty(
+                            "allure.results.directory",
+                            Paths.get(
+                                    "target",
+                                    "allure-results"
+                            ).toString()
+                    )
+            );
 
     private static final Path ALLURE_RUNS =
             Paths.get(
@@ -45,8 +53,7 @@ public final class AllureRunOrganizer {
     /*
      * Tamamlanan test koşularının arşivleneceği klasör.
      */
-    private static final Path ALLURE_RUNS =
-            Paths.get("target", "allure-runs");
+
 
     /*
      * Organizer'ın birden fazla kez initialize edilmesini engeller.
@@ -282,7 +289,7 @@ public final class AllureRunOrganizer {
 
             for (Path file : files) {
 
-                Files.move(
+                Files.copy(
                         file,
                         archiveDirectory.resolve(
                                 file.getFileName()
@@ -291,8 +298,6 @@ public final class AllureRunOrganizer {
                 );
             }
         }
-
-        deleteSourceDirectoryIfEmpty();
     }
 
     /**

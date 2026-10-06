@@ -43,3 +43,5 @@ build/
 # Test / Reports
 test-output/
 allure-results/
+
+.automation-state/

@@ -30,17 +30,29 @@ public class PlaywrightManager {
     private static final ThreadLocal<Page> pageThread =
             new ThreadLocal<>();
 
+
+    /**
+     * Utility class olduğu için nesne oluşturulmasını engeller.
+     */
     private PlaywrightManager() {
     }
 
+
+    /**
+     * Config dosyasındaki browser ve headless ayarlarını kullanarak
+     * auth state olmadan Playwright oturumu başlatır.
+     */
     public static void initialize() {
 
-        BrowserName browserName = BrowserName.from(
-                ConfigManager.get("browser")
-        );
+        BrowserName browserName =
+                BrowserName.from(
+                        ConfigManager.get("browser")
+                );
 
         boolean headless =
-                ConfigManager.getBoolean("headless");
+                ConfigManager.getBoolean(
+                        "headless"
+                );
 
         initialize(
                 browserName,
@@ -49,14 +61,25 @@ public class PlaywrightManager {
         );
     }
 
-    public static void initialize(boolean authStateKullan) {
 
-        BrowserName browserName = BrowserName.from(
-                ConfigManager.get("browser")
-        );
+    /**
+     * Config dosyasındaki browser ve headless ayarlarını kullanarak
+     * isteğe bağlı auth state ile Playwright oturumu başlatır.
+     *
+     * @param authStateKullan kayıtlı authentication state kullanılacaksa true
+     */
+    public static void initialize(
+            boolean authStateKullan) {
+
+        BrowserName browserName =
+                BrowserName.from(
+                        ConfigManager.get("browser")
+                );
 
         boolean headless =
-                ConfigManager.getBoolean("headless");
+                ConfigManager.getBoolean(
+                        "headless"
+                );
 
         initialize(
                 browserName,
@@ -65,26 +88,13 @@ public class PlaywrightManager {
         );
     }
 
-        BrowserName browserName = BrowserName.from(
-                ConfigManager.get("browser")
-        );
-
-        boolean headless =
-                ConfigManager.getBoolean("headless");
-
-        initialize(
-                browserName,
-                headless,
-                authStateKullan
-        );
-    }
 
     /**
      * Belirtilen browser ve headless ayarlarıyla
-     * temiz bir Playwright oturumu başlatmak için kullanılır.
+     * auth state olmadan Playwright oturumu başlatır.
      *
      * @param browserName kullanılacak browser
-     * @param headless browserın headless çalışıp çalışmayacağı
+     * @param headless browser headless çalışacaksa true
      */
     public static void initialize(
             BrowserName browserName,
@@ -97,13 +107,21 @@ public class PlaywrightManager {
         );
     }
 
+
+    /**
+     * Browser, BrowserContext ve Page nesnelerini oluşturur.
+     * Her thread kendi Playwright nesnelerini kullandığı için
+     * paralel test çalıştırmaya uygundur.
+     *
+     * @param browserName kullanılacak browser
+     * @param headless browser headless çalışacaksa true
+     * @param authStateKullan kayıtlı auth state kullanılacaksa true
+     */
     public static void initialize(
             BrowserName browserName,
             boolean headless,
             boolean authStateKullan) {
-/*
-        VideoManager.deleteOldVideos();
-*/
+
         Playwright playwright =
                 Playwright.create();
 
@@ -124,6 +142,11 @@ public class PlaywrightManager {
                                 720
                         );
 
+
+        /*
+         * AVP testinde kayıtlı auth state isteniyorsa
+         * mevcut storage state BrowserContext'e yüklenir.
+         */
         if (authStateKullan
                 && AvpAuthStateManager.authStateVarMi()) {
 
@@ -132,36 +155,84 @@ public class PlaywrightManager {
             );
         }
 
+
         BrowserContext context =
-                browser.newContext(contextOptions);
+                browser.newContext(
+                        contextOptions
+                );
 
         Page page =
                 context.newPage();
 
-        playwrightThread.set(playwright);
-        browserThread.set(browser);
-        contextThread.set(context);
-        pageThread.set(page);
+
+        /*
+         * Her test thread'i kendi Playwright nesnelerini tutar.
+         */
+        playwrightThread.set(
+                playwright
+        );
+
+        browserThread.set(
+                browser
+        );
+
+        contextThread.set(
+                context
+        );
+
+        pageThread.set(
+                page
+        );
     }
 
+
+    /**
+     * Aktif thread'e ait Page nesnesini döndürür.
+     *
+     * @return aktif Playwright Page
+     */
     public static Page getPage() {
+
         return pageThread.get();
     }
 
+
+    /**
+     * Aktif thread'e ait BrowserContext nesnesini döndürür.
+     *
+     * @return aktif BrowserContext
+     */
     public static BrowserContext getContext() {
+
         return contextThread.get();
     }
 
+
+    /**
+     * Aktif thread'e ait Browser nesnesini döndürür.
+     *
+     * @return aktif Browser
+     */
     public static Browser getBrowser() {
+
         return browserThread.get();
     }
 
+
+    /**
+     * Aktif thread'e ait Playwright nesnesini döndürür.
+     *
+     * @return aktif Playwright
+     */
     public static Playwright getPlaywright() {
+
         return playwrightThread.get();
     }
 
+
     /**
-     * Eski kullanım için varsayılan close metodu.
+     * Test bilgisi verilmediğinde varsayılan değerlerle
+     * Playwright oturumunu kapatır.
      */
     public static void close() {
 
@@ -171,12 +242,13 @@ public class PlaywrightManager {
         );
     }
 
+
     /**
-     * BrowserContext kapatıldıktan sonra oluşan Playwright videosunu
-     * test method adı + tarih + durum formatında yeniden adlandırır.
+     * Aktif BrowserContext, Browser ve Playwright nesnelerini kapatır.
+     * Oluşturulan video dosyasını test adı ve durum bilgisiyle yeniden adlandırır.
      *
-     * Örnek:
-     * kaynakSilmeKontrolu_20260925_133518_BASARILI.webm
+     * @param testName çalıştırılan test method adı
+     * @param status test sonucu
      */
     public static void close(
             String testName,
@@ -187,21 +259,51 @@ public class PlaywrightManager {
         Page page =
                 pageThread.get();
 
+
+        /*
+         * Page üzerinde video kaydı bulunuyorsa
+         * Context kapanmadan önce referansı alınır.
+         */
         if (page != null) {
 
             try {
-                video = page.video();
+
+                video =
+                        page.video();
+
             } catch (Exception ignored) {
-                // Video aktif değilse teardown yine devam etsin.
+
+                /*
+                 * Video aktif değilse teardown işlemi
+                 * yine devam eder.
+                 */
             }
         }
 
-        if (contextThread.get() != null) {
 
-            contextThread.get().close();
-            contextThread.remove();
+        /*
+         * BrowserContext kapatılır.
+         * Video dosyasının diske yazılması burada tamamlanır.
+         */
+        BrowserContext context =
+                contextThread.get();
+
+        if (context != null) {
+
+            try {
+
+                context.close();
+
+            } finally {
+
+                contextThread.remove();
+            }
         }
 
+
+        /*
+         * Oluşan video dosyası anlamlı bir isimle yeniden adlandırılır.
+         */
         if (video != null) {
 
             try {
@@ -224,21 +326,61 @@ public class PlaywrightManager {
             }
         }
 
-        if (browserThread.get() != null) {
 
-            browserThread.get().close();
-            browserThread.remove();
+        /*
+         * Browser kapatılır.
+         */
+        Browser browser =
+                browserThread.get();
+
+        if (browser != null) {
+
+            try {
+
+                browser.close();
+
+            } finally {
+
+                browserThread.remove();
+            }
         }
 
-        if (playwrightThread.get() != null) {
 
-            playwrightThread.get().close();
-            playwrightThread.remove();
+        /*
+         * Playwright instance kapatılır.
+         */
+        Playwright playwright =
+                playwrightThread.get();
+
+        if (playwright != null) {
+
+            try {
+
+                playwright.close();
+
+            } finally {
+
+                playwrightThread.remove();
+            }
         }
 
+
+        /*
+         * Thread üzerinde kalan Page referansı temizlenir.
+         */
         pageThread.remove();
     }
 
+
+    /**
+     * Playwright tarafından oluşturulan video dosyasını
+     * test adı, tarih ve test sonucu ile yeniden adlandırır.
+     *
+     * @param generatedVideoPath Playwright video dosyası
+     * @param testName test method adı
+     * @param status test sonucu
+     * @throws IOException dosya taşıma işlemi başarısız olursa
+     */
     private static void renameVideo(
             Path generatedVideoPath,
             String testName,
@@ -246,9 +388,13 @@ public class PlaywrightManager {
             throws IOException {
 
         if (generatedVideoPath == null
-                || !Files.exists(generatedVideoPath)) {
+                || !Files.exists(
+                generatedVideoPath
+        )) {
+
             return;
         }
+
 
         String dateTime =
                 LocalDateTime.now()
@@ -258,25 +404,34 @@ public class PlaywrightManager {
                                 )
                         );
 
+
         String fileName =
-                sanitizeFileName(testName)
+                sanitizeFileName(
+                        testName
+                )
                         + "_"
                         + dateTime
                         + "_"
-                        + sanitizeFileName(status)
+                        + sanitizeFileName(
+                        status
+                )
                         + ".webm";
+
 
         Path targetDirectory =
                 VideoManager.getVideoDirectory();
+
 
         Files.createDirectories(
                 targetDirectory
         );
 
+
         Path targetVideoPath =
                 targetDirectory.resolve(
                         fileName
                 );
+
 
         Files.move(
                 generatedVideoPath,
@@ -285,12 +440,23 @@ public class PlaywrightManager {
         );
     }
 
+
+    /**
+     * Dosya isminde kullanılması sorun oluşturabilecek
+     * karakterleri alt çizgi ile değiştirir.
+     *
+     * @param value temizlenecek değer
+     * @return dosya adına uygun değer
+     */
     private static String sanitizeFileName(
             String value) {
 
-        if (value == null || value.isBlank()) {
+        if (value == null
+                || value.isBlank()) {
+
             return "test";
         }
+
 
         return value.replaceAll(
                 "[^a-zA-Z0-9._-]",

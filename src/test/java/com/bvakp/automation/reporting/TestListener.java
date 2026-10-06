@@ -75,37 +75,7 @@ public class TestListener
                     screenshotPath
             );
         }
-
-        HtmlReportManager.markPassed(
-                duration
-        );
-
-        String testName = getTestName(result);
-
-        /*
-         * Önce başarılı testin ekran görüntüsünü al.
-         */
-        Path screenshotPath =
-                ScreenshotUtil.takeScreenshot(
-                        PlaywrightManager.getPage(),
-                        testName + "_basarili"
-                );
-
-        if (screenshotPath != null) {
-
-            ReportManager.info(
-                    "Başarılı test screenshot oluşturuldu | "
-                            + screenshotPath.toAbsolutePath()
-            );
-
-            /*
-             * Hem Allure'a hem HTML raporuna ekle.
-             */
-            ReportManager.attachScreenshot(
-                    "Success Screenshot",
-                    screenshotPath
-            );
-        }
+        
 
         /*
          * Screenshot kaydedildikten sonra testi başarılı kapat.
