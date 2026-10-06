@@ -12,12 +12,11 @@ import org.testng.annotations.Test;
 import java.nio.file.Path;
 
 public class OpenDataCreateTest extends AvpBaseTest {
+
+
     /**
-     * Dinamik test verisi kullanarak yeni bir kaynak oluşturur.
-     *
-     * Kaynak oluşturma sürecinde form alanları,
-     * girilen değerler, veri önizleme alanı ve
-     * kayıt sonrasındaki liste bilgileri doğrulanır.
+     * Dinamik test verisi kullanarak yeni kaynak oluşturur
+     * ve oluşturulan kaydın listeye doğru yansıdığını doğrular.
      */
     @Test(priority = 1)
     public void kaynakOlusturma() {
@@ -29,26 +28,14 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 new KaynakEkleModal(page);
 
 
-        /*
-         * Her test koşusunda benzersiz kaynak adı oluşturulur.
-         */
         String kaynakAdi =
                 TestDataUtil.dinamikAdOlusturma(
                         "otomasyon_kaynak"
                 );
 
-
-        /*
-         * Recorder üzerinde doğrulanan kaynak tablo kullanılır.
-         */
         String tabloAdi =
                 "arac_bakim_is_yeri_sayisi";
 
-
-        /*
-         * Açıklama kaynak adıyla ilişkilendirilerek
-         * her koşuda benzersiz hale getirilir.
-         */
         String kaynakAciklamasi =
                 "Otomasyon kaynak oluşturma testi - "
                         + kaynakAdi;
@@ -63,18 +50,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Geçerli AVP oturumu hazırlanır.
-         *
-         * Auth state geçerliyse mevcut oturum kullanılır.
-         * Geçersizse Keycloak üzerinden login gerçekleştirilir.
-         */
         avpOturumuHazirlama();
 
 
-        /*
-         * Açık Veri Portalı ekranına geçilir.
-         */
         ReportManager.step(
                 "Açık Veri Portalına geçiliyor."
         );
@@ -83,9 +61,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .acikVeriPortalinaGitme();
 
 
-        /*
-         * Kaynak yönetim alanının açıldığı doğrulanır.
-         */
         ReportManager.step(
                 "Kaynak Tablo / Sorgu bölümünün görüntülendiği doğrulanıyor."
         );
@@ -97,9 +72,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Kaynak Ekle formu açılır.
-         */
         ReportManager.step(
                 "Kaynak Ekle formu açılıyor."
         );
@@ -108,26 +80,15 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .kaynakEklemeEkraniniAcma();
 
 
-        /*
-         * Kaynak oluşturma formunun gerekli
-         * alanlarla açıldığı doğrulanır.
-         */
-        ReportManager.step(
-                "Kaynak Ekle formundaki Ad, Tablo ve Açıklama alanları doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 kaynakEkleModal
                         .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak Ekle formu gerekli alanlarla birlikte görüntülenemedi."
+                "Kaynak Ekle formu görüntülenemedi."
         );
 
 
-        /*
-         * Dinamik kaynak adı girilir.
-         */
         ReportManager.step(
-                "Dinamik kaynak adı giriliyor: "
+                "Kaynak adı giriliyor: "
                         + kaynakAdi
         );
 
@@ -135,14 +96,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .kaynakAdiGirme(
                         kaynakAdi
                 );
-
-
-        /*
-         * Ad alanındaki değerin doğru yazıldığı doğrulanır.
-         */
-        ReportManager.step(
-                "Kaynak adı alanına girilen değer doğrulanıyor."
-        );
 
         Assert.assertEquals(
                 kaynakEkleModal
@@ -152,9 +105,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Kaynak tablosu seçilir.
-         */
         ReportManager.step(
                 "Kaynak tablosu seçiliyor: "
                         + tabloAdi
@@ -165,41 +115,22 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         tabloAdi
                 );
 
-
-        /*
-         * Seçilen kaynak tablosu doğrulanır.
-         */
-        ReportManager.step(
-                "Seçilen kaynak tablosu doğrulanıyor."
-        );
-
         Assert.assertEquals(
                 kaynakEkleModal
                         .seciliTabloyuAlma(),
                 tabloAdi,
-                "Seçilen kaynak tablosu beklenen tablo ile uyuşmuyor."
+                "Seçilen kaynak tablosu beklenen değerle uyuşmuyor."
         );
 
 
-        /*
-         * Dinamik kaynak açıklaması girilir.
-         */
         ReportManager.step(
-                "Dinamik kaynak açıklaması giriliyor."
+                "Kaynak açıklaması giriliyor."
         );
 
         kaynakEkleModal
                 .kaynakAciklamasiGirme(
                         kaynakAciklamasi
                 );
-
-
-        /*
-         * Açıklama alanına yazılan değer doğrulanır.
-         */
-        ReportManager.step(
-                "Kaynak açıklaması alanındaki değer doğrulanıyor."
-        );
 
         Assert.assertEquals(
                 kaynakEkleModal
@@ -209,12 +140,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Tablo seçimi sonrasında veri önizlemesinin
-         * oluşturulduğu doğrulanır.
-         */
         ReportManager.step(
-                "Seçilen kaynak tablosuna ait Veri Önizleme bölümünün görüntülendiği doğrulanıyor."
+                "Veri Önizleme bölümünün görüntülendiği doğrulanıyor."
         );
 
         Assert.assertTrue(
@@ -224,39 +151,23 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Kaynak oluşturma işlemi tamamlanır.
-         */
         ReportManager.step(
-                "Kaynak Ekle butonuna tıklanıyor."
+                "Kaynak oluşturuluyor."
         );
 
         kaynakEkleModal
                 .kaynakEkleme();
 
 
-        /*
-         * Kaydetme işlemi sonrası formun
-         * kapandığı doğrulanır.
-         */
-        ReportManager.step(
-                "Kaynak Ekle formunun kapandığı doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 kaynakEkleModal
                         .kaynakEkleFormuKapandiMi(),
-                "Kaynak oluşturma işleminden sonra Kaynak Ekle formu kapanmadı."
+                "Kaynak oluşturma işleminden sonra form kapanmadı."
         );
 
 
-        /*
-         * Oluşturulan kaynağın kaynak listesine
-         * eklendiği doğrulanır.
-         */
         ReportManager.step(
-                "Oluşturulan kaynağın listede bulunduğu doğrulanıyor: "
-                        + kaynakAdi
+                "Oluşturulan kaynağın listede bulunduğu doğrulanıyor."
         );
 
         Assert.assertTrue(
@@ -269,22 +180,13 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Listede bulunan kaynağın adı ve açıklamasının
-         * oluşturma sırasında girilen değerlerle aynı
-         * olduğu doğrulanır.
-         */
-        ReportManager.step(
-                "Oluşturulan kaynağın liste üzerindeki ad ve açıklama bilgileri doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .kaynakBilgileriDogruMu(
                                 kaynakAdi,
                                 kaynakAciklamasi
                         ),
-                "Kaynak satırındaki bilgiler oluşturulan değerlerle uyuşmuyor."
+                "Kaynak bilgileri oluşturulan değerlerle uyuşmuyor."
         );
 
 
@@ -292,12 +194,12 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 "KAYNAK OLUŞTURMA BAŞARILI"
                         + " | Kaynak: "
                         + kaynakAdi
-                        + " | Tablo: "
-                        + tabloAdi
         );
     }
+
+
     /**
-     * Test tarafından oluşturulan dinamik kaynağın
+     * Test tarafından oluşturulan kaynağın
      * başarılı şekilde silinebildiğini doğrular.
      */
     @Test(priority = 2)
@@ -323,22 +225,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + kaynakAdi;
 
 
-        ReportManager.info(
-                "SİLİNECEK TEST KAYNAĞI"
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
-
-
-        /*
-         * AVP oturumu hazırlanır.
-         */
         avpOturumuHazirlama();
 
 
-        /*
-         * Açık Veri Portalına geçilir.
-         */
         ReportManager.step(
                 "Açık Veri Portalına geçiliyor."
         );
@@ -347,22 +236,13 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .acikVeriPortalinaGitme();
 
 
-        /*
-         * Test kendi sileceği kaynağı oluşturur.
-         */
         ReportManager.step(
-                "Silme testi için dinamik kaynak oluşturuluyor: "
+                "Silme testi için kaynak oluşturuluyor: "
                         + kaynakAdi
         );
 
         openDataPage
                 .kaynakEklemeEkraniniAcma();
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak Ekle formu görüntülenemedi."
-        );
 
         kaynakEkleModal
                 .kaynakAdiGirme(
@@ -389,30 +269,17 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .kaynakEkleme();
 
 
-        /*
-         * Kaydın gerçekten oluştuğu doğrulanır.
-         */
-        ReportManager.step(
-                "Silinecek kaynağın listede oluştuğu doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .kaynakListedeMi(
                                 kaynakAdi
                         ),
-                "Silme testi için oluşturulan kaynak listede bulunamadı: "
-                        + kaynakAdi
+                "Silme testi için oluşturulan kaynak listede bulunamadı."
         );
 
 
-        /*
-         * Sadece oluşturulan dinamik kaydın
-         * Sil aksiyonu çalıştırılır.
-         */
         ReportManager.step(
-                "Oluşturulan kaynağın Sil butonuna tıklanıyor: "
-                        + kaynakAdi
+                "Oluşturulan kaynağın Sil butonuna tıklanıyor."
         );
 
         openDataPage
@@ -421,25 +288,15 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 );
 
 
-        /*
-         * Silme dialogunda doğru kayıt kontrol edilir.
-         */
-        ReportManager.step(
-                "Kaynağı Sil onay ekranında doğru kaynak adı doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .kaynakSilmeOnayiGoruntulendiMi(
                                 kaynakAdi
                         ),
-                "Kaynağı Sil onay ekranı veya kaynak adı doğrulanamadı."
+                "Silme onay ekranı doğrulanamadı."
         );
 
 
-        /*
-         * Silme işlemi onaylanır.
-         */
         ReportManager.step(
                 "Kaynak silme işlemi onaylanıyor."
         );
@@ -448,35 +305,19 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .kaynakSilmeOnayiVerme();
 
 
-        /*
-         * Dialogun kapandığı doğrulanır.
-         */
-        ReportManager.step(
-                "Silme dialogunun kapandığı doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .kaynakSilmeDialoguKapandiMi(),
-                "Silme işlemi sonrasında dialog kapanmadı."
+                "Silme işleminden sonra dialog kapanmadı."
         );
 
-
-        /*
-         * Silinen kaydın artık listede bulunmadığı doğrulanır.
-         */
-        ReportManager.step(
-                "Silinen kaynağın listeden kaldırıldığı doğrulanıyor: "
-                        + kaynakAdi
-        );
 
         Assert.assertTrue(
                 openDataPage
                         .kaynakListedenSilindiMi(
                                 kaynakAdi
                         ),
-                "Silinen kaynak hâlâ listede görüntüleniyor: "
-                        + kaynakAdi
+                "Silinen kaynak hâlâ listede görüntüleniyor."
         );
 
 
@@ -486,13 +327,11 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + kaynakAdi
         );
     }
+
+
     /**
-     * Kaynak Tablo / Sorgu listesindeki bir kaynağın
-     * Genel Bilgi ve Önizleme ekranlarının
-     * görüntülenebildiğini doğrular.
-     *
-     * Sistemde hiç kaynak bulunmuyorsa test kendi
-     * dinamik kaynağını oluşturur.
+     * Bir kaynak kaydının Genel Bilgi ve
+     * Önizleme ekranlarının görüntülenebildiğini doğrular.
      */
     @Test(priority = 3)
     public void kaynakGoruntuleme() {
@@ -504,15 +343,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 new KaynakEkleModal(page);
 
 
-        /*
-         * AVP oturumu hazırlanır.
-         */
         avpOturumuHazirlama();
 
 
-        /*
-         * Açık Veri Portalına geçilir.
-         */
         ReportManager.step(
                 "Açık Veri Portalına geçiliyor."
         );
@@ -521,22 +354,15 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .acikVeriPortalinaGitme();
 
 
-        /*
-         * Kaynak listesinde mevcut kayıt kontrol edilir.
-         */
         ReportManager.step(
-                "Kaynak Tablo / Sorgu listesinde görüntülenecek kaynak kontrol ediliyor."
+                "Görüntülenecek mevcut kaynak kontrol ediliyor."
         );
 
 
         if (openDataPage.kaynakKaydiVarMi()) {
 
-            /*
-             * Mevcut kayıt varsa salt-okuma amacıyla
-             * mevcut kaynaklardan biri görüntülenir.
-             */
             ReportManager.info(
-                    "Kaynak Tablo / Sorgu listesinde mevcut kayıt bulundu."
+                    "Kaynak listesinde mevcut kayıt bulundu."
             );
 
             ReportManager.step(
@@ -548,10 +374,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
         } else {
 
-            /*
-             * Kaynak bulunmuyorsa test kendi
-             * dinamik kaynağını oluşturur.
-             */
             String kaynakAdi =
                     TestDataUtil.dinamikAdOlusturma(
                             "otomasyon_goruntuleme_kaynak"
@@ -566,19 +388,14 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
 
             ReportManager.info(
-                    "Kaynak bulunamadı. "
-                            + "Görüntüleme testi için yeni kaynak oluşturulacak: "
+                    "Mevcut kaynak bulunamadı."
+                            + " Yeni kaynak oluşturulacak: "
                             + kaynakAdi
             );
 
 
-            ReportManager.step(
-                    "Kaynak Ekle formu açılıyor."
-            );
-
             openDataPage
                     .kaynakEklemeEkraniniAcma();
-
 
             Assert.assertTrue(
                     kaynakEkleModal
@@ -587,31 +404,15 @@ public class OpenDataCreateTest extends AvpBaseTest {
             );
 
 
-            ReportManager.step(
-                    "Dinamik kaynak adı giriliyor: "
-                            + kaynakAdi
-            );
-
             kaynakEkleModal
                     .kaynakAdiGirme(
                             kaynakAdi
                     );
 
-
-            ReportManager.step(
-                    "Kaynak tablosu seçiliyor: "
-                            + tabloAdi
-            );
-
             kaynakEkleModal
                     .kaynakTablosuSecme(
                             tabloAdi
                     );
-
-
-            ReportManager.step(
-                    "Kaynak açıklaması giriliyor."
-            );
 
             kaynakEkleModal
                     .kaynakAciklamasiGirme(
@@ -622,13 +423,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
             Assert.assertTrue(
                     kaynakEkleModal
                             .veriOnizlemeGoruntulendiMi(),
-                    "Kaynak oluşturma sırasında Veri Önizleme görüntülenemedi."
+                    "Veri Önizleme bölümü görüntülenemedi."
             );
 
-
-            ReportManager.step(
-                    "Kaynak oluşturuluyor."
-            );
 
             kaynakEkleModal
                     .kaynakEkleme();
@@ -654,9 +451,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
         }
 
 
-        /*
-         * Genel Bilgi ekranı kontrol edilir.
-         */
         ReportManager.step(
                 "Genel Bilgi sekmesine geçiliyor."
         );
@@ -665,10 +459,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .genelBilgiSekmesineTiklama();
 
 
-        ReportManager.step(
-                "Genel Bilgi ekranında Kaynak Bilgileri ve Kayıt Bilgileri alanları doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .genelBilgiSayfasiGoruntulendiMi(),
@@ -676,9 +466,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Önizleme ekranı kontrol edilir.
-         */
         ReportManager.step(
                 "Önizleme sekmesine geçiliyor."
         );
@@ -687,14 +474,10 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .onizlemeSekmesineTiklama();
 
 
-        ReportManager.step(
-                "Kaynak Önizleme ekranının görüntülendiği doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .onizlemeSayfasiGoruntulendiMi(),
-                "Kaynak Önizleme ekranı veya önizleme verileri görüntülenemedi."
+                "Kaynak Önizleme ekranı görüntülenemedi."
         );
 
 
@@ -702,8 +485,10 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 "KAYNAK GÖRÜNTÜLEME VE ÖNİZLEME KONTROLÜ BAŞARILI"
         );
     }
+
+
     /**
-     * Test tarafından oluşturulan bir kaynağın
+     * Dinamik olarak oluşturulan bir kaynağın
      * ad ve açıklama bilgilerinin güncellenebildiğini doğrular.
      */
     @Test(priority = 4)
@@ -716,9 +501,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 new KaynakEkleModal(page);
 
 
-        /*
-         * Test için benzersiz kaynak bilgileri oluşturulur.
-         */
         String kaynakAdi =
                 TestDataUtil.dinamikAdOlusturma(
                         "otomasyon_duzenleme_kaynak"
@@ -731,11 +513,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 "Otomasyon kaynak düzenleme testi - "
                         + kaynakAdi;
 
-
-        /*
-         * Düzenleme sonrasında kullanılacak
-         * yeni değerler hazırlanır.
-         */
         String yeniKaynakAdi =
                 kaynakAdi
                         + "_duzenlendi";
@@ -745,22 +522,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + yeniKaynakAdi;
 
 
-        ReportManager.info(
-                "DÜZENLENECEK TEST KAYNAĞI"
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
-
-
-        /*
-         * AVP oturumu hazırlanır.
-         */
         avpOturumuHazirlama();
 
 
-        /*
-         * Açık Veri Portalına geçilir.
-         */
         ReportManager.step(
                 "Açık Veri Portalına geçiliyor."
         );
@@ -769,24 +533,12 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .acikVeriPortalinaGitme();
 
 
-        /*
-         * Test kendi düzenleyeceği kaynağı oluşturur.
-         */
         ReportManager.step(
-                "Düzenleme testi için yeni kaynak oluşturuluyor: "
-                        + kaynakAdi
+                "Düzenleme testi için kaynak oluşturuluyor."
         );
 
         openDataPage
                 .kaynakEklemeEkraniniAcma();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak Ekle formu görüntülenemedi."
-        );
-
 
         kaynakEkleModal
                 .kaynakAdiGirme(
@@ -803,24 +555,15 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         kaynakAciklamasi
                 );
 
-
         Assert.assertTrue(
                 kaynakEkleModal
                         .veriOnizlemeGoruntulendiMi(),
-                "Kaynak oluşturma sırasında Veri Önizleme görüntülenemedi."
+                "Veri Önizleme bölümü görüntülenemedi."
         );
-
 
         kaynakEkleModal
                 .kaynakEkleme();
 
-
-        /*
-         * Kaynağın gerçekten oluşturulduğu doğrulanır.
-         */
-        ReportManager.step(
-                "Düzenlenecek kaynağın listede bulunduğu doğrulanıyor."
-        );
 
         Assert.assertTrue(
                 openDataPage
@@ -831,12 +574,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Oluşturulan kaydın Düzenle aksiyonu açılır.
-         */
         ReportManager.step(
-                "Kaynağın Düzenle butonuna tıklanıyor: "
-                        + kaynakAdi
+                "Kaynağın Düzenle butonuna tıklanıyor."
         );
 
         openDataPage
@@ -845,13 +584,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 );
 
 
-        /*
-         * Düzenleme ekranının açıldığı doğrulanır.
-         */
-        ReportManager.step(
-                "Kaynak düzenleme ekranının açıldığı doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .kaynakDuzenlemeEkraniGoruntulendiMi(),
@@ -859,40 +591,23 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Düzenleme öncesinde formdaki mevcut değerlerin
-         * oluşturulan kaynakla aynı olduğu doğrulanır.
-         */
-        ReportManager.step(
-                "Düzenleme ekranındaki mevcut kaynak adı doğrulanıyor."
-        );
-
         Assert.assertEquals(
                 openDataPage
                         .duzenlemeKaynakAdiAlma(),
                 kaynakAdi,
-                "Düzenleme ekranındaki kaynak adı beklenen değerle uyuşmuyor."
-        );
-
-
-        ReportManager.step(
-                "Düzenleme ekranındaki mevcut kaynak açıklaması doğrulanıyor."
+                "Düzenleme ekranındaki kaynak adı hatalı."
         );
 
         Assert.assertEquals(
                 openDataPage
                         .duzenlemeKaynakAciklamasiAlma(),
                 kaynakAciklamasi,
-                "Düzenleme ekranındaki açıklama beklenen değerle uyuşmuyor."
+                "Düzenleme ekranındaki açıklama hatalı."
         );
 
 
-        /*
-         * Kaynak adı değiştirilir.
-         */
         ReportManager.step(
-                "Kaynak adı güncelleniyor: "
-                        + yeniKaynakAdi
+                "Kaynak adı ve açıklaması güncelleniyor."
         );
 
         openDataPage
@@ -900,46 +615,27 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         yeniKaynakAdi
                 );
 
-
-        /*
-         * Açıklama değiştirilir.
-         */
-        ReportManager.step(
-                "Kaynak açıklaması güncelleniyor."
-        );
-
         openDataPage
                 .kaynakAciklamasiniGuncelleme(
                         yeniKaynakAciklamasi
                 );
 
 
-        /*
-         * Form üzerindeki yeni değerler
-         * kaydetmeden önce doğrulanır.
-         */
-        ReportManager.step(
-                "Güncellenen kaynak adı ve açıklaması kaydetmeden önce doğrulanıyor."
-        );
-
         Assert.assertEquals(
                 openDataPage
                         .duzenlemeKaynakAdiAlma(),
                 yeniKaynakAdi,
-                "Güncellenen kaynak adı forma doğru yazılmadı."
+                "Yeni kaynak adı forma doğru yazılmadı."
         );
 
         Assert.assertEquals(
                 openDataPage
                         .duzenlemeKaynakAciklamasiAlma(),
                 yeniKaynakAciklamasi,
-                "Güncellenen açıklama forma doğru yazılmadı."
+                "Yeni açıklama forma doğru yazılmadı."
         );
 
 
-        /*
-         * Düzenleme kaydedilir.
-         */
         ReportManager.step(
                 "Kaynak düzenleme işlemi kaydediliyor."
         );
@@ -947,14 +643,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
         openDataPage
                 .kaynakDuzenlemeyiKaydetme();
 
-
-        /*
-         * Yeni kaynak adının listede görüntülendiği doğrulanır.
-         */
-        ReportManager.step(
-                "Güncellenen kaynağın listede bulunduğu doğrulanıyor: "
-                        + yeniKaynakAdi
-        );
 
         Assert.assertTrue(
                 openDataPage
@@ -965,54 +653,36 @@ public class OpenDataCreateTest extends AvpBaseTest {
         );
 
 
-        /*
-         * Yeni ad ve açıklamanın kalıcı olarak
-         * kaydedildiği doğrulanır.
-         */
-        ReportManager.step(
-                "Güncellenen kaynak bilgilerinin kalıcı olarak kaydedildiği doğrulanıyor."
-        );
-
         Assert.assertTrue(
                 openDataPage
                         .kaynakBilgileriDogruMu(
                                 yeniKaynakAdi,
                                 yeniKaynakAciklamasi
                         ),
-                "Güncellenen kaynak bilgileri listede beklenen değerlerle uyuşmuyor."
+                "Güncellenen kaynak bilgileri listede doğrulanamadı."
         );
 
-
-        /*
-         * Eski kaynak adının artık listede
-         * bulunmaması da doğrulanır.
-         */
-        ReportManager.step(
-                "Eski kaynak adının artık listede bulunmadığı doğrulanıyor."
-        );
 
         Assert.assertFalse(
                 openDataPage
                         .kaynakListedeMi(
                                 kaynakAdi
                         ),
-                "Kaynak güncellenmesine rağmen eski kaynak adı hâlâ listede bulunuyor."
+                "Eski kaynak adı hâlâ listede görüntüleniyor."
         );
 
 
         ReportManager.info(
                 "KAYNAK DÜZENLEME BAŞARILI"
-                        + " | Eski: "
-                        + kaynakAdi
-                        + " | Yeni: "
+                        + " | Yeni kaynak: "
                         + yeniKaynakAdi
         );
     }
+
+
     /**
-     * Kaynak Ara alanının mevcut ve mevcut olmayan
-     * kaynak kriterlerinde doğru çalıştığını doğrular.
-     *
-     * Her iki arama sonucunda ekran görüntüsü alınır.
+     * Mevcut ve mevcut olmayan kriterler kullanılarak
+     * kaynak arama fonksiyonunu doğrular.
      */
     @Test(priority = 5)
     public void kaynakArama() {
@@ -1028,15 +698,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 "bu kayıt yok";
 
 
-        /*
-         * AVP oturumu hazırlanır.
-         */
         avpOturumuHazirlama();
 
 
-        /*
-         * Açık Veri Portalına geçilir.
-         */
         ReportManager.step(
                 "Açık Veri Portalına geçiliyor."
         );
@@ -1046,7 +710,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
 
         /*
-         * Mevcut kayıt kriteri ile arama yapılır.
+         * Pozitif arama
          */
         ReportManager.step(
                 "Kaynak Ara alanında mevcut kayıt aranıyor: "
@@ -1060,7 +724,27 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
 
         /*
-         * Pozitif arama sonucu ekran görüntüsü alınır.
+         * Bu metod sonuç yüklenene kadar beklemelidir.
+         */
+        ReportManager.step(
+                "Arama sonucunda '"
+                        + mevcutAramaKriteri
+                        + "' kriterini içeren kaynak bulunduğu doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakAramaSonuclariUygunMu(
+                                mevcutAramaKriteri
+                        ),
+                "Arama sonucunda '"
+                        + mevcutAramaKriteri
+                        + "' kriterini içeren kaynak bulunamadı."
+        );
+
+
+        /*
+         * Sonuç yüklendikten sonra screenshot alınır.
          */
         ReportManager.step(
                 "Pozitif kaynak arama sonucu ekran görüntüsü alınıyor."
@@ -1082,27 +766,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
 
         /*
-         * Görüntülenen kaynak adlarının arama
-         * kriteriyle uyumlu olduğu doğrulanır.
-         */
-        ReportManager.step(
-                "Arama sonucunda listelenen kaynak adlarının '"
-                        + mevcutAramaKriteri
-                        + "' kriteriyle uyumlu olduğu doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakAramaSonuclariUygunMu(
-                                mevcutAramaKriteri
-                        ),
-                "Kaynak arama sonuçları arama kriteriyle uyumlu değil."
-        );
-
-
-        /*
-         * Sistemde bulunmayan bir kaynak adıyla
-         * ikinci arama gerçekleştirilir.
+         * Negatif arama
          */
         ReportManager.step(
                 "Kaynak Ara alanında bulunmayan kayıt aranıyor: "
@@ -1115,12 +779,16 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 );
 
 
-        /*
-         * Negatif arama sonucu ekran görüntüsü alınır.
-         */
         ReportManager.step(
-                "Sonuç bulunamayan kaynak araması için ekran görüntüsü alınıyor."
+                "Kaynak bulunamadığında boş liste mesajının görüntülendiği doğrulanıyor."
         );
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakBulunamadiMesajiGoruntulendiMi(),
+                "Kaynak bulunamadı mesajı görüntülenemedi."
+        );
+
 
         Path negatifScreenshot =
                 ScreenshotUtil.takeScreenshot(
@@ -1137,28 +805,227 @@ public class OpenDataCreateTest extends AvpBaseTest {
         }
 
 
-        /*
-         * Kaynak bulunamadığında gösterilen
-         * boş sonuç mesajı doğrulanır.
-         */
+        ReportManager.info(
+                "KAYNAK ARAMA KONTROLÜ BAŞARILI"
+        );
+    }
+
+
+    /**
+     * Ad ve Tablo zorunlu alanlarının ikisi de boşken
+     * kayıt oluşturulamadığını doğrular.
+     */
+    @Test(priority = 6)
+    public void kaynakEklemeZorunluAlanKontrolu() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+
+        avpOturumuHazirlama();
+
+
         ReportManager.step(
-                "Kaynak bulunamadığında boş liste mesajının görüntülendiği doğrulanıyor."
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        ReportManager.step(
+                "Kaynak Ekle formu açılıyor."
+        );
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak Ekle formu görüntülenemedi."
+        );
+
+
+        ReportManager.step(
+                "Ad ve Tablo alanları boş bırakılarak kaynak ekleme deneniyor."
+        );
+
+        kaynakEkleModal
+                .kaynakEkleme();
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakAdiZorunluMesajiGoruntulendiMi(),
+                "Kaynak adı zorunlu alan mesajı görüntülenmedi."
         );
 
         Assert.assertTrue(
-                openDataPage
-                        .kaynakBulunamadiMesajiGoruntulendiMi(),
-                "Kaynak bulunamadı mesajı görüntülenemedi."
+                kaynakEkleModal
+                        .tabloZorunluMesajiGoruntulendiMi(),
+                "Tablo zorunlu alan mesajı görüntülenmedi."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuGoruntulendiMi(),
+                "Validasyon hatasına rağmen form kapandı."
         );
 
 
         ReportManager.info(
-                "KAYNAK ARAMA KONTROLÜ BAŞARILI"
-                        + " | Pozitif kriter: "
-                        + mevcutAramaKriteri
-                        + " | Negatif kriter: "
-                        + bulunmayanAramaKriteri
+                "TÜM ZORUNLU ALAN KONTROLÜ BAŞARILI"
         );
     }
 
+
+    /**
+     * Kaynak adı dolu, Tablo alanı boş bırakıldığında
+     * Tablo zorunlu alan validasyonunu doğrular.
+     */
+    @Test(priority = 7)
+    public void kaynakEklemeTabloZorunluAlanKontrolu() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_zorunlu_tablo"
+                );
+
+
+        avpOturumuHazirlama();
+
+
+        ReportManager.step(
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        ReportManager.step(
+                "Kaynak adı dolduruluyor, Tablo alanı boş bırakılıyor."
+        );
+
+        kaynakEkleModal
+                .kaynakAdiGirme(
+                        kaynakAdi
+                );
+
+
+        kaynakEkleModal
+                .kaynakEkleme();
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .tabloZorunluMesajiGoruntulendiMi(),
+                "Tablo zorunlu alan mesajı görüntülenmedi."
+        );
+
+        Assert.assertFalse(
+                kaynakEkleModal
+                        .kaynakAdiZorunluMesajiGoruntulendiMi(),
+                "Kaynak adı dolu olmasına rağmen zorunlu alan mesajı görüntülendi."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuGoruntulendiMi(),
+                "Tablo alanı boş olmasına rağmen form kapandı."
+        );
+
+
+        ReportManager.info(
+                "TABLO ZORUNLU ALAN KONTROLÜ BAŞARILI"
+        );
+    }
+
+
+    /**
+     * Tablo seçili, Kaynak Adı boş bırakıldığında
+     * Kaynak Adı zorunlu alan validasyonunu doğrular.
+     */
+    @Test(priority = 8)
+    public void kaynakEklemeAdZorunluAlanKontrolu() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+
+        String tabloAdi =
+                "arac_bakim_is_yeri_sayisi";
+
+
+        avpOturumuHazirlama();
+
+
+        ReportManager.step(
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        ReportManager.step(
+                "Kaynak adı boş bırakılıyor ve Tablo seçiliyor."
+        );
+
+        kaynakEkleModal
+                .kaynakTablosuSecme(
+                        tabloAdi
+                );
+
+
+        kaynakEkleModal
+                .kaynakEkleme();
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakAdiZorunluMesajiGoruntulendiMi(),
+                "Kaynak adı zorunlu alan mesajı görüntülenmedi."
+        );
+
+        Assert.assertFalse(
+                kaynakEkleModal
+                        .tabloZorunluMesajiGoruntulendiMi(),
+                "Tablo seçili olmasına rağmen Tablo zorunlu alan mesajı görüntülendi."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak adı boş olmasına rağmen form kapandı."
+        );
+
+
+        ReportManager.info(
+                "KAYNAK ADI ZORUNLU ALAN KONTROLÜ BAŞARILI"
+        );
+    }
 }

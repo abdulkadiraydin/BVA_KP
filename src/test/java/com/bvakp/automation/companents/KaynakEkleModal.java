@@ -252,4 +252,43 @@ public class KaynakEkleModal {
             return false;
         }
     }
+    /**
+     * Kaynak adı zorunlu alan mesajının
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean kaynakAdiZorunluMesajiGoruntulendiMi() {
+
+        return page.getByText(
+                "Kaynak adı zorunludur.",
+                new Page.GetByTextOptions()
+                        .setExact(true)
+        ).isVisible();
+    }
+
+
+    /**
+     * Tablo zorunlu alan mesajının
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean tabloZorunluMesajiGoruntulendiMi() {
+
+        return page.getByText(
+                "Bir tablo seçin.",
+                new Page.GetByTextOptions()
+                        .setExact(true)
+        ).isVisible();
+    }
+    /**
+     * Kaynak Ekle formunu açar.
+     */
+    public void kaynakEkleButonunaTiklama() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Kaynak Ekle")
+                        .setExact(true)
+        ).click();
+    }
+
 }

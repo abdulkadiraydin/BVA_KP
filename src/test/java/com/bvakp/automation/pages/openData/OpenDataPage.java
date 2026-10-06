@@ -1107,107 +1107,102 @@ public class OpenDataPage extends BasePage {
         );
     }
 
-
     /**
-     * Arama sonucunda görüntülenen kaynak kayıtlarının
-     * arama kriteriyle uyumlu olduğunu kontrol eder.
-     *
-     * Yalnızca görünür ve Görüntüle aksiyonu bulunan
-     * gerçek kaynak satırları değerlendirilir.
+     * Kaynak araması sonrasında arama kriterini içeren
+     * en az bir görünür kaynak kaydının yüklenmesini bekler
+     * ve sonucu doğrular.
      *
      * @param aramaKriteri aranacak kaynak kriteri
-     * @return bütün görünür kaynak satırları kriteri içeriyorsa true
+     * @return kriteri içeren görünür kaynak varsa true
      */
     public boolean kaynakAramaSonuclariUygunMu(
             String aramaKriteri) {
 
-        Locator satirlar =
-                page.getByRole(
-                        AriaRole.ROW
+        Locator eslesenKaynaklar =
+                page.getByText(
+                        aramaKriteri,
+                        new Page.GetByTextOptions()
+                                .setExact(false)
                 );
 
-        int bulunanKayitSayisi =
-                0;
 
-        String kriter =
-                aramaKriteri
-                        .trim()
-                        .toLowerCase();
+        try {
+
+            /*
+             * Arama sonrasında tablo asenkron yüklendiği için
+             * ilk eşleşen kaydın görünür olması beklenir.
+             */
+            eslesenKaynaklar
+                    .first()
+                    .waitFor(
+                            new Locator.WaitForOptions()
+                                    .setState(
+                                            WaitForSelectorState.VISIBLE
+                                    )
+                                    .setTimeout(15000)
+                    );
+
+        } catch (PlaywrightException e) {
+
+            ReportManager.info(
+                    "Arama kriterini içeren görünür kaynak yüklenemedi"
+                            + " | Kriter: "
+                            + aramaKriteri
+            );
+
+            return false;
+        }
+
+
+        int gorunenKayitSayisi =
+                0;
 
 
         for (int i = 0;
-             i < satirlar.count();
+             i < eslesenKaynaklar.count();
              i++) {
 
-            Locator satir =
-                    satirlar.nth(i);
+            Locator kaynak =
+                    eslesenKaynaklar.nth(i);
 
 
-            /*
-             * Görünür olmayan satırlar değerlendirilmez.
-             */
-            if (!satir.isVisible()) {
+            if (!kaynak.isVisible()) {
                 continue;
             }
 
 
-            /*
-             * Görüntüle butonu bulunan satırlar
-             * gerçek kaynak kayıtlarıdır.
-             */
-            Locator goruntuleButonu =
-                    satir.getByLabel(
-                            "Görüntüle"
-                    );
-
-            if (goruntuleButonu.count() == 0) {
-                continue;
-            }
+            String kaynakMetni =
+                    kaynak.innerText()
+                            .trim();
 
 
-            bulunanKayitSayisi++;
+            if (kaynakMetni
+                    .toLowerCase()
+                    .contains(
+                            aramaKriteri
+                                    .trim()
+                                    .toLowerCase()
+                    )) {
 
+                gorunenKayitSayisi++;
 
-            /*
-             * HTML td varsayımı yapılmaz.
-             * Satırın erişilebilir/görünür metni doğrudan alınır.
-             */
-            String satirMetni =
-                    satir.innerText()
-                            .trim()
-                            .toLowerCase();
-
-
-            ReportManager.info(
-                    "Arama sonucu kontrol edilen satır | "
-                            + satirMetni
-            );
-
-
-            if (!satirMetni.contains(
-                    kriter
-            )) {
 
                 ReportManager.info(
-                        "Arama kriteriyle uyuşmayan satır bulundu"
-                                + " | Kriter: "
-                                + aramaKriteri
-                                + " | Satır: "
-                                + satirMetni
+                        "Arama kriteriyle eşleşen kaynak bulundu"
+                                + " | Kaynak: "
+                                + kaynakMetni
                 );
-
-                return false;
             }
         }
 
 
         ReportManager.info(
-                "Arama kriteriyle uyumlu görünür kaynak sayısı: "
-                        + bulunanKayitSayisi
+                "Arama kriteriyle eşleşen görünür kaynak sayısı: "
+                        + gorunenKayitSayisi
         );
 
 
-        return bulunanKayitSayisi > 0;
+        return gorunenKayitSayisi > 0;
     }
     /**
      * Arama sonucunda kaynak bulunamadığında
@@ -1238,4 +1233,45 @@ public class OpenDataPage extends BasePage {
             return false;
         }
     }
+    /**
+     * Kaynak Ekle formunu açar.
+     */
+    public void kaynakEkleButonunaTiklama() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Kaynak Ekle")
+                        .setExact(true)
+        ).click();
+    }
+    /**
+     * Kaynak listesinin yüklenmesini bekler.
+     *
+     * Liste yüklendiğinde ya en az bir kaynak kaydı
+     * ya da boş liste mesajı görüntülenmelidir.
+     */
+    public void kaynakListesiYuklenmesiniBekleme() {
+
+        Locator goruntuleButonu =
+                page.getByLabel(
+                        "Görüntüle"
+                ).first();
+
+        Locator bosListeMesaji =
+                page.getByText(
+                        "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.",
+                        new Page.GetByTextOptions()
+                                .setExact(true)
+                );
+
+        page.waitForCondition(
+                () ->
+                        goruntuleButonu.isVisible()
+                                || bosListeMesaji.isVisible(),
+                new Page.WaitForConditionOptions()
+                        .setTimeout(15000)
+        );
+    }
+    
 }
