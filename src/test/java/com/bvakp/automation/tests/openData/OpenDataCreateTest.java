@@ -1028,4 +1028,462 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 "KAYNAK ADI ZORUNLU ALAN KONTROLÜ BAŞARILI"
         );
     }
+    /**
+     * Hazır Sorgu kullanılarak dinamik ad ve açıklama ile
+     * yeni kaynak oluşturulabildiğini doğrular.
+     *
+     * Sorgu doğrulaması sonrasında beklenen kolonlar ve
+     * Veri Önizleme bölümü kontrol edilir.
+     */
+    @Test(priority = 9)
+    public void hazirSorguIleKaynakOlusturma() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+
+        /*
+         * Her koşuda benzersiz kaynak adı oluşturulur.
+         */
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_sorgu_kaynak"
+                );
+
+
+        /*
+         * Açıklama kaynak adına bağlı olarak
+         * dinamik oluşturulur.
+         */
+        String kaynakAciklamasi =
+                "Otomasyon hazır sorgu kaynak testi - "
+                        + kaynakAdi;
+
+
+        /*
+         * Recorder üzerinde kullanılan sorgu
+         * hiçbir değişiklik yapılmadan kullanılır.
+         */
+        String sorgu =
+                "SELECT\n"
+                        + "    a.yil AS yil_yillik_hat_km,\n"
+                        + "    a.bolge_kodu AS bolge_kodu_yillik_hat_km,\n"
+                        + "    a.bolge_adi AS bolge_adi_yillik_hat_km,\n"
+                        + "    b.hat_kodu AS hat_kodu_yillik_hat_kapasitesi,\n"
+                        + "    b.hat_adi AS hat_adi_yillik_hat_kapasitesi\n"
+                        + "FROM yillik_hat_km a\n"
+                        + "LEFT JOIN yillik_hat_kapasitesi b\n"
+                        + "    ON a.bolge_kodu = b.bolge_kodu\n"
+                        + "    AND a.yil = b.yil;";
+
+
+        ReportManager.info(
+                "HAZIR SORGU KAYNAK TEST VERİSİ"
+                        + " | Kaynak: "
+                        + kaynakAdi
+        );
+
+
+        /*
+         * AVP oturumu hazırlanır.
+         */
+        avpOturumuHazirlama();
+
+
+        /*
+         * Açık Veri Portalına geçilir.
+         */
+        ReportManager.step(
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        /*
+         * Kaynak Ekle formu açılır.
+         */
+        ReportManager.step(
+                "Kaynak Ekle formu açılıyor."
+        );
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak Ekle formu görüntülenemedi."
+        );
+
+
+        /*
+         * Hazır Sorgu seçeneğine geçilir.
+         */
+        ReportManager.step(
+                "Hazır Sorgu seçeneğine geçiliyor."
+        );
+
+        kaynakEkleModal
+                .hazirSorguyaGecme();
+
+
+        /*
+         * Dinamik kaynak adı girilir.
+         */
+        ReportManager.step(
+                "Dinamik kaynak adı giriliyor: "
+                        + kaynakAdi
+        );
+
+        kaynakEkleModal
+                .kaynakAdiGirme(
+                        kaynakAdi
+                );
+
+
+        Assert.assertEquals(
+                kaynakEkleModal
+                        .kaynakAdiAlma(),
+                kaynakAdi,
+                "Kaynak adı alanındaki değer beklenen değerle uyuşmuyor."
+        );
+
+
+        /*
+         * Dinamik açıklama girilir.
+         */
+        ReportManager.step(
+                "Dinamik kaynak açıklaması giriliyor."
+        );
+
+        kaynakEkleModal
+                .kaynakAciklamasiGirme(
+                        kaynakAciklamasi
+                );
+
+
+        Assert.assertEquals(
+                kaynakEkleModal
+                        .kaynakAciklamasiAlma(),
+                kaynakAciklamasi,
+                "Kaynak açıklaması beklenen değerle uyuşmuyor."
+        );
+
+
+        /*
+         * Hazır SQL sorgusu girilir.
+         */
+        ReportManager.step(
+                "Hazır kaynak sorgusu giriliyor."
+        );
+
+        kaynakEkleModal
+                .hazirSorguGirme(
+                        sorgu
+                );
+
+
+        /*
+         * Sorgu doğrulanır.
+         */
+        ReportManager.step(
+                "Hazır sorgu doğrulanıyor."
+        );
+
+        kaynakEkleModal
+                .hazirSorguDogrulama();
+
+
+        /*
+         * Sorgunun başarılı çalıştığı, dönen kolonlar
+         * üzerinden doğrulanır.
+         */
+        ReportManager.step(
+                "Sorgu sonucunda beklenen kolonların görüntülendiği doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .hazirSorguKolonlariGoruntulendiMi(),
+                "Hazır sorgu doğrulaması sonrasında beklenen kolonlar görüntülenemedi."
+        );
+
+
+        /*
+         * Sorgu doğrulaması sonrasında
+         * Veri Önizleme alanı kontrol edilir.
+         */
+        ReportManager.step(
+                "Hazır sorguya ait Veri Önizleme bölümünün görüntülendiği doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .veriOnizlemeGoruntulendiMi(),
+                "Hazır sorgu sonrasında Veri Önizleme bölümü görüntülenemedi."
+        );
+
+
+        /*
+         * Kaynak oluşturulur.
+         */
+        ReportManager.step(
+                "Hazır sorgu kaynağı oluşturuluyor."
+        );
+
+        kaynakEkleModal
+                .kaynakEkleme();
+
+
+        /*
+         * Kaynak Ekle formunun kapandığı doğrulanır.
+         */
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuKapandiMi(),
+                "Hazır sorgu kaynağı oluşturulduktan sonra form kapanmadı."
+        );
+
+
+        /*
+         * Oluşturulan kaydın listede bulunduğu doğrulanır.
+         */
+        ReportManager.step(
+                "Oluşturulan hazır sorgu kaynağının listede bulunduğu doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakListedeMi(
+                                kaynakAdi
+                        ),
+                "Hazır sorgu ile oluşturulan kaynak listede bulunamadı: "
+                        + kaynakAdi
+        );
+
+
+        /*
+         * Kaynak adı ve açıklamanın listeye
+         * doğru kaydedildiği doğrulanır.
+         */
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakBilgileriDogruMu(
+                                kaynakAdi,
+                                kaynakAciklamasi
+                        ),
+                "Hazır sorgu ile oluşturulan kaynak bilgileri beklenen değerlerle uyuşmuyor."
+        );
+
+
+        ReportManager.info(
+                "HAZIR SORGU İLE KAYNAK OLUŞTURMA BAŞARILI"
+                        + " | Kaynak: "
+                        + kaynakAdi
+        );
+    }
+    /**
+     * Hazır Sorgu alanında SELECT dışındaki veri değiştiren
+     * SQL komutlarının sistem tarafından engellendiğini doğrular.
+     */
+    @Test(priority = 10)
+    public void hazirSorguGecirsizDmlKomutlari() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+
+        /*
+         * Dinamik test verileri oluşturulur.
+         */
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_update_kontrol"
+                );
+
+        String kaynakAciklamasi =
+                "Otomasyon UPDATE sorgu kontrolü - "
+                        + kaynakAdi;
+
+
+        /*
+         * Veri değiştirmeyen güvenli UPDATE sorgusu kullanılır.
+         *
+         * Sistem yalnızca SELECT sorgularına izin verdiği için
+         * sorgunun doğrulama aşamasında reddedilmesi beklenir.
+         */
+        String sorgu =
+                "UPDATE yillik_hat_km\n"
+                        + "SET yil = yil\n"
+                        + "WHERE 1 = 0;";
+
+
+        ReportManager.info(
+                "HAZIR SORGU UPDATE NEGATİF TESTİ"
+                        + " | Kaynak: "
+                        + kaynakAdi
+        );
+
+
+        /*
+         * AVP oturumu hazırlanır.
+         */
+        avpOturumuHazirlama();
+
+
+        /*
+         * Açık Veri Portalına geçilir.
+         */
+        ReportManager.step(
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        /*
+         * Kaynak Ekle formu açılır.
+         */
+        ReportManager.step(
+                "Kaynak Ekle formu açılıyor."
+        );
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak Ekle formu görüntülenemedi."
+        );
+
+
+        /*
+         * Hazır Sorgu seçeneğine geçilir.
+         */
+        ReportManager.step(
+                "Hazır Sorgu seçeneğine geçiliyor."
+        );
+
+        kaynakEkleModal
+                .hazirSorguyaGecme();
+
+
+        /*
+         * Dinamik kaynak adı girilir.
+         */
+        ReportManager.step(
+                "Dinamik kaynak adı giriliyor: "
+                        + kaynakAdi
+        );
+
+        kaynakEkleModal
+                .kaynakAdiGirme(
+                        kaynakAdi
+                );
+
+
+        /*
+         * Dinamik açıklama girilir.
+         */
+        ReportManager.step(
+                "Dinamik kaynak açıklaması giriliyor."
+        );
+
+        kaynakEkleModal
+                .kaynakAciklamasiGirme(
+                        kaynakAciklamasi
+                );
+
+
+        /*
+         * SELECT dışı UPDATE sorgusu girilir.
+         */
+        ReportManager.step(
+                "Hazır Sorgu alanına UPDATE komutu giriliyor."
+        );
+
+        kaynakEkleModal
+                .hazirSorguGirme(
+                        sorgu
+                );
+
+
+        /*
+         * UPDATE sorgusu doğrulanmaya çalışılır.
+         */
+        ReportManager.step(
+                "UPDATE sorgusu doğrulanıyor."
+        );
+
+        kaynakEkleModal
+                .hazirSorguDogrulama();
+
+
+        /*
+         * Kullanıcı Kaynaklı Hata alanının
+         * görüntülendiği doğrulanır.
+         */
+        ReportManager.step(
+                "Kullanıcı Kaynaklı Hata mesajının görüntülendiği doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kullaniciKaynakliHataGoruntulendiMi(),
+                "UPDATE sorgusu sonrasında Kullanıcı Kaynaklı Hata görüntülenmedi."
+        );
+
+
+        /*
+         * Sistemin yalnızca SELECT sorgularına
+         * izin verdiği mesajı doğrulanır.
+         */
+        ReportManager.step(
+                "Sorgunun yalnızca SELECT olması gerektiğine ait hata mesajı doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .sadeceSelectSorgusuHatasiGoruntulendiMi(),
+                "SELECT dışındaki sorguların engellendiğine ait hata mesajı görüntülenmedi."
+        );
+
+
+        /*
+         * Teknik hata kodu doğrulanır.
+         */
+        ReportManager.step(
+                "Read-only sorgu hata kodu doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .readOnlySorguHataKoduGoruntulendiMi(),
+                "OPEN_DATA.SOURCE.QUERY_NOT_READ_ONLY hata kodu görüntülenmedi."
+        );
+
+
+        /*
+         * Hata sonrasında Kaynak Ekle formunun
+         * açık kalmaya devam ettiği doğrulanır.
+         */
+
+        ReportManager.info(
+                "UPDATE SORGUSU ENGELLEME KONTROLÜ BAŞARILI"
+                        + " | Kaynak: "
+                        + kaynakAdi
+        );
+    }
 }

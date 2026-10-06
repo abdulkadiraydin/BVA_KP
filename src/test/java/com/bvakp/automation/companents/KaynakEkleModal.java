@@ -1,5 +1,6 @@
 package com.bvakp.automation.companents;
 
+import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
@@ -290,5 +291,195 @@ public class KaynakEkleModal {
                         .setExact(true)
         ).click();
     }
+    /**
+     * Kaynak Ekle formunda Hazır Sorgu seçeneğine geçer.
+     */
+    public void hazirSorguyaGecme() {
 
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Hazır Sorgu")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Hazır Sorgu alanına verilen SQL sorgusunu yazar.
+     *
+     * @param sorgu çalıştırılacak SQL sorgusu
+     */
+    public void hazirSorguGirme(
+            String sorgu) {
+
+        Locator sorguAlani =
+                page.getByPlaceholder(
+                        "SELECT a.*, b.ad\n"
+                                + "FROM tablo_a a\n"
+                                + "JOIN tablo_b b ON a.id = b.a_id"
+                );
+
+        sorguAlani.fill(
+                sorgu
+        );
+    }
+
+
+    /**
+     * Girilen hazır sorgunun doğrulanmasını başlatır.
+     */
+    public void hazirSorguDogrulama() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Doğrula")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Sorgu doğrulaması sonrasında beklenen
+     * kolonların görüntülendiğini kontrol eder.
+     */
+    public boolean hazirSorguKolonlariGoruntulendiMi() {
+
+        String[] beklenenKolonlar = {
+                "yil_yillik_hat_km",
+                "bolge_kodu_yillik_hat_km",
+                "bolge_adi_yillik_hat_km",
+                "hat_kodu_yillik_hat_kapasitesi",
+                "hat_adi_yillik_hat_kapasitesi"
+        };
+
+
+        for (String kolon : beklenenKolonlar) {
+
+            try {
+
+                Locator kolonLocator =
+                        page.getByText(
+                                kolon,
+                                new Page.GetByTextOptions()
+                                        .setExact(true)
+                        );
+
+                kolonLocator.waitFor(
+                        new Locator.WaitForOptions()
+                                .setTimeout(15000)
+                );
+
+
+                if (!kolonLocator.isVisible()) {
+
+                    ReportManager.info(
+                            "Sorgu sonucunda beklenen kolon görüntülenemedi"
+                                    + " | Kolon: "
+                                    + kolon
+                    );
+
+                    return false;
+                }
+
+            } catch (PlaywrightException e) {
+
+                ReportManager.info(
+                        "Sorgu sonucunda beklenen kolon yüklenemedi"
+                                + " | Kolon: "
+                                + kolon
+                );
+
+                return false;
+            }
+        }
+
+
+        return true;
+    }
+    /**
+     * SELECT dışındaki sorgularda Kullanıcı Kaynaklı Hata
+     * alanının görüntülendiğini kontrol eder.
+     */
+    public boolean kullaniciKaynakliHataGoruntulendiMi() {
+
+        try {
+
+            Locator hataBasligi =
+                    page.getByText(
+                            "Kullanıcı Kaynaklı Hata",
+                            new Page.GetByTextOptions()
+                                    .setExact(true)
+                    );
+
+            hataBasligi.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            return hataBasligi.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+
+    /**
+     * SELECT dışındaki veri değiştiren sorguların
+     * engellendiğine ait hata mesajını kontrol eder.
+     */
+    public boolean sadeceSelectSorgusuHatasiGoruntulendiMi() {
+
+        try {
+
+            Locator hataMesaji =
+                    page.getByText(
+                            "Sorguyu yalnızca SELECT ile yazın.",
+                            new Page.GetByTextOptions()
+                                    .setExact(false)
+                    );
+
+            hataMesaji.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            return hataMesaji.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+
+
+    /**
+     * Read-only sorgu kuralına ait hata kodunun
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean readOnlySorguHataKoduGoruntulendiMi() {
+
+        try {
+
+            Locator hataKodu =
+                    page.getByText(
+                            "OPEN_DATA.SOURCE.QUERY_NOT_READ_ONLY",
+                            new Page.GetByTextOptions()
+                                    .setExact(false)
+                    );
+
+            hataKodu.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            return hataKodu.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
 }
