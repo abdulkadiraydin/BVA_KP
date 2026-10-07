@@ -1,17 +1,21 @@
 package com.bvakp.automation.utils;
 
 import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.WaitForSelectorState;
 
 public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
+
 
     /**
      * Utility class'ı manuel olarak çalıştırır.
      *
-     * Yalnızca "otomasyon" ile başlayan
+     * Yalnızca adı "otomasyon" ile başlayan
      * kaynak kayıtları silinir.
      */
     public static void main(String[] args) {
@@ -23,19 +27,15 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
             temizleyici.setUp();
 
-            temizleyici.otomasyonKaynaklariniTemizleme();
+            temizleyici
+                    .otomasyonKaynaklariniTemizleme();
 
         } finally {
 
-            /*
-             * TestNG çalışmadığı için teardown işlemi
-             * manuel olarak PlaywrightManager üzerinden yapılabilir.
-             */
-            com.bvakp.automation.core.playwright.PlaywrightManager
-                    .close(
-                            "otomasyonKaynaklariniTemizleme",
-                            "MANUEL"
-                    );
+            PlaywrightManager.close(
+                    "otomasyonKaynaklariniTemizleme",
+                    "MANUEL"
+            );
         }
     }
 
@@ -56,13 +56,18 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
         /*
-         * Mevcut AVP auth state kullanılır.
-         * State geçersizse normal login gerçekleştirilir.
+         * AVP oturumu hazırlanır.
          */
         avpOturumuHazirlama();
 
 
-        ReportManager.step(
+        /*
+         * Açık Veri Portalına geçilir.
+         *
+         * Utility main() üzerinden çalıştığı için
+         * burada step yerine info kullanılır.
+         */
+        ReportManager.info(
                 "Açık Veri Portalına geçiliyor."
         );
 
@@ -71,10 +76,9 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
         /*
-         * Önce kaynak listesi yalnızca otomasyon
-         * kayıtlarını gösterecek şekilde filtrelenir.
+         * Kaynaklar otomasyon kriteriyle filtrelenir.
          */
-        ReportManager.step(
+        ReportManager.info(
                 "'otomasyon' kriteri ile kaynaklar filtreleniyor."
         );
 
@@ -84,16 +88,34 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
                 );
 
 
+        /*
+         * Arama sonrasında tablo asenkron yüklendiği
+         * için kayıtların gelmesi beklenir.
+         */
+        ReportManager.info(
+                "Otomasyon kaynaklarının yüklenmesi bekleniyor."
+        );
+
+        otomasyonKayitlarininYuklenmesiniBekleme();
+
+
         int silinenKayitSayisi =
                 0;
 
 
+
         /*
-         * Her silme işleminden sonra liste yeniden
-         * render edildiği için locator tekrar oluşturulur.
+         * Silinebilecek otomasyon kaydı kalmayana
+         * kadar işlem devam eder.
          */
         while (true) {
 
+            /*
+             * Her döngüde locator yeniden oluşturulur.
+             *
+             * Çünkü her silme işleminden sonra
+             * tablo DOM'u yeniden render edilmektedir.
+             */
             Locator otomasyonSatirlari =
                     page.getByRole(
                             AriaRole.ROW
@@ -114,11 +136,15 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
             int satirSayisi =
                     otomasyonSatirlari.count();
+            ReportManager.info(
+                    "Filtre sonrası bulunan otomasyon satırı sayısı: "
+                            + satirSayisi
+            );
 
 
             /*
-             * Yalnızca adı gerçekten "otomasyon"
-             * ile başlayan satır seçilir.
+             * Adı gerçekten "otomasyon" ile başlayan
+             * ilk görünür kayıt bulunur.
              */
             for (int i = 0;
                  i < satirSayisi;
@@ -151,6 +177,12 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
                                 .trim();
 
 
+
+                /*
+                 * Güvenlik kontrolü:
+                 * yalnızca otomasyon ile başlayan
+                 * kaynaklara dokunulur.
+                 */
                 if (!kaynakAdi
                         .toLowerCase()
                         .startsWith(
@@ -172,8 +204,8 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
             /*
-             * Silinebilecek otomasyon kaydı kalmadıysa
-             * işlem tamamlanır.
+             * Silinebilecek otomasyon kaydı
+             * kalmadıysa döngü tamamlanır.
              */
             if (silinecekSatir == null) {
 
@@ -181,14 +213,30 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
             }
 
 
+            /*
+             * Silme öncesinde aynı isimde kaç adet
+             * görünür kayıt olduğu alınır.
+             *
+             * Aynı isimde birden fazla kayıt bulunması
+             * durumunu da destekler.
+             */
+            int silmeOncesiKayitSayisi =
+                    gorunurKaynakSayisi(
+                            silinecekKaynakAdi
+                    );
+
+
             ReportManager.info(
-                    "Silinecek otomasyon kaynağı | "
+                    "Silinecek otomasyon kaynağı"
+                            + " | "
                             + silinecekKaynakAdi
+                            + " | Aynı isimde görünür kayıt: "
+                            + silmeOncesiKayitSayisi
             );
 
 
             /*
-             * Sadece bulunan satırın Sil butonuna tıklanır.
+             * Bulunan satırın Sil butonuna tıklanır.
              */
             silinecekSatir
                     .getByRole(
@@ -201,19 +249,26 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
             /*
-             * Silme onay dialogundaki Sil butonuna tıklanır.
+             * Silme onay dialogunun açılması beklenir.
              */
             Locator dialog =
                     page.getByRole(
                             AriaRole.DIALOG
                     );
 
+
             dialog.waitFor(
                     new Locator.WaitForOptions()
+                            .setState(
+                                    WaitForSelectorState.VISIBLE
+                            )
                             .setTimeout(10000)
             );
 
 
+            /*
+             * Silme işlemi onaylanır.
+             */
             dialog.getByRole(
                     AriaRole.BUTTON,
                     new Locator.GetByRoleOptions()
@@ -223,14 +278,41 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
             /*
-             * Dialog kapanmadan sonraki kayda geçilmez.
+             * Dialog tamamen kapanmadan
+             * tablo kontrolüne geçilmez.
              */
             dialog.waitFor(
                     new Locator.WaitForOptions()
                             .setState(
-                                    com.microsoft.playwright.options
-                                            .WaitForSelectorState.HIDDEN
+                                    WaitForSelectorState.HIDDEN
                             )
+                            .setTimeout(15000)
+            );
+
+
+            /*
+             * Kritik bekleme:
+             *
+             * Dialogun kapanması tablo verisinin
+             * güncellendiği anlamına gelmeyebilir.
+             *
+             * Aynı isimdeki görünür kayıt sayısının
+             * gerçekten azalması beklenir.
+             */
+            String kaynakAdiBeklenen =
+                    silinecekKaynakAdi;
+
+            int oncekiKayitSayisi =
+                    silmeOncesiKayitSayisi;
+
+
+            page.waitForCondition(
+                    () ->
+                            gorunurKaynakSayisi(
+                                    kaynakAdiBeklenen
+                            )
+                                    < oncekiKayitSayisi,
+                    new Page.WaitForConditionOptions()
                             .setTimeout(15000)
             );
 
@@ -239,7 +321,8 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
             ReportManager.info(
-                    "Kaynak silindi | "
+                    "Kaynak silindi"
+                            + " | "
                             + silinecekKaynakAdi
                             + " | Toplam silinen: "
                             + silinenKayitSayisi
@@ -251,6 +334,88 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
                 "OTOMASYON KAYNAK TEMİZLİĞİ TAMAMLANDI"
                         + " | Toplam silinen kayıt: "
                         + silinenKayitSayisi
+        );
+    }
+
+
+    /**
+     * Belirtilen kaynak adına ait görünür
+     * kayıt sayısını döndürür.
+     *
+     * Silme işleminden sonra tablonun gerçekten
+     * yenilendiğini anlamak için kullanılır.
+     */
+    private int gorunurKaynakSayisi(
+            String kaynakAdi) {
+
+        Locator kaynakAdiLocator =
+                page.getByText(
+                        kaynakAdi,
+                        new Page.GetByTextOptions()
+                                .setExact(true)
+                );
+
+
+        Locator kaynakSatirlari =
+                page.getByRole(
+                        AriaRole.ROW
+                ).filter(
+                        new Locator.FilterOptions()
+                                .setHas(
+                                        kaynakAdiLocator
+                                )
+                );
+
+
+        int gorunurKayitSayisi =
+                0;
+
+
+        for (int i = 0;
+             i < kaynakSatirlari.count();
+             i++) {
+
+            if (kaynakSatirlari
+                    .nth(i)
+                    .isVisible()) {
+
+                gorunurKayitSayisi++;
+            }
+        }
+
+
+        return gorunurKayitSayisi;
+    }
+    /**
+     * Otomasyon araması sonrasında tablonun
+     * sonuç üretmesini bekler.
+     *
+     * Ya en az bir otomasyon kaydı ya da
+     * boş sonuç mesajı görüntülenmelidir.
+     */
+    private void otomasyonKayitlarininYuklenmesiniBekleme() {
+
+        Locator otomasyonSatiri =
+                page.getByRole(
+                        AriaRole.ROW
+                ).filter(
+                        new Locator.FilterOptions()
+                                .setHasText("otomasyon")
+                ).first();
+
+        Locator bosListeMesaji =
+                page.getByText(
+                        "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.",
+                        new Page.GetByTextOptions()
+                                .setExact(true)
+                );
+
+        page.waitForCondition(
+                () ->
+                        otomasyonSatiri.isVisible()
+                                || bosListeMesaji.isVisible(),
+                new Page.WaitForConditionOptions()
+                        .setTimeout(15000)
         );
     }
 }

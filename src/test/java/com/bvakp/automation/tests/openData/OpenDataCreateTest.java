@@ -8,6 +8,7 @@ import com.bvakp.automation.utils.ScreenshotUtil;
 import com.bvakp.automation.utils.TestDataUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import org.testng.asserts.SoftAssert;
 
 import java.nio.file.Path;
 
@@ -1486,4 +1487,886 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + kaynakAdi
         );
     }
+  /**
+     * Dinamik kaynak üzerinden veri seti oluşturur,
+     * anonimleştirme kuralı uygular ve veri setini
+     * KVKK onay sürecine gönderir.
+     */
+    @Test(priority = 11)
+    public void veriSetiOnayaGonderme() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+
+        /*
+         * Test kendi kaynağını oluşturur.
+         */
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_onay_kaynak"
+                );
+
+        String kaynakAciklamasi =
+                "Otomasyon veri seti onay kaynağı - "
+                        + kaynakAdi;
+
+        String tabloAdi =
+                "arac_bakim_is_yeri_sayisi";
+
+
+        /*
+         * Veri setine ait dinamik bilgiler oluşturulur.
+         */
+        String veriSetiAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_veri_seti"
+                );
+
+        String veriSetiAciklamasi =
+                "Otomasyon KVKK onay veri seti - "
+                        + veriSetiAdi;
+
+
+        String sorumluBirim =
+                "İşletme Dairesi Başkanlığı";
+
+        String kategori =
+                "Altyapı & Şebeke";
+
+        String kullanimLisansi =
+                "TCDD Taşımacılık Açık Veri Lisansı";
+
+
+        ReportManager.info(
+                "VERİ SETİ ONAYA GÖNDERME TEST VERİSİ"
+                        + " | Kaynak: "
+                        + kaynakAdi
+                        + " | Veri Seti: "
+                        + veriSetiAdi
+        );
+
+
+        /*
+         * AVP oturumu hazırlanır.
+         */
+        avpOturumuHazirlama();
+
+
+        /*
+         * Açık Veri Portalına geçilir.
+         */
+        ReportManager.step(
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        /*
+         * Testin kullanacağı kaynak oluşturulur.
+         */
+        ReportManager.step(
+                "Veri seti oluşturma testi için dinamik kaynak oluşturuluyor."
+        );
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak Ekle formu görüntülenemedi."
+        );
+
+
+        kaynakEkleModal
+                .kaynakAdiGirme(
+                        kaynakAdi
+                );
+
+        kaynakEkleModal
+                .kaynakTablosuSecme(
+                        tabloAdi
+                );
+
+        kaynakEkleModal
+                .kaynakAciklamasiGirme(
+                        kaynakAciklamasi
+                );
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .veriOnizlemeGoruntulendiMi(),
+                "Kaynak Veri Önizleme bölümü görüntülenemedi."
+        );
+
+
+        kaynakEkleModal
+                .kaynakEkleme();
+
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakListedeMi(
+                                kaynakAdi
+                        ),
+                "Onaya gönderme testi için oluşturulan kaynak listede bulunamadı."
+        );
+
+
+        /*
+         * Oluşturulan kaynak seçilir.
+         */
+        ReportManager.step(
+                "Oluşturulan kaynak veri seti için seçiliyor: "
+                        + kaynakAdi
+        );
+
+        openDataPage
+                .kaynakSecme(
+                        kaynakAdi
+                );
+
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakSeciliMi(
+                                kaynakAdi
+                        ),
+                "Kaynak seçimi gerçekleştirilemedi."
+        );
+
+
+        /*
+         * Alan Seçimi ve Anonimleştirme adımına geçilir.
+         */
+        ReportManager.step(
+                "Alan Seçimi ve Anonimleştirme adımına geçiliyor."
+        );
+
+        openDataPage
+                .veriSetiIleriGitme();
+
+
+        /*
+         * Yıl alanına Maskele kuralı uygulanır.
+         */
+        ReportManager.step(
+                "yil alanına Maskele anonimleştirme kuralı uygulanıyor."
+        );
+
+        openDataPage
+                .yilAlaninaMaskeleKuraliUygulama();
+
+
+        /*
+         * Veri seti adı girilir.
+         */
+        ReportManager.step(
+                "Dinamik veri seti adı giriliyor: "
+                        + veriSetiAdi
+        );
+
+        openDataPage
+                .veriSetiAdiGirme(
+                        veriSetiAdi
+                );
+
+
+        Assert.assertEquals(
+                openDataPage
+                        .veriSetiAdiAlma(),
+                veriSetiAdi,
+                "Veri Seti Adı alanındaki değer beklenen değerle uyuşmuyor."
+        );
+
+
+        /*
+         * Sorumlu birim seçilir.
+         */
+        ReportManager.step(
+                "Sorumlu Birim seçiliyor: "
+                        + sorumluBirim
+        );
+
+        openDataPage
+                .sorumluBirimSecme(
+                        sorumluBirim
+                );
+
+
+        /*
+         * Kategori seçilir.
+         */
+        ReportManager.step(
+                "Kategori seçiliyor: "
+                        + kategori
+        );
+
+        openDataPage
+                .kategoriSecme(
+                        kategori
+                );
+
+
+        /*
+         * Kullanım lisansı seçilir.
+         */
+        ReportManager.step(
+                "Kullanım Lisansı seçiliyor: "
+                        + kullanimLisansi
+        );
+
+        openDataPage
+                .kullanimLisansiSecme(
+                        kullanimLisansi
+                );
+
+
+        /*
+         * Dinamik açıklama girilir.
+         */
+        ReportManager.step(
+                "Dinamik veri seti açıklaması giriliyor."
+        );
+
+        openDataPage
+                .veriSetiAciklamasiGirme(
+                        veriSetiAciklamasi
+                );
+
+
+        Assert.assertEquals(
+                openDataPage
+                        .veriSetiAciklamasiAlma(),
+                veriSetiAciklamasi,
+                "Veri seti açıklaması beklenen değerle uyuşmuyor."
+        );
+
+
+        /*
+         * Veri seti önizleme ekranına geçilir.
+         */
+        ReportManager.step(
+                "Veri seti önizleme ekranına geçiliyor."
+        );
+
+        openDataPage
+                .veriSetiOnizleme();
+
+
+        /*
+         * Veri seti KVKK onayına gönderilir.
+         */
+        ReportManager.step(
+                "Veri seti KVKK onayına gönderiliyor."
+        );
+
+        openDataPage
+                .veriSetiOnayaGonderme();
+
+
+        /*
+         * Onaya gönderme işlemi onaylanır.
+         */
+        ReportManager.step(
+                "Onaya gönderme işlemi onaylanıyor."
+        );
+
+        openDataPage
+                .veriSetiOnayaGondermeyiOnaylama();
+
+
+        /*
+         * Başarı mesajı doğrulanır.
+         */
+        ReportManager.step(
+                "Veri setinin oluşturulup KVKK onayına gönderildiği doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                openDataPage
+                        .veriSetiKvkkOnayinaGonderildiMi(),
+                "Veri setinin KVKK onayına gönderildiğine ait başarı mesajı görüntülenmedi."
+        );
+
+
+        ReportManager.info(
+                "VERİ SETİ KVKK ONAYINA GÖNDERME BAŞARILI"
+                        + " | Veri Seti: "
+                        + veriSetiAdi
+                        + " | Kaynak: "
+                        + kaynakAdi
+        );
+    }
+    /**
+     * Verilen kaynağı seçerek Veri Seti Katalog
+     * Bilgileri ekranına geçer.
+     */
+    private void veriSetiKatalogEkraniniAcma(
+            OpenDataPage openDataPage,
+            String kaynakAdi) {
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+        openDataPage
+                .kaynakSecme(
+                        kaynakAdi
+                );
+
+        openDataPage
+                .veriSetiIleriGitme();
+    }
+    /**
+     * Veri Seti Katalog Bilgileri ekranındaki
+     * Veri Seti Adı, Sorumlu Birim ve Kategori
+     * zorunlu alan kontrollerini doğrular.
+     */
+    @Test(priority = 12)
+    public void veriSetiZorunluAlanKontrolleri() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+        SoftAssert softAssert =
+                new SoftAssert();
+
+
+        /*
+         * Test için dinamik kaynak hazırlanır.
+         */
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_zorunlu_alan_kaynak"
+                );
+
+        String kaynakAciklamasi =
+                "Otomasyon veri seti zorunlu alan testi - "
+                        + kaynakAdi;
+
+        String tabloAdi =
+                "arac_bakim_is_yeri_sayisi";
+
+
+        /*
+         * Veri seti test bilgileri hazırlanır.
+         */
+        String veriSetiAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_zorunlu_veri_seti"
+                );
+
+        String sorumluBirim =
+                "İşletme Dairesi Başkanlığı";
+
+        String kategori =
+                "Yolcu Taşımacılığı";
+
+
+        /*
+         * AVP oturumu hazırlanır.
+         */
+        avpOturumuHazirlama();
+
+
+        /*
+         * Açık Veri Portalına geçilir.
+         */
+        ReportManager.step(
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        /*
+         * Testin kullanacağı kaynak oluşturulur.
+         */
+        ReportManager.step(
+                "Zorunlu alan testi için dinamik kaynak oluşturuluyor."
+        );
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        kaynakEkleModal
+                .kaynakAdiGirme(
+                        kaynakAdi
+                );
+
+        kaynakEkleModal
+                .kaynakTablosuSecme(
+                        tabloAdi
+                );
+
+        kaynakEkleModal
+                .kaynakAciklamasiGirme(
+                        kaynakAciklamasi
+                );
+
+        kaynakEkleModal
+                .kaynakEkleme();
+
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakListedeMi(
+                                kaynakAdi
+                        ),
+                "Zorunlu alan testi için kaynak oluşturulamadı."
+        );
+
+
+        /*
+         * Oluşturulan kaynak seçilir.
+         */
+        ReportManager.step(
+                "Oluşturulan kaynak seçiliyor: "
+                        + kaynakAdi
+        );
+
+        openDataPage
+                .kaynakSecme(
+                        kaynakAdi
+                );
+
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakSeciliMi(
+                                kaynakAdi
+                        ),
+                "Kaynak seçilemedi."
+        );
+
+
+        /*
+         * Veri Seti Katalog Bilgileri ekranına geçilir.
+         */
+        ReportManager.step(
+                "Veri Seti Katalog Bilgileri ekranına geçiliyor."
+        );
+
+        openDataPage
+                .veriSetiIleriGitme();
+
+
+        /*
+         * =====================================================
+         * 1. SORUMLU BİRİM + KATEGORİ ZORUNLU ALAN KONTROLÜ
+         * =====================================================
+         *
+         * Veri Seti Adı doldurulur.
+         * Sorumlu Birim ve Kategori boş bırakılır.
+         */
+        ReportManager.step(
+                "Veri Seti Adı dolduruluyor."
+        );
+
+        openDataPage
+                .veriSetiAdiGirme(
+                        veriSetiAdi
+                );
+
+
+        Assert.assertEquals(
+                openDataPage
+                        .veriSetiAdiAlma(),
+                veriSetiAdi,
+                "Veri Seti Adı alanındaki değer beklenen değerle uyuşmuyor."
+        );
+
+
+        ReportManager.step(
+                "Sorumlu Birim ve Kategori boş bırakılarak Önizle butonuna tıklanıyor."
+        );
+
+        openDataPage
+                .veriSetiOnizleme();
+
+
+        /*
+         * Sorumlu Birim validasyonu kontrol edilir.
+         */
+        softAssert.assertTrue(
+                openDataPage
+                        .sorumluBirimZorunluMesajiGoruntulendiMi(),
+                "Sorumlu Birim boş bırakıldığında zorunlu alan mesajı görüntülenmedi."
+        );
+
+
+        /*
+         * Kategori validasyonu kontrol edilir.
+         */
+        softAssert.assertTrue(
+                openDataPage
+                        .kategoriZorunluMesajiGoruntulendiMi(),
+                "Kategori boş bırakıldığında zorunlu alan mesajı görüntülenmedi."
+        );
+
+
+        /*
+         * =====================================================
+         * 2. VERİ SETİ ADI ZORUNLU ALAN KONTROLÜ
+         * =====================================================
+         *
+         * Sorumlu Birim ve Kategori doldurulur.
+         */
+        ReportManager.step(
+                "Sorumlu Birim seçiliyor: "
+                        + sorumluBirim
+        );
+
+        openDataPage
+                .sorumluBirimSecme(
+                        sorumluBirim
+                );
+
+
+        ReportManager.step(
+                "Kategori seçiliyor: "
+                        + kategori
+        );
+
+        openDataPage
+                .kategoriSecme(
+                        kategori
+                );
+
+
+        /*
+         * Veri Seti Adı boşaltılır.
+         *
+         * veriSetiAdiGirme metodu fill kullandığı için
+         * boş String verilmesi alanı temizler.
+         */
+        ReportManager.step(
+                "Veri Seti Adı alanı boşaltılıyor."
+        );
+
+        openDataPage
+                .veriSetiAdiGirme(
+                        ""
+                );
+
+
+        Assert.assertEquals(
+                openDataPage
+                        .veriSetiAdiAlma(),
+                "",
+                "Veri Seti Adı alanı boşaltılamadı."
+        );
+
+
+        ReportManager.step(
+                "Sorumlu Birim ve Kategori doluyken Veri Seti Adı boş bırakılarak Önizle butonuna tıklanıyor."
+        );
+
+        openDataPage
+                .veriSetiOnizleme();
+
+
+        /*
+         * Veri Seti Adı validasyonu kontrol edilir.
+         */
+        softAssert.assertTrue(
+                openDataPage
+                        .veriSetiAdiZorunluMesajiGoruntulendiMi(),
+                "Veri Seti Adı boş bırakıldığında zorunlu alan mesajı görüntülenmedi."
+        );
+
+
+        /*
+         * Bütün zorunlu alan kontrolleri
+         * test sonunda birlikte değerlendirilir.
+         */
+        softAssert.assertAll();
+
+
+        ReportManager.info(
+                "VERİ SETİ KATALOG ZORUNLU ALAN KONTROLLERİ BAŞARILI"
+        );
+    }
+    /**
+     * Seçilen kaynak kolonuna Maskele anonimleştirme
+     * kuralının uygulanabildiğini ve önizlemede verilerin
+     * maskelenmiş olarak görüntülendiğini doğrular.
+     */
+    @Test(priority = 13)
+    public void veriSetiKolonMaskelemeKontrolu() {
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(page);
+
+        KaynakEkleModal kaynakEkleModal =
+                new KaynakEkleModal(page);
+
+
+        /*
+         * Test için dinamik kaynak bilgileri hazırlanır.
+         */
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_maskeleme_kaynak"
+                );
+
+        String kaynakAciklamasi =
+                "Otomasyon kolon maskeleme testi - "
+                        + kaynakAdi;
+
+        String tabloAdi =
+                "arac_bakim_is_yeri_sayisi";
+
+
+        /*
+         * Maskeleme uygulanacak kolon.
+         */
+        String maskelenecekKolon =
+                "bolge_adi";
+
+
+        /*
+         * Veri seti bilgileri hazırlanır.
+         */
+        String veriSetiAdi =
+                TestDataUtil.dinamikAdOlusturma(
+                        "otomasyon_maskeli_veri_seti"
+                );
+
+        String sorumluBirim =
+                "İşletme Dairesi Başkanlığı";
+
+        String kategori =
+                "Yolcu Taşımacılığı";
+
+
+        ReportManager.info(
+                "VERİ SETİ MASKELEME TEST VERİSİ"
+                        + " | Kaynak: "
+                        + kaynakAdi
+                        + " | Kolon: "
+                        + maskelenecekKolon
+        );
+
+
+        /*
+         * AVP oturumu hazırlanır.
+         */
+        avpOturumuHazirlama();
+
+
+        /*
+         * Açık Veri Portalına geçilir.
+         */
+        ReportManager.step(
+                "Açık Veri Portalına geçiliyor."
+        );
+
+        openDataPage
+                .acikVeriPortalinaGitme();
+
+
+        /*
+         * Test kendi kaynağını oluşturur.
+         */
+        ReportManager.step(
+                "Maskeleme testi için dinamik kaynak oluşturuluyor."
+        );
+
+        openDataPage
+                .kaynakEklemeEkraniniAcma();
+
+
+        kaynakEkleModal
+                .kaynakAdiGirme(
+                        kaynakAdi
+                );
+
+        kaynakEkleModal
+                .kaynakTablosuSecme(
+                        tabloAdi
+                );
+
+        kaynakEkleModal
+                .kaynakAciklamasiGirme(
+                        kaynakAciklamasi
+                );
+
+
+        Assert.assertTrue(
+                kaynakEkleModal
+                        .veriOnizlemeGoruntulendiMi(),
+                "Kaynak oluşturma sırasında Veri Önizleme görüntülenemedi."
+        );
+
+
+        kaynakEkleModal
+                .kaynakEkleme();
+
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakListedeMi(
+                                kaynakAdi
+                        ),
+                "Maskeleme testi için oluşturulan kaynak listede bulunamadı."
+        );
+
+
+        /*
+         * Oluşturulan kaynak seçilir.
+         */
+        ReportManager.step(
+                "Oluşturulan kaynak seçiliyor: "
+                        + kaynakAdi
+        );
+
+        openDataPage
+                .kaynakSecme(
+                        kaynakAdi
+                );
+
+
+        Assert.assertTrue(
+                openDataPage
+                        .kaynakSeciliMi(
+                                kaynakAdi
+                        ),
+                "Maskeleme testi için kaynak seçilemedi."
+        );
+
+
+        /*
+         * Alan Seçimi ve Anonimleştirme
+         * adımına geçilir.
+         */
+        ReportManager.step(
+                "Alan Seçimi ve Anonimleştirme adımına geçiliyor."
+        );
+
+        openDataPage
+                .veriSetiIleriGitme();
+
+
+        /*
+         * bolge_adi kolonuna Maskele
+         * kuralı uygulanır.
+         */
+        ReportManager.step(
+                maskelenecekKolon
+                        + " kolonuna Maskele kuralı uygulanıyor."
+        );
+
+        openDataPage
+                .kolonaMaskelemeKuraliUygulama(
+                        maskelenecekKolon
+                );
+
+
+        /*
+         * Veri seti katalog bilgileri doldurulur.
+         */
+        ReportManager.step(
+                "Veri seti katalog bilgileri dolduruluyor."
+        );
+
+        openDataPage
+                .veriSetiAdiGirme(
+                        veriSetiAdi
+                );
+
+        openDataPage
+                .sorumluBirimSecme(
+                        sorumluBirim
+                );
+
+        openDataPage
+                .kategoriSecme(
+                        kategori
+                );
+
+
+        /*
+         * Önizleme ekranına geçilir.
+         */
+        ReportManager.step(
+                "Anonimleştirilmiş veri önizlemesine geçiliyor."
+        );
+
+        openDataPage
+                .veriSetiOnizleme();
+
+
+        /*
+         * Maskelenen kolonun önizlemede
+         * bulunduğu doğrulanır.
+         */
+        ReportManager.step(
+                maskelenecekKolon
+                        + " kolonunun önizlemede görüntülendiği doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                openDataPage
+                        .onizlemeKolonuGoruntulendiMi(
+                                maskelenecekKolon
+                        ),
+                "Maskelenen kolon önizleme ekranında görüntülenmedi: "
+                        + maskelenecekKolon
+        );
+
+
+        /*
+         * Kolonun Maskelendi olarak
+         * işaretlendiği doğrulanır.
+         */
+        ReportManager.step(
+                maskelenecekKolon
+                        + " kolonunda Maskelendi bilgisinin görüntülendiği doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                openDataPage
+                        .maskelendiBilgisiGoruntulendiMi(),
+                "Maskeleme uygulanan kolon için Maskelendi bilgisi görüntülenmedi."
+        );
+
+
+        /*
+         * Önizleme verilerinin gerçekten
+         * yıldızlarla maskelendiği doğrulanır.
+         */
+        ReportManager.step(
+                "Önizleme tablosunda maskelenmiş **** değerlerinin bulunduğu doğrulanıyor."
+        );
+
+        Assert.assertTrue(
+                openDataPage
+                        .maskelenmisVeriGoruntulendiMi(),
+                "Anonimleştirilmiş önizlemede maskelenmiş veri bulunamadı."
+        );
+
+
+        ReportManager.info(
+                "KOLON MASKELEME KONTROLÜ BAŞARILI"
+                        + " | Kolon: "
+                        + maskelenecekKolon
+                        + " | Veri Seti: "
+                        + veriSetiAdi
+        );
+    }
+
 }

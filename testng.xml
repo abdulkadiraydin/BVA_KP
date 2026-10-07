@@ -6,17 +6,11 @@
        preserve-order="true"
        verbose="1">
 
-
-    <test name="Login Tests"
-          preserve-order="true">
-
+    <test name="OpenDataTest" preserve-order="true">
         <classes>
-
             <class name="com.bvakp.automation.tests.LoginTest"/>
             <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
-
         </classes>
-
     </test>
 
 </suite>

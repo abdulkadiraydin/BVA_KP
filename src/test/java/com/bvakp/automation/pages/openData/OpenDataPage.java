@@ -1273,5 +1273,495 @@ public class OpenDataPage extends BasePage {
                         .setTimeout(15000)
         );
     }
-    
+    /**
+     * Verilen kaynak kaydını Veri Seti Oluşturma
+     * ekranında seçer.
+     */
+    public void kaynakSecme(
+            String kaynakAdi) {
+
+        Locator kaynakSatiri =
+                kaynakSatiriBulma(
+                        kaynakAdi
+                );
+
+        kaynakSatiri
+                .getByLabel(
+                        "Seçim"
+                )
+                .check();
+    }
+
+
+    /**
+     * Kaynak kaydının seçili olduğunu kontrol eder.
+     */
+    public boolean kaynakSeciliMi(
+            String kaynakAdi) {
+
+        return kaynakSatiriBulma(
+                kaynakAdi
+        ).getByLabel(
+                "Seçim"
+        ).isChecked();
+    }
+
+
+    /**
+     * Veri Seti Oluşturma ekranında
+     * sonraki adıma geçer.
+     */
+    public void veriSetiIleriGitme() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("İleri")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Yıl alanına Maskele anonimleştirme
+     * kuralını uygular.
+     */
+    public void yilAlaninaMaskeleKuraliUygulama() {
+
+        Locator yilSatiri =
+                page.getByRole(
+                        AriaRole.ROW,
+                        new Page.GetByRoleOptions()
+                                .setName(
+                                        "yil integer — Kural Yok"
+                                )
+                );
+
+        yilSatiri
+                .getByLabel(
+                        "Kural Yok"
+                )
+                .click();
+
+        page.getByRole(
+                AriaRole.OPTION,
+                new Page.GetByRoleOptions()
+                        .setName("Maskele")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Veri seti adını girer.
+     */
+    public void veriSetiAdiGirme(
+            String veriSetiAdi) {
+
+        page.getByLabel(
+                "Veri Seti Adı *"
+        ).fill(
+                veriSetiAdi
+        );
+    }
+
+
+    /**
+     * Veri seti adı alanındaki değeri döndürür.
+     */
+    public String veriSetiAdiAlma() {
+
+        return page.getByLabel(
+                "Veri Seti Adı *"
+        ).inputValue();
+    }
+
+
+    /**
+     * Sorumlu birimi seçer.
+     */
+    public void sorumluBirimSecme(
+            String sorumluBirim) {
+
+        page.getByLabel(
+                "Sorumlu Birim *"
+        ).click();
+
+        page.getByRole(
+                AriaRole.OPTION,
+                new Page.GetByRoleOptions()
+                        .setName(sorumluBirim)
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Veri seti kategorisini seçer.
+     */
+    public void kategoriSecme(
+            String kategori) {
+
+        page.getByLabel(
+                "Kategori *"
+        ).click();
+
+        page.getByRole(
+                AriaRole.OPTION,
+                new Page.GetByRoleOptions()
+                        .setName(kategori)
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Kullanım lisansını seçer.
+     */
+    public void kullanimLisansiSecme(
+            String lisans) {
+
+        page.getByLabel(
+                "Kullanım Lisansı"
+        ).click();
+
+        page.getByRole(
+                AriaRole.OPTION,
+                new Page.GetByRoleOptions()
+                        .setName(lisans)
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Veri seti açıklamasını girer.
+     */
+    public void veriSetiAciklamasiGirme(
+            String aciklama) {
+
+        page.getByLabel(
+                "Açıklama"
+        ).fill(
+                aciklama
+        );
+    }
+
+
+    /**
+     * Veri seti açıklamasını döndürür.
+     */
+    public String veriSetiAciklamasiAlma() {
+
+        return page.getByLabel(
+                "Açıklama"
+        ).inputValue();
+    }
+
+
+    /**
+     * Veri seti önizleme ekranına geçer.
+     */
+    public void veriSetiOnizleme() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Önizle")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Veri setini onaya gönderir.
+     */
+    public void veriSetiOnayaGonderme() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Onaya Gönder")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Onaya gönderme işlemindeki ikinci
+     * onay butonuna tıklar.
+     */
+    public void veriSetiOnayaGondermeyiOnaylama() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Onaya Gönder")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Veri setinin oluşturulup KVKK sürecine
+     * gönderildiğine ait başarı mesajını kontrol eder.
+     */
+    public boolean veriSetiKvkkOnayinaGonderildiMi() {
+
+        try {
+
+            Locator mesaj =
+                    page.getByText(
+                            "Veri seti oluşturuldu ve KVKK",
+                            new Page.GetByTextOptions()
+                                    .setExact(false)
+                    );
+
+            mesaj.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(15000)
+            );
+
+            return mesaj.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+    /**
+     * Veri Seti Adı zorunlu alan mesajının
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean veriSetiAdiZorunluMesajiGoruntulendiMi() {
+
+        try {
+
+            Locator mesaj =
+                    page.getByText(
+                            "Veri seti adı zorunludur.",
+                            new Page.GetByTextOptions()
+                                    .setExact(true)
+                    );
+
+            mesaj.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            return mesaj.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+
+
+    /**
+     * Sorumlu Birim zorunlu alan mesajının
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean sorumluBirimZorunluMesajiGoruntulendiMi() {
+
+        try {
+
+            Locator mesaj =
+                    page.getByText(
+                            "Sorumlu birim zorunludur.",
+                            new Page.GetByTextOptions()
+                                    .setExact(true)
+                    );
+
+            mesaj.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            return mesaj.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+
+
+    /**
+     * Kategori zorunlu alan mesajının
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean kategoriZorunluMesajiGoruntulendiMi() {
+
+        try {
+
+            Locator mesaj =
+                    page.getByText(
+                            "Kategori zorunludur.",
+                            new Page.GetByTextOptions()
+                                    .setExact(true)
+                    );
+
+            mesaj.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(10000)
+            );
+
+            return mesaj.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+    /**
+     * Verilen kolona Maskele anonimleştirme
+     * kuralını uygular.
+     *
+     * @param kolonAdi maskeleme uygulanacak kolon
+     */
+    public void kolonaMaskelemeKuraliUygulama(
+            String kolonAdi) {
+
+        Locator kolonHucre =
+                page.getByRole(
+                        AriaRole.GRIDCELL,
+                        new Page.GetByRoleOptions()
+                                .setName(kolonAdi)
+                                .setExact(true)
+                );
+
+        Locator kolonSatiri =
+                page.getByRole(
+                        AriaRole.ROW
+                ).filter(
+                        new Locator.FilterOptions()
+                                .setHas(kolonHucre)
+                );
+
+        kolonSatiri
+                .getByLabel(
+                        "Kural Yok"
+                )
+                .click();
+
+        page.getByRole(
+                AriaRole.OPTION,
+                new Page.GetByRoleOptions()
+                        .setName("Maskele")
+                        .setExact(true)
+        ).click();
+    }
+
+
+    /**
+     * Önizleme ekranında beklenen kolonun
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean onizlemeKolonuGoruntulendiMi(
+            String kolonAdi) {
+
+        try {
+
+            Locator kolon =
+                    page.getByText(
+                            kolonAdi,
+                            new Page.GetByTextOptions()
+                                    .setExact(true)
+                    );
+
+            kolon.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(15000)
+            );
+
+            return kolon.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+
+
+    /**
+     * Önizleme ekranında Maskelendi bilgisinin
+     * görüntülendiğini kontrol eder.
+     */
+    public boolean maskelendiBilgisiGoruntulendiMi() {
+
+        try {
+
+            Locator maskelendi =
+                    page.getByText(
+                            "Maskelendi",
+                            new Page.GetByTextOptions()
+                                    .setExact(true)
+                    );
+
+            maskelendi.waitFor(
+                    new Locator.WaitForOptions()
+                            .setTimeout(15000)
+            );
+
+            return maskelendi.isVisible();
+
+        } catch (PlaywrightException e) {
+
+            return false;
+        }
+    }
+
+
+    /**
+     * Anonimleştirilmiş önizleme tablosunda
+     * yıldız karakterleriyle maskelenmiş veri
+     * bulunup bulunmadığını kontrol eder.
+     */
+    public boolean maskelenmisVeriGoruntulendiMi() {
+
+        Locator hucreler =
+                page.getByRole(
+                        AriaRole.CELL
+                );
+
+        int hucreSayisi =
+                hucreler.count();
+
+
+        for (int i = 0;
+             i < hucreSayisi;
+             i++) {
+
+            Locator hucre =
+                    hucreler.nth(i);
+
+            if (!hucre.isVisible()) {
+                continue;
+            }
+
+            String hucreMetni =
+                    hucre.innerText()
+                            .trim();
+
+            /*
+             * Maskelenmiş değerlerde en az
+             * dört yıldız bulunması beklenir.
+             */
+            if (hucreMetni.matches(
+                    ".*\\*{4,}.*"
+            )) {
+
+                ReportManager.info(
+                        "Maskelenmiş veri bulundu"
+                                + " | Değer: "
+                                + hucreMetni
+                );
+
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
