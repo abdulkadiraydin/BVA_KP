@@ -1,14 +1,17 @@
 package com.bvakp.automation.base;
 
+import com.bvakp.automation.core.auth.AvpAuthStateManager;
 import com.bvakp.automation.core.config.ConfigManager;
+import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.LoginPage;
 import com.bvakp.automation.reporting.ReportManager;
+import com.bvakp.automation.utils.OtomasyonKaynakTemizleyici;
+import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.WaitUntilState;
-import com.bvakp.automation.core.auth.AvpAuthStateManager;
-import com.bvakp.automation.core.playwright.PlaywrightManager;
-import com.microsoft.playwright.BrowserContext;
+import org.testng.annotations.AfterSuite;
+
 public class AvpBaseTest extends BaseTest {
 
     /**
@@ -154,8 +157,8 @@ public class AvpBaseTest extends BaseTest {
 
 
             /*
-             * Login işleminden sonra Recorder'dan alınan
-             * Gösterge Panosu elementi doğrulanır.
+             * Login işleminden sonra
+             * Gösterge Panosu doğrulanır.
              */
             ReportManager.step(
                     "Gösterge Panosu ekranının açıldığı doğrulanıyor."
@@ -171,8 +174,8 @@ public class AvpBaseTest extends BaseTest {
 
 
             /*
-             * Başarılı login sonrasında yeni authentication
-             * bilgileri sonraki testlerde kullanılmak üzere kaydedilir.
+             * Başarılı login sonrasında authentication
+             * state sonraki testlerde kullanılmak üzere kaydedilir.
              */
             ReportManager.step(
                     "AVP authentication state kaydediliyor."
@@ -202,7 +205,7 @@ public class AvpBaseTest extends BaseTest {
 
 
         /*
-         * 30 saniye içerisinde ne login ne de dashboard
+         * Belirlenen süre içerisinde ne login ne de dashboard
          * oluşmuşsa ortam beklenen duruma ulaşmamıştır.
          */
         throw new IllegalStateException(
@@ -212,6 +215,7 @@ public class AvpBaseTest extends BaseTest {
                         + page.url()
         );
     }
+
 
     /**
      * AVP portalını açar.
@@ -302,6 +306,38 @@ public class AvpBaseTest extends BaseTest {
                         1500
                 );
             }
+        }
+    }
+    /**
+     * Tüm TestNG suite çalışması tamamlandıktan sonra
+     * otomasyon tarafından oluşturulan test verilerini temizler.
+     */
+    @AfterSuite(alwaysRun = true)
+    public void kosuSonuOtomasyonKaynaklariniTemizleme() {
+
+        ReportManager.info(
+                "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME BAŞLATILDI"
+        );
+
+        try {
+
+            OtomasyonKaynakTemizleyici
+                    .kosuSonuTemizliginiCalistir();
+
+
+            ReportManager.info(
+                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME TAMAMLANDI"
+            );
+
+        } catch (Exception e) {
+
+            ReportManager.error(
+                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLENEMEDİ"
+                            + " | Hata: "
+                            + e.getMessage()
+            );
+
+            e.printStackTrace();
         }
     }
 }

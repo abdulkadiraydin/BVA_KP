@@ -1321,36 +1321,14 @@ public class OpenDataPage extends BasePage {
         ).click();
     }
 
-
     /**
-     * Yıl alanına Maskele anonimleştirme
+     * yil alanına Maskele anonimleştirme
      * kuralını uygular.
      */
     public void yilAlaninaMaskeleKuraliUygulama() {
 
-        Locator yilSatiri =
-                page.getByRole(
-                        AriaRole.ROW,
-                        new Page.GetByRoleOptions()
-                                .setName(
-                                        "yil integer — Kural Yok"
-                                )
-                );
-
-        yilSatiri
-                .getByLabel(
-                        "Kural Yok"
-                )
-                .click();
-
-        page.getByRole(
-                AriaRole.OPTION,
-                new Page.GetByRoleOptions()
-                        .setName("Maskele")
-                        .setExact(true)
-        ).click();
+        kolonaMaskelemeKuraliUygulama("yil");
     }
-
 
     /**
      * Veri seti adını girer.
