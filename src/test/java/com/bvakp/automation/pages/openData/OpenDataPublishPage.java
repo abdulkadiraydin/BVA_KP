@@ -21,7 +21,6 @@ public class OpenDataPublishPage extends BasePage {
     private final Locator arsivIptalButton;
     private final Locator silButton;
     private final Locator silIptalButton;
-    private final Locator kvkkReddetButton;
     private final Locator kvkkRedOnaylaButton;
     private final Locator kvkkRedIptalButton;
     private final Locator duzenlemeKaydetButton;
@@ -70,10 +69,6 @@ public class OpenDataPublishPage extends BasePage {
         this.silIptalButton = page.getByRole(
                 AriaRole.BUTTON,
                 new Page.GetByRoleOptions().setName("İptal")
-        );
-        this.kvkkReddetButton = page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions().setName("KVKK Reddet")
         );
         this.kvkkRedOnaylaButton = page.getByRole(
                 AriaRole.BUTTON,
@@ -153,6 +148,20 @@ public class OpenDataPublishPage extends BasePage {
             return false;
         }
     }
+    public String getStatus(String dataSetName) {
+
+        Locator row = getDataSetRow(dataSetName);
+
+        row.waitFor(
+                new Locator.WaitForOptions()
+                        .setTimeout(10_000)
+        );
+
+        Locator statusCell =
+                row.locator("[role='gridcell'][data-field='status']");
+
+        return statusCell.innerText().trim();
+    }
     public boolean isPortalStatus(String dataSetName, String expectedPortalStatus) {
 
         Locator row = getDataSetRow(dataSetName);
@@ -171,32 +180,31 @@ public class OpenDataPublishPage extends BasePage {
         for (int i = 0; i < 6; i++) {
 
             page.reload();
-
             clickPublishTab();
 
             Locator row = getDataSetRow(dataSetName);
 
-            Locator statusCell = row.locator(
-                    "[role='gridcell'][data-field='status']"
-            );
-
-            if (statusCell.getByText(
-                    expectedStatus,
-                    new Locator.GetByTextOptions().setExact(true)
-            ).isVisible()) {
+            try {
+                row.waitFor(
+                        new Locator.WaitForOptions()
+                                .setTimeout(10_000)
+                );
                 return;
+
+            } catch (Exception e) {
+
+                if (i == 5) {
+                    throw new AssertionError(
+                            "Veri seti '" + dataSetName +
+                                    "' Veri Seti Yönetimi ekranında bulunamadı."
+                    );
+                }
             }
 
             page.waitForTimeout(PORTAL_REFRESH_INTERVAL);
         }
-
-        throw new AssertionError(
-                "Veri seti 30 saniye içinde '" +
-                        expectedStatus +
-                        "' durumuna geçmedi."
-        );
     }
-    public void waitForPortalTransfer(String dataSetName) {
+    public void waitForPortalStatus(String dataSetName, String expectedPortalStatus) {
 
         long startTime = System.currentTimeMillis();
 
@@ -216,7 +224,7 @@ public class OpenDataPublishPage extends BasePage {
             );
 
             if (portalStatus.getByText(
-                    "Aktarıldı",
+                    expectedPortalStatus,
                     new Locator.GetByTextOptions().setExact(true)
             ).isVisible()) {
                 return;
@@ -226,9 +234,12 @@ public class OpenDataPublishPage extends BasePage {
         }
 
         throw new AssertionError(
-                "Veri seti " +
+                "Veri seti '" + dataSetName +
+                        "' için portal durumu '" +
+                        expectedPortalStatus +
+                        "' " +
                         PORTAL_TRANSFER_TIMEOUT / 1000 +
-                        " saniye içinde portala aktarılmadı."
+                        " saniye içinde oluşmadı."
         );
     }
     public void clickYayinla(String dataSetName) {
@@ -243,7 +254,6 @@ public class OpenDataPublishPage extends BasePage {
     public void enterKvkkAciklama(String aciklama) {
         popupAciklamaInput.fill(aciklama);
     }
-
     public void confirmKvkkOnay() {
         kvkkOnaylaButton.click();
     }
@@ -271,11 +281,10 @@ public class OpenDataPublishPage extends BasePage {
     public void confirmArsivle() {
         arsivleButton.click();
     }
-
     public void cancelArsivle() {
         arsivIptalButton.click();
     }
-    public void clickArsivlenmisVeriSetiniSil(String dataSetName) {
+    public void clickSil(String dataSetName) {
         Locator row = getDataSetRow(dataSetName);
 
         row.getByRole(
@@ -286,7 +295,6 @@ public class OpenDataPublishPage extends BasePage {
     public void confirmSil() {
         silButton.click();
     }
-
     public void cancelSil() {
         silIptalButton.click();
     }
@@ -375,5 +383,62 @@ public class OpenDataPublishPage extends BasePage {
     }
     public void confirmDegisiklikOnayaGonder() {
         degisiklikOnayaGonderConfirmButton.click();
+    }
+    public void clickGeriDon() {
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions().setName("Geri Dön")
+        ).click();
+    }
+    public void searchDataSet(String dataSetName) {
+        page.getByPlaceholder("Veri seti ara").fill(dataSetName);
+    }
+    public void clickGuncelle(String dataSetName) {
+
+        Locator row = getDataSetRow(dataSetName);
+
+        row.getByRole(
+                AriaRole.BUTTON,
+                new Locator.GetByRoleOptions().setName("Güncelle")
+        ).click();
+    }
+    public void confirmGuncelle() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Güncelle")
+                        .setExact(true)
+        ).click();
+    }
+    public String getCurrentVersion(String dataSetName) {
+
+        Locator row = getDataSetRow(dataSetName);
+
+        return row.locator(
+                "[role='gridcell'][data-field='currentVersionNo']"
+        ).innerText().trim();
+    }
+    public void clickYayinReddet(String dataSetName) {
+
+        Locator row = getDataSetRow(dataSetName);
+
+        row.getByRole(
+                AriaRole.BUTTON,
+                new Locator.GetByRoleOptions()
+                        .setName("Yayını Reddet")
+        ).click();
+    }
+    public void enterYayinRedAciklama(String aciklama) {
+        popupAciklamaInput.fill(aciklama);
+    }
+    public void confirmYayinRed() {
+
+        page.getByRole(
+                AriaRole.BUTTON,
+                new Page.GetByRoleOptions()
+                        .setName("Reddet")
+                        .setExact(true)
+        ).click();
     }
 }

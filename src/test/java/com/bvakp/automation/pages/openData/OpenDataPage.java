@@ -33,6 +33,7 @@ public class OpenDataPage extends BasePage {
     private final Locator takvimBaslangiciInput;
     private final Locator siklikInput;
     private final Locator aralikSelect;
+    private final Locator bolgeAdiAnonimlestirmeSelect;
     private final Locator onizleButton;
     private final Locator onayaGonderButton;
     private final Locator onayaGonderConfirmButton;
@@ -131,6 +132,10 @@ public class OpenDataPage extends BasePage {
                 AriaRole.BUTTON,
                 new Page.GetByRoleOptions().setName("Önizle")
         );
+        this.bolgeAdiAnonimlestirmeSelect =
+                page.locator("[role='row'][data-id='bolge_no']")
+                        .locator("[data-field='__rule']")
+                        .getByRole(AriaRole.COMBOBOX);
 
         this.onayaGonderButton = page.getByRole(
                 AriaRole.BUTTON,
@@ -227,10 +232,9 @@ public class OpenDataPage extends BasePage {
 
         Locator source = page.locator(
                 "[role='gridcell'][data-field='name']"
-        ).getByText(
-                sourceName,
-                new Locator.GetByTextOptions()
-                        .setExact(true)
+        ).filter(
+                new Locator.FilterOptions()
+                        .setHasText(sourceName)
         );
 
         return source.count() == 0;
@@ -353,6 +357,13 @@ public class OpenDataPage extends BasePage {
                         .setName("Veri Seti Oluşturma")
         ).click();
     }
+    public void selectBolgeAdiAnonimlestirmeKurali() {
+
+        bolgeAdiAnonimlestirmeSelect.click();
+
+        page.locator("li[role='option'][data-value='MASK']")
+                .click();
+    }
 
     /**
      * Kaynak Ekle ekranını açar.
@@ -391,6 +402,40 @@ public class OpenDataPage extends BasePage {
         return kaynak.isVisible();
     }
 
+    public void openSource(String sourceName) {
+
+        Locator row = page.locator("[role='row']")
+                .filter(new Locator.FilterOptions()
+                        .setHasText(sourceName));
+
+        row.waitFor(
+                new Locator.WaitForOptions()
+                        .setTimeout(10_000)
+        );
+
+        row.getByRole(
+                AriaRole.BUTTON,
+                new Locator.GetByRoleOptions()
+                        .setName("Görüntüle")
+        ).click();
+    }
+    public void editSource(String sourceName) {
+
+        Locator row = page.locator("[role='row']")
+                .filter(new Locator.FilterOptions()
+                        .setHasText(sourceName));
+
+        row.waitFor(
+                new Locator.WaitForOptions()
+                        .setTimeout(10_000)
+        );
+
+        row.getByRole(
+                AriaRole.BUTTON,
+                new Locator.GetByRoleOptions()
+                        .setName("Düzenle")
+        ).click();
+    }
 /**
  * Verilen kaynak adına ait Görüntüle butonuna tıklar.
  *

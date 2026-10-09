@@ -8,6 +8,7 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Video;
+import com.microsoft.playwright.APIRequestContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,6 +29,9 @@ public class PlaywrightManager {
             new ThreadLocal<>();
 
     private static final ThreadLocal<Page> pageThread =
+            new ThreadLocal<>();
+
+    private static final ThreadLocal<APIRequestContext> apiRequestContextThread =
             new ThreadLocal<>();
 
     private PlaywrightManager() {
@@ -116,7 +120,10 @@ public class PlaywrightManager {
 
         Page page =
                 context.newPage();
+        APIRequestContext apiRequestContext =
+                playwright.request().newContext();
 
+        apiRequestContextThread.set(apiRequestContext);
         playwrightThread.set(playwright);
         browserThread.set(browser);
         contextThread.set(context);
@@ -137,6 +144,10 @@ public class PlaywrightManager {
 
     public static Playwright getPlaywright() {
         return playwrightThread.get();
+    }
+
+    public static APIRequestContext getApiRequestContext() {
+        return apiRequestContextThread.get();
     }
 
     /**
@@ -173,6 +184,11 @@ public class PlaywrightManager {
             } catch (Exception ignored) {
                 // Video aktif değilse teardown yine devam etsin.
             }
+        }
+        if (apiRequestContextThread.get() != null) {
+
+            apiRequestContextThread.get().dispose();
+            apiRequestContextThread.remove();
         }
 
         if (contextThread.get() != null) {

@@ -8,9 +8,9 @@ public class KaynakSilModal {
 
     private final Page page;
     private final Locator modalBasligi;
+    private final Locator silButton;
 
     public KaynakSilModal(Page page) {
-
         this.page = page;
 
         this.modalBasligi =
@@ -20,6 +20,14 @@ public class KaynakSilModal {
                                 .setName("Kaynağı Sil")
                                 .setExact(true)
                 );
+
+        this.silButton =
+                page.getByRole(
+                        AriaRole.BUTTON,
+                        new Page.GetByRoleOptions()
+                                .setName("Sil")
+                                .setExact(true)
+                ).last();
     }
 
     /**
@@ -39,13 +47,7 @@ public class KaynakSilModal {
      * Kaynak silme işlemini onaylar.
      */
     public void silmeOnaylama() {
-
-        page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions()
-                        .setName("Sil")
-                        .setExact(true)
-        ).click();
+        page.locator("button[aria-label='Sil']").last().click();
     }
 
     /**

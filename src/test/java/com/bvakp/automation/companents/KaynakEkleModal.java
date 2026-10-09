@@ -5,9 +5,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 
 public class KaynakEkleModal {
-
     private final Page page;
-
     private final Locator adAlani;
     private final Locator tabloAlani;
     private final Locator aciklamaAlani;
@@ -39,7 +37,6 @@ public class KaynakEkleModal {
                                 .setExact(true)
                 );
     }
-
     /**
      * Kaynak adını girer.
      */
@@ -58,10 +55,7 @@ public class KaynakEkleModal {
 
         tabloAlani.click();
 
-        Locator ilkTablo =
-                page.getByRole(
-                        AriaRole.OPTION
-                ).first();
+        Locator ilkTablo = page.locator("[role='option']").first();
 
         ilkTablo.waitFor(
                 new Locator.WaitForOptions()
