@@ -44,9 +44,9 @@ public final class VideoManager {
 
         return VIDEO_DIRECTORY;
     }
-    /**
-     * 2 günden eski video dosyalarını temizler.
 
+
+/*
     public static void deleteOldVideos() {
 
         if (!Files.exists(VIDEO_DIRECTORY)) {
@@ -84,10 +84,8 @@ public final class VideoManager {
 
         deleteEmptyDirectories();
     }
+*/
 
-     * Dosyanın belirtilen tarihten eski olup
-     * olmadığını kontrol eder.
-     */
     private static boolean isOlderThan(
             Path path,
             Instant cutoffDate) {

@@ -2,7 +2,10 @@ package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.companents.KaynakEkleModal;
+<<<<<<< HEAD
 import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
+=======
+>>>>>>> origin/main
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.ScreenshotUtil;
@@ -15,6 +18,10 @@ import java.nio.file.Path;
 
 public class OpenDataCreateTest extends AvpBaseTest {
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
     /**
      * Dinamik test verisi kullanarak yeni kaynak oluşturur
      * ve oluşturulan kaydın listeye doğru yansıdığını doğrular.
@@ -1487,7 +1494,11 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + kaynakAdi
         );
     }
+<<<<<<< HEAD
   /**
+=======
+    /**
+>>>>>>> origin/main
      * Dinamik kaynak üzerinden veri seti oluşturur,
      * anonimleştirme kuralı uygular ve veri setini
      * KVKK onay sürecine gönderir.
@@ -1531,9 +1542,14 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + veriSetiAdi;
 
 
+<<<<<<< HEAD
        /*String sorumluBirim =
                 "İşletme Dairesi Başkanlığı";*/
         openDataPage.sorumluBirimSecme("İşletme Dairesi Başkanlığı");
+=======
+        String sorumluBirim =
+                "İşletme Dairesi Başkanlığı";
+>>>>>>> origin/main
 
         String kategori =
                 "Altyapı & Şebeke";
@@ -1692,7 +1708,11 @@ public class OpenDataCreateTest extends AvpBaseTest {
         /*
          * Sorumlu birim seçilir.
          */
+<<<<<<< HEAD
        /* ReportManager.step(
+=======
+        ReportManager.step(
+>>>>>>> origin/main
                 "Sorumlu Birim seçiliyor: "
                         + sorumluBirim
         );
@@ -1701,7 +1721,11 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .sorumluBirimSecme(
                         sorumluBirim
                 );
+<<<<<<< HEAD
 */
+=======
+
+>>>>>>> origin/main
 
         /*
          * Kategori seçilir.

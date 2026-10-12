@@ -12,6 +12,7 @@ public class KaynakDuzenleModal {
     private final Locator tabloAlani;
     private final Locator aciklamaAlani;
     private final Locator modalBasligi;
+     
 
     public KaynakDuzenleModal(Page page) {
 

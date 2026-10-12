@@ -312,8 +312,13 @@ public class AvpBaseTest extends BaseTest {
      * Tüm TestNG suite çalışması tamamlandıktan sonra
      * otomasyon tarafından oluşturulan test verilerini temizler.
      */
+<<<<<<< HEAD
     @AfterSuite(alwaysRun = true)
     public void kosuSonuOtomasyonKaynaklariniTemizleme() {
+=======
+    //@AfterSuite(alwaysRun = true)
+    /*public void kosuSonuOtomasyonKaynaklariniTemizleme() {
+>>>>>>> origin/main
 
         ReportManager.info(
                 "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME BAŞLATILDI"
@@ -339,5 +344,9 @@ public class AvpBaseTest extends BaseTest {
 
             e.printStackTrace();
         }
+<<<<<<< HEAD
     }
+=======
+    }*/
+>>>>>>> origin/main
 }

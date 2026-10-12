@@ -1,260 +1,583 @@
 package com.bvakp.automation.tests.openData;
 
-import com.bvakp.automation.base.BaseTest;
-import com.bvakp.automation.core.config.ConfigManager;
-import com.bvakp.automation.pages.LoginPage;
+import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.flows.OpenDataCreateFlow.CreateDataSetForApproval;
+import com.bvakp.automation.flows.OpenDataPublishFlow;
+import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
+import com.bvakp.automation.utils.TestDataUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class OpenDataPublishTest extends BaseTest {
+public class OpenDataPublishTest extends AvpBaseTest {
+    private static final Logger log = LoggerFactory.getLogger(OpenDataPublishTest.class);
+    private OpenDataPage openDataPage;
+    private OpenDataPublishPage publishPage;
+    private OpenDataPublishFlow publishFlow;
+    private CreateDataSetForApproval createDataSetForApproval;
+    private CreateSource createSource;
 
-    @Test
-    public void veriSetiYayınlama() {
-        // Login
-        LoginPage loginPage = new LoginPage(page);
+    @BeforeMethod
+    public void setUpPublish() {
+        avpOturumuHazirlama();
 
-        loginPage
-                .open()
-                .enterUsername(ConfigManager.get("username"))
-                .enterPassword(ConfigManager.get("password"))
-                .clickLogin();
-
-        Assert.assertEquals(
-                loginPage.getTitle(),
-                "Büyük Veri Analitiği Kaynak Planlama"
-        );
-
-        // Açık Veri Portalı
-        OpenDataPage openDataPage = new OpenDataPage(page);
+        openDataPage = new OpenDataPage(page);
         openDataPage.clickAcikVeriPortali();
 
-        // Veri Seti Yönetimi
-        OpenDataPublishPage publishPage =
-                new OpenDataPublishPage(page);
+        publishPage = new OpenDataPublishPage(page);
+
+        createSource = new CreateSource(page);
+
+        publishFlow = new OpenDataPublishFlow(publishPage);
+
+        createDataSetForApproval = new CreateDataSetForApproval(page);
+
+    }
+
+    @Test
+    public void veriSetiKvkkOnaylama() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_onay");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "KVKK onay testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "KVKK onay testi veri seti"
+        );
+
+        log.info("KVKK onaylama testi başladı. Veri Seti: {}", dataSetName);
 
         publishPage.clickPublishTab();
 
-        // KVKK Onayla
-        publishPage.clickKvkkOnayla("Test Veri Seti");
-
-        publishPage.enterKvkkAciklama(
-                "Test KVKK onay açıklaması"
+        publishPage.waitForStatus(
+                dataSetName,
+                "KVKK Onayında"
         );
 
-        publishPage.confirmKvkkOnay();
+        publishFlow.approveKvkk(dataSetName);
 
-        // KVKK onayı sonrası durum kontrolü
         Assert.assertTrue(
                 publishPage.isStatus(
-                        "Test Veri Seti",
+                        dataSetName,
                         "Yayın Onayında"
                 ),
-                "Veri seti KVKK onayından sonra Yayın Onayında durumuna geçmedi."
+                "Veri seti KVKK onaylanamadı."
+        );
+    }
+    @Test
+    public void veriSetiKvkkReddetme() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_red");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "KVKK reddetme testi kaynağı"
         );
 
-        // Yayınla
-        publishPage.clickYayinla("Test Veri Seti");
-
-        publishPage.enterYayinAciklama(
-                "Test yayın açıklaması"
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "KVKK reddetme testi veri seti"
         );
 
-        publishPage.confirmYayinla();
+        log.info("KVKK reddetme testi başladı. Veri Seti: {}", dataSetName);
 
-        // Yayın durumunu kontrol et
+        publishPage.clickPublishTab();
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "KVKK Onayında"
+        );
+
+        publishFlow.rejectKvkk(dataSetName);
+
         Assert.assertTrue(
-                publishPage.isStatus(
-                        "Test Veri Seti",
-                        "Yayında"
-                ),
-                "Veri seti yayınlandı durumuna geçmedi."
+                publishPage.isStatus(dataSetName, "KVKK Reddedildi"),
+                "Veri seti KVKK reddedilemedi."
         );
-        publishPage.waitForPortalTransfer("Test Veri Seti");
+    }
+    @Test
+    public void veriSetiYayinlama() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_yayinlama");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Yayınlama testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Veri seti yayınlama testi"
+        );
+
+        log.info(
+                "Veri seti yayınlama testi başladı. Veri Seti: {}",
+                dataSetName
+        );
+
+        publishPage.clickPublishTab();
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "KVKK Onayında"
+        );
+
+        publishFlow.approveKvkk(dataSetName);
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "Yayın Onayında"
+        );
+
+        publishFlow.publishDataSet(dataSetName);
 
         Assert.assertTrue(
-                publishPage.isPortalStatus(
-                        "Test Veri Seti",
-                        "Aktarıldı"
-                ),
+                publishPage.isStatus(dataSetName, "Yayında"),
+                "Veri seti Yayında durumuna geçmedi."
+        );
+
+        Assert.assertTrue(
+                publishPage.isPortalStatus(dataSetName, "Aktarıldı"),
                 "Veri seti portala aktarılmadı."
         );
     }
-
     @Test
-    public void veriSetiKvkkReddedilir() {
+    public void veriSetiYayiniReddetme() {
 
-        LoginPage loginPage = new LoginPage(page);
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
 
-        loginPage.open()
-                .enterUsername(ConfigManager.get("username"))
-                .enterPassword(ConfigManager.get("password"))
-                .clickLogin();
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_red");
 
-        Assert.assertEquals(
-                loginPage.getTitle(),
-                "Büyük Veri Analitiği Kaynak Planlama"
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Yayın reddetme testi kaynağı"
         );
 
-        OpenDataPage openDataPage = new OpenDataPage(page);
-        openDataPage.clickAcikVeriPortali();
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Yayın reddetme testi veri seti"
+        );
 
-        OpenDataPublishPage publishPage = new OpenDataPublishPage(page);
+        log.info(
+                "Veri seti yayın reddetme testi başladı. Veri Seti: {}",
+                dataSetName
+        );
+
         publishPage.clickPublishTab();
 
-        // KVKK Reddet popup'ını aç
-        publishPage.clickKvkkReddet("Test Veri Seti");
-
-        // İlk açılan popup'tan vazgeç
-        publishPage.cancelKvkkRed();
-
-        // Tekrar KVKK Reddet popup'ını aç
-        publishPage.clickKvkkReddet("Test Veri Seti");
-
-        // Red nedeni gir
-        publishPage.enterKvkkRedAciklama(
-                "KVKK kapsamında uygun bulunmamıştır."
-        );
-
-        // Red işlemini onayla
-        publishPage.confirmKvkkRed();
-
-        // Reddedildi durumunu bekle
         publishPage.waitForStatus(
-                "Test Veri Seti",
-                "Düzenleme Bekliyor"
-        );
-    }
-
-    @Test
-    public void duzenlemeBekleyenVeriSetiniDuzenleme() {
-
-        LoginPage loginPage = new LoginPage(page);
-        loginPage.open()
-                .enterUsername(ConfigManager.get("username"))
-                .enterPassword(ConfigManager.get("password"))
-                .clickLogin();
-
-        Assert.assertEquals(
-                loginPage.getTitle(),
-                "Büyük Veri Analitiği Kaynak Planlama"
+                dataSetName,
+                "KVKK Onayında"
         );
 
-        OpenDataPage openDataPage = new OpenDataPage(page);
-        openDataPage.clickAcikVeriPortali();
+        publishFlow.approveKvkk(dataSetName);
 
-        OpenDataPublishPage publishPage = new OpenDataPublishPage(page);
-        publishPage.clickPublishTab();
-        publishPage.clickDuzenle("Test Veri Seti");
+        publishPage.waitForStatus(
+                dataSetName,
+                "Yayın Onayında"
+        );
 
-        publishPage.selectDropdown(
-                "Sorumlu Birim",
-                "Yol Dairesi Başkanlığı"
-        );
-        publishPage.selectDropdown(
-                "Kategori",
-                "Filo & Araçlar"
-        );
-        publishPage.enterDuzenlemeAciklama("Güncellenmiş test veri seti açıklaması");
-        publishPage.clickDuzenlemeKaydet();
-        publishPage.assertDuzenlemeAlanlari(
-                "Yol Dairesi Başkanlığı",
-                "Filo & Araçlar",
-                "Güncellenmiş test veri seti açıklaması"
-        );
-        publishPage.clickDegisiklikOnayaGonder();
-        publishPage.confirmDegisiklikOnayaGonder();
-        openDataPage.clickAcikVeriPortali();
-        publishPage.clickPublishTab();
+        publishFlow.rejectPublication(dataSetName);
 
         Assert.assertTrue(
                 publishPage.isStatus(
-                        "Test Veri Seti",
-                        "KVKK Onayında"
+                        dataSetName,
+                        "Düzenleme Bekliyor"
                 ),
+                "Veri seti yayın reddi sonrasında Düzenleme Bekliyor durumuna geçmedi."
+        );
+    }
+    @Test
+    public void veriSetiKvkkOnayiDuzenleme() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_duzenleme");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "KVKK düzenleme testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "KVKK onayı düzenleme testi veri seti"
+        );
+
+        publishPage.clickPublishTab();
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "KVKK Onayında"
+        );
+
+        publishFlow.rejectKvkk(dataSetName);
+        publishFlow.editKvkkPendingDataSet(dataSetName);
+
+        Assert.assertTrue(
+                publishPage.isStatus(dataSetName, "KVKK Onayında"),
                 "Veri seti KVKK Onayında durumuna geçmedi."
         );
     }
-
     @Test
-    public void yayinKaldirma() {
+    public void veriSetiYayinOnayiDuzenleme() {
 
-        // Login
-        LoginPage loginPage = new LoginPage(page);
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
 
-        loginPage
-                .open()
-                .enterUsername(ConfigManager.get("username"))
-                .enterPassword(ConfigManager.get("password"))
-                .clickLogin();
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_duzenleme");
 
-        Assert.assertEquals(
-                loginPage.getTitle(),
-                "Büyük Veri Analitiği Kaynak Planlama"
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Yayın onayı düzenleme testi kaynağı"
         );
 
-        // Açık Veri Portalı
-        OpenDataPage openDataPage = new OpenDataPage(page);
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Yayın onayı düzenleme testi veri seti"
+        );
 
-        openDataPage.clickAcikVeriPortali();
-
-        // Veri Seti Yönetimi
-        OpenDataPublishPage publishPage =
-                new OpenDataPublishPage(page);
+        log.info(
+                "Yayın onayı sonrası düzenleme testi başladı. Veri Seti: {}",
+                dataSetName
+        );
 
         publishPage.clickPublishTab();
-
-        // Test veri setini arşivle
-        publishPage.clickArsivle("Test Veri Seti");
-
-        publishPage.enterArsivAciklama(
-                "Test veri seti yayından kaldırılarak arşivlenmiştir."
-        );
-        publishPage.confirmArsivle();
 
         publishPage.waitForStatus(
-                "Test Veri Seti",
-                "Arşivlendi"
+                dataSetName,
+                "KVKK Onayında"
+        );
+
+        publishFlow.approveKvkk(dataSetName);
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "Yayın Onayında"
+        );
+
+        publishFlow.rejectPublication(dataSetName);
+
+        publishFlow.editPublicationPendingDataSet(dataSetName);
+
+        Assert.assertTrue(
+                publishPage.isStatus(dataSetName, "KVKK Onayında"),
+                "Düzenleme sonrası veri seti KVKK Onayında durumuna geçmedi."
+        );
+
+        Assert.assertTrue(
+                publishPage.isPortalStatus(dataSetName, "Aktarılmadı"),
+                "Düzenleme sonrası portal durumu Aktarılmadı olmadı."
         );
     }
-
     @Test
-    public void arsivlenmisVeriSetiniSilme() {
+    public void veriSetiYayinOncesiSilme() {
 
-        LoginPage loginPage = new LoginPage(page);
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
 
-        loginPage.open()
-                .enterUsername(ConfigManager.get("username"))
-                .enterPassword(ConfigManager.get("password"))
-                .clickLogin();
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_oncesi_silme");
 
-        Assert.assertEquals(
-                loginPage.getTitle(),
-                "Büyük Veri Analitiği Kaynak Planlama"
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Yayın öncesi silme testi kaynağı"
         );
 
-        OpenDataPage openDataPage = new OpenDataPage(page);
-        openDataPage.clickAcikVeriPortali();
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Yayın öncesi silme testi veri seti"
+        );
 
-        OpenDataPublishPage publishPage = new OpenDataPublishPage(page);
-        publishPage.clickPublishTab();
-
-        // Arşivlenmiş veri setini sil
-        publishPage.clickArsivlenmisVeriSetiniSil("Test Veri Seti");
-        publishPage.confirmSil();
+        publishFlow.deleteBeforePublication(dataSetName);
 
         Assert.assertFalse(
-                publishPage.isDataSetDisplayed("Test Veri Seti"),
-                "Veri seti silinemedi."
+                publishPage.isDataSetDisplayed(dataSetName),
+                "Veri seti yayın öncesinde silinemedi."
         );
     }
-}
+    @Test
+    public void veriSetiYayinSonrasiSilme() {
 
-    /*@Test
-    public void yayinlananVeriSetiIcerikKontrolu() {
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
 
-        // Şimdilik boş
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_sonrasi_silme");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Yayın sonrası silme testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Yayın sonrası silme testi veri seti"
+        );
+
+        publishFlow.approveKvkk(dataSetName);
+
+        publishFlow.publishDataSet(dataSetName);
+
+        publishFlow.archiveDataSet(dataSetName);
+
+        publishFlow.deleteAfterPublication(dataSetName);
+
+        Assert.assertFalse(
+                publishPage.isDataSetDisplayed(dataSetName),
+                "Arşivlenen veri seti silinemedi."
+        );
+    }
+    @Test
+    public void veriSetiGoruntuleme() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_goruntuleme");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Veri seti görüntüleme testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Veri seti görüntüleme testi"
+        );
+
+        log.info(
+                "Veri seti görüntüleme testi başladı. Veri Seti: {}",
+                dataSetName
+        );
+
+        publishFlow.viewDataSet(dataSetName);
+
+        Assert.assertTrue(
+                publishPage.isDataSetDisplayed(dataSetName),
+                "Veri seti görüntüleme ekranından sonra listeye dönülemedi."
+        );
+    }
+    @Test
+    public void veriSetiArama() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_arama");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Veri seti arama testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Veri seti arama testi"
+        );
+
+        log.info(
+                "Veri seti arama testi başladı. Veri Seti: {}",
+                dataSetName
+        );
+
+        publishFlow.searchDataSet(dataSetName);
+
+        Assert.assertTrue(
+                publishPage.isDataSetDisplayed(dataSetName),
+                "Aranan veri seti listede bulunamadı."
+        );
+    }
+    @Test
+    public void veriSetiManuelGuncelleme() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_manuel_guncelleme");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Manuel güncelleme testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Manuel güncelleme testi veri seti"
+        );
+
+        log.info(
+                "Manuel güncelleme testi başladı. Veri Seti: {}",
+                dataSetName
+        );
+
+        publishPage.clickPublishTab();
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "KVKK Onayında"
+        );
+
+        publishFlow.approveKvkk(dataSetName);
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "Yayın Onayında"
+        );
+
+        publishFlow.publishDataSet(dataSetName);
+
+        int oldVersion = Integer.parseInt(
+                publishPage.getCurrentVersion(dataSetName).replace("v", "")
+        );
+
+        publishFlow.manuallyUpdateDataSet(dataSetName);
+
+        int newVersion = Integer.parseInt(
+                publishPage.getCurrentVersion(dataSetName).replace("v", "")
+        );
+
+        Assert.assertEquals(
+                newVersion,
+                oldVersion + 1,
+                "Manuel güncelleme sonrası veri seti versiyonu 1 artmadı."
+        );
+    }
+    @Test
+    public void veriSetiArsiveAlma() {
+
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_arsivleme");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Veri seti arşivleme testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Veri seti arşivleme testi"
+        );
+
+        log.info(
+                "Veri seti arşivleme testi başladı. Veri Seti: {}",
+                dataSetName
+        );
+
+        publishPage.clickPublishTab();
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "KVKK Onayında"
+        );
+
+        publishFlow.approveKvkk(dataSetName);
+
+        publishPage.waitForStatus(
+                dataSetName,
+                "Yayın Onayında"
+        );
+
+        publishFlow.publishDataSet(dataSetName);
+
+        publishFlow.archiveDataSet(dataSetName);
+
+        Assert.assertTrue(
+                publishPage.isStatus(dataSetName, "Arşivlendi"),
+                "Veri seti Arşivlendi durumuna geçmedi."
+        );
+
+        publishPage.waitForPortalStatus(dataSetName, "Aktarıldı");
     }
 }
-*/

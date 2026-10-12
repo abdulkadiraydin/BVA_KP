@@ -8,6 +8,7 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Video;
+import com.microsoft.playwright.APIRequestContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,10 +31,16 @@ public class PlaywrightManager {
     private static final ThreadLocal<Page> pageThread =
             new ThreadLocal<>();
 
+<<<<<<< HEAD
 
     /**
      * Utility class olduğu için nesne oluşturulmasını engeller.
      */
+=======
+    private static final ThreadLocal<APIRequestContext> apiRequestContextThread =
+            new ThreadLocal<>();
+
+>>>>>>> origin/main
     private PlaywrightManager() {
     }
 
@@ -163,7 +170,10 @@ public class PlaywrightManager {
 
         Page page =
                 context.newPage();
+        APIRequestContext apiRequestContext =
+                playwright.request().newContext();
 
+<<<<<<< HEAD
 
         /*
          * Her test thread'i kendi Playwright nesnelerini tutar.
@@ -183,6 +193,13 @@ public class PlaywrightManager {
         pageThread.set(
                 page
         );
+=======
+        apiRequestContextThread.set(apiRequestContext);
+        playwrightThread.set(playwright);
+        browserThread.set(browser);
+        contextThread.set(context);
+        pageThread.set(page);
+>>>>>>> origin/main
     }
 
 
@@ -229,6 +246,12 @@ public class PlaywrightManager {
         return playwrightThread.get();
     }
 
+<<<<<<< HEAD
+=======
+    public static APIRequestContext getApiRequestContext() {
+        return apiRequestContextThread.get();
+    }
+>>>>>>> origin/main
 
     /**
      * Test bilgisi verilmediğinde varsayılan değerlerle
@@ -278,6 +301,11 @@ public class PlaywrightManager {
                  * yine devam eder.
                  */
             }
+        }
+        if (apiRequestContextThread.get() != null) {
+
+            apiRequestContextThread.get().dispose();
+            apiRequestContextThread.remove();
         }
 
 
