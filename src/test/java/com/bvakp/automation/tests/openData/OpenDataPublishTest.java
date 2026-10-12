@@ -1,9 +1,9 @@
 package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
-import com.bvakp.automation.flows.OpenDataCreateFlow.CreateDataSetForApproval;
+import com.bvakp.automation.flows.OpenDataCreateFlow;
 import com.bvakp.automation.flows.OpenDataPublishFlow;
-import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
+
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.utils.TestDataUtil;
@@ -17,9 +17,9 @@ public class OpenDataPublishTest extends AvpBaseTest {
     private static final Logger log = LoggerFactory.getLogger(OpenDataPublishTest.class);
     private OpenDataPage openDataPage;
     private OpenDataPublishPage publishPage;
+
+    private OpenDataCreateFlow openDataCreateFlow;
     private OpenDataPublishFlow publishFlow;
-    private CreateDataSetForApproval createDataSetForApproval;
-    private CreateSource createSource;
 
     @BeforeMethod
     public void setUpPublish() {
@@ -30,11 +30,12 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         publishPage = new OpenDataPublishPage(page);
 
-        createSource = new CreateSource(page);
+        openDataCreateFlow = new OpenDataCreateFlow(page);
+
+        openDataCreateFlow = new OpenDataCreateFlow(page);
 
         publishFlow = new OpenDataPublishFlow(publishPage);
 
-        createDataSetForApproval = new CreateDataSetForApproval(page);
 
     }
 
@@ -47,13 +48,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_onay");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK onay testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -90,13 +91,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_red");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK reddetme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -130,13 +131,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayinlama");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayınlama testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -185,13 +186,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_red");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın reddetme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -238,13 +239,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_duzenleme");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK düzenleme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -277,13 +278,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_duzenleme");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın onayı düzenleme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -334,13 +335,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_oncesi_silme");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın öncesi silme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -365,13 +366,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_sonrasi_silme");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın sonrası silme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -402,13 +403,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_goruntuleme");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti görüntüleme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -438,13 +439,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_arama");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti arama testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -474,13 +475,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_manuel_guncelleme");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Manuel güncelleme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -535,13 +536,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_arsivleme");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti arşivleme testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",

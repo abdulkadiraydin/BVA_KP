@@ -1,7 +1,10 @@
-package com.bvakp.automation.core.playwright;
+
+        package com.bvakp.automation.core.playwright;
 
 import com.bvakp.automation.core.auth.AvpAuthStateManager;
 import com.bvakp.automation.core.config.ConfigManager;
+import com.bvakp.automation.core.playwright.BrowserFactory;
+import com.bvakp.automation.core.playwright.BrowserName;
 import com.bvakp.automation.utils.VideoManager;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
@@ -31,16 +34,13 @@ public class PlaywrightManager {
     private static final ThreadLocal<Page> pageThread =
             new ThreadLocal<>();
 
-<<<<<<< HEAD
+    private static final ThreadLocal<APIRequestContext> apiRequestContextThread =
+            new ThreadLocal<>();
 
     /**
      * Utility class olduğu için nesne oluşturulmasını engeller.
      */
-=======
-    private static final ThreadLocal<APIRequestContext> apiRequestContextThread =
-            new ThreadLocal<>();
 
->>>>>>> origin/main
     private PlaywrightManager() {
     }
 
@@ -173,33 +173,14 @@ public class PlaywrightManager {
         APIRequestContext apiRequestContext =
                 playwright.request().newContext();
 
-<<<<<<< HEAD
-
         /*
-         * Her test thread'i kendi Playwright nesnelerini tutar.
+         * Her test thread'i kendi Playwright ve API nesnelerini tutar.
          */
-        playwrightThread.set(
-                playwright
-        );
-
-        browserThread.set(
-                browser
-        );
-
-        contextThread.set(
-                context
-        );
-
-        pageThread.set(
-                page
-        );
-=======
         apiRequestContextThread.set(apiRequestContext);
         playwrightThread.set(playwright);
         browserThread.set(browser);
         contextThread.set(context);
         pageThread.set(page);
->>>>>>> origin/main
     }
 
 
@@ -246,12 +227,14 @@ public class PlaywrightManager {
         return playwrightThread.get();
     }
 
-<<<<<<< HEAD
-=======
+    /**
+     * Aktif thread'e ait APIRequestContext nesnesini döndürür.
+     *
+     * @return aktif APIRequestContext
+     */
     public static APIRequestContext getApiRequestContext() {
         return apiRequestContextThread.get();
     }
->>>>>>> origin/main
 
     /**
      * Test bilgisi verilmediğinde varsayılan değerlerle

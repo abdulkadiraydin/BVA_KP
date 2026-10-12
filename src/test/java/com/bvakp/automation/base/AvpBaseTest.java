@@ -15,8 +15,7 @@ import org.testng.annotations.AfterSuite;
 public class AvpBaseTest extends BaseTest {
 
     /**
-     * AVP testlerinde kayıtlı authentication
-     * state kullanılmasını sağlar.
+     * AVP testlerinde kayıtlı authentication state kullanılmasını sağlar.
      *
      * @return auth state kullanılacaksa true
      */
@@ -25,328 +24,124 @@ public class AvpBaseTest extends BaseTest {
         return true;
     }
 
-
     /**
-     * AVP testleri için kullanıcı oturumunu hazırlar.
-     *
-     * Portal açıldıktan sonra login ekranı veya
-     * Gösterge Panosu oluşana kadar beklenir.
-     *
-     * Login ekranı açılırsa giriş yapılır.
-     * Gösterge Panosu açılırsa mevcut auth state kullanılır.
+     * AVP testleri için oturumu hazırlar; mevcut oturumu kullanır
+     * veya login ekranı açılmışsa kullanıcı girişi yapar.
      */
     protected void avpOturumuHazirlama() {
-
-        ReportManager.step(
-                "AVP portalı açılıyor."
-        );
-
+        ReportManager.step("AVP portalı açılıyor.");
         avpPortaliniAcma();
 
+        LoginPage loginPage = new LoginPage(page);
+        ReportManager.step("AVP oturum durumu bekleniyor.");
 
-        LoginPage loginPage =
-                new LoginPage(page);
+        // Keycloak yönlendirmesinin ardından login veya dashboard beklenir.
+        int maksimumBeklemeSaniye = 30;
+        boolean loginEkraniAcildi = false;
+        boolean dashboardAcildi = false;
 
-
-        ReportManager.step(
-                "AVP oturum durumu bekleniyor."
-        );
-
-
-        /*
-         * OAuth / Keycloak yönlendirmesi asenkron çalıştığı için
-         * login veya dashboard ekranlarından biri oluşana kadar
-         * kontrollü şekilde beklenir.
-         */
-        int maksimumBeklemeSaniye =
-                30;
-
-        boolean loginEkraniAcildi =
-                false;
-
-        boolean dashboardAcildi =
-                false;
-
-
-        for (int saniye = 0;
-             saniye < maksimumBeklemeSaniye;
-             saniye++) {
-
-            /*
-             * Önce geçerli oturum kontrol edilir.
-             */
+        for (int saniye = 0; saniye < maksimumBeklemeSaniye; saniye++) {
             if (loginPage.gostergePanosuGorunurMu()) {
-
-                dashboardAcildi =
-                        true;
-
+                dashboardAcildi = true;
                 break;
             }
 
-
-            /*
-             * Auth state geçersizse Keycloak login
-             * ekranının açılması beklenir.
-             */
             if (loginPage.loginEkraniGorunurMu()) {
-
-                loginEkraniAcildi =
-                        true;
-
+                loginEkraniAcildi = true;
                 break;
             }
 
-
-            page.waitForTimeout(
-                    1000
-            );
+            page.waitForTimeout(1000);
         }
 
-
-        /*
-         * Mevcut auth state ile dashboard açılmışsa
-         * login işlemi yapılmadan devam edilir.
-         */
         if (dashboardAcildi) {
-
-            ReportManager.info(
-                    "Geçerli authentication state kullanıldı."
-            );
-
+            ReportManager.info("Geçerli authentication state kullanıldı.");
             return;
         }
 
-
-        /*
-         * Login ekranı oluştuysa kullanıcı bilgileri girilir.
-         */
         if (loginEkraniAcildi) {
+            ReportManager.info("Aktif AVP oturumu bulunamadı. Giriş işlemi gerçekleştirilecek.");
+            ReportManager.step("Geçerli kullanıcı adı giriliyor.");
+            loginPage.kullaniciAdiGirme(ConfigManager.get("username"));
 
-            ReportManager.info(
-                    "Aktif AVP oturumu bulunamadı. "
-                            + "Giriş işlemi gerçekleştirilecek."
-            );
+            ReportManager.step("Geçerli kullanıcı şifresi giriliyor.");
+            loginPage.sifreGirme(ConfigManager.get("password"));
 
+            ReportManager.step("Sign In butonuna tıklanıyor.");
+            loginPage.girisButonunaTiklama();
 
-            ReportManager.step(
-                    "Geçerli kullanıcı adı giriliyor."
-            );
-
-            loginPage
-                    .kullaniciAdiGirme(
-                            ConfigManager.get("username")
-                    );
-
-
-            ReportManager.step(
-                    "Geçerli kullanıcı şifresi giriliyor."
-            );
-
-            loginPage
-                    .sifreGirme(
-                            ConfigManager.get("password")
-                    );
-
-
-            ReportManager.step(
-                    "Sign In butonuna tıklanıyor."
-            );
-
-            loginPage
-                    .girisButonunaTiklama();
-
-
-            /*
-             * Login işleminden sonra
-             * Gösterge Panosu doğrulanır.
-             */
-            ReportManager.step(
-                    "Gösterge Panosu ekranının açıldığı doğrulanıyor."
-            );
-
+            ReportManager.step("Gösterge Panosu ekranının açıldığı doğrulanıyor.");
             if (!loginPage.basariliGirisYapildiMi()) {
-
                 throw new IllegalStateException(
-                        "AVP kullanıcı girişi başarısız. "
-                                + "Gösterge Panosu görüntülenemedi."
-                );
+                        "AVP kullanıcı girişi başarısız. Gösterge Panosu görüntülenemedi.");
             }
 
+            ReportManager.step("AVP authentication state kaydediliyor.");
+            PlaywrightManager.getContext().storageState(
+                    new BrowserContext.StorageStateOptions()
+                            .setPath(AvpAuthStateManager.authStatePathAlma()));
 
-            /*
-             * Başarılı login sonrasında authentication
-             * state sonraki testlerde kullanılmak üzere kaydedilir.
-             */
-            ReportManager.step(
-                    "AVP authentication state kaydediliyor."
-            );
-
-            PlaywrightManager
-                    .getContext()
-                    .storageState(
-                            new BrowserContext.StorageStateOptions()
-                                    .setPath(
-                                            AvpAuthStateManager
-                                                    .authStatePathAlma()
-                                    )
-                    );
-
-
-            ReportManager.info(
-                    "AVP authentication state güncellendi."
-            );
-
-            ReportManager.info(
-                    "AVP kullanıcı girişi başarılı."
-            );
-
+            ReportManager.info("AVP authentication state güncellendi.");
+            ReportManager.info("AVP kullanıcı girişi başarılı.");
             return;
         }
 
-
-        /*
-         * Belirlenen süre içerisinde ne login ne de dashboard
-         * oluşmuşsa ortam beklenen duruma ulaşmamıştır.
-         */
         throw new IllegalStateException(
                 "AVP oturum durumu 30 saniye içerisinde belirlenemedi. "
                         + "Login ekranı veya Gösterge Panosu görüntülenemedi. "
-                        + "Mevcut URL: "
-                        + page.url()
-        );
+                        + "Mevcut URL: " + page.url());
     }
 
-
     /**
-     * AVP portalını açar.
-     *
-     * Chromium tarafından geçici ERR_NETWORK_CHANGED
-     * hatası dönerse navigation işlemini bir kez tekrarlar.
+     * AVP portalını açar; geçici ERR_NETWORK_CHANGED hatasında
+     * navigasyonu bir kez daha dener.
      */
     private void avpPortaliniAcma() {
+        String portalUrl = ConfigManager.get("base.url");
+        int maksimumDeneme = 2;
 
-        String portalUrl =
-                ConfigManager.get("base.url");
-
-        int maksimumDeneme =
-                2;
-
-
-        for (int deneme = 1;
-             deneme <= maksimumDeneme;
-             deneme++) {
-
+        for (int deneme = 1; deneme <= maksimumDeneme; deneme++) {
             try {
+                ReportManager.info("AVP portal navigation denemesi: "
+                        + deneme + "/" + maksimumDeneme);
 
-                ReportManager.info(
-                        "AVP portal navigation denemesi: "
-                                + deneme
-                                + "/"
-                                + maksimumDeneme
-                );
-
-
-                page.navigate(
-                        portalUrl,
+                page.navigate(portalUrl,
                         new Page.NavigateOptions()
-                                .setWaitUntil(
-                                        WaitUntilState.DOMCONTENTLOADED
-                                )
-                                .setTimeout(
-                                        30000
-                                )
-                );
+                                .setWaitUntil(WaitUntilState.DOMCONTENTLOADED)
+                                .setTimeout(30000));
 
-
-                ReportManager.info(
-                        "AVP portal navigation tamamlandı | URL: "
-                                + page.url()
-                );
-
+                ReportManager.info("AVP portal navigation tamamlandı | URL: " + page.url());
                 return;
-
-
             } catch (PlaywrightException e) {
+                boolean networkChanged = e.getMessage() != null
+                        && e.getMessage().contains("ERR_NETWORK_CHANGED");
 
-                boolean networkChanged =
-                        e.getMessage() != null
-                                && e.getMessage()
-                                .contains(
-                                        "ERR_NETWORK_CHANGED"
-                                );
-
-
-                /*
-                 * ERR_NETWORK_CHANGED dışında bir hata oluşmuşsa
-                 * doğrudan üst katmana iletilir.
-                 */
-                if (!networkChanged) {
-
+                if (!networkChanged || deneme == maksimumDeneme) {
                     throw e;
                 }
 
-
-                /*
-                 * Son denemede de aynı hata oluşmuşsa
-                 * test hata ile sonlandırılır.
-                 */
-                if (deneme == maksimumDeneme) {
-
-                    throw e;
-                }
-
-
-                ReportManager.info(
-                        "Geçici ERR_NETWORK_CHANGED hatası oluştu. "
-                                + "Portal navigation tekrar denenecek."
-                );
-
-
-                page.waitForTimeout(
-                        1500
-                );
+                ReportManager.info("Geçici ERR_NETWORK_CHANGED hatası oluştu. "
+                        + "Portal navigation tekrar denenecek.");
+                page.waitForTimeout(1500);
             }
         }
     }
+
     /**
-     * Tüm TestNG suite çalışması tamamlandıktan sonra
-     * otomasyon tarafından oluşturulan test verilerini temizler.
+     * TestNG suite bitince otomasyon kaynaklarını temizler.
+     * Bu metot rahmi branch'indeki aktif temizleme davranışını korur.
      */
-<<<<<<< HEAD
     @AfterSuite(alwaysRun = true)
     public void kosuSonuOtomasyonKaynaklariniTemizleme() {
-=======
-    //@AfterSuite(alwaysRun = true)
-    /*public void kosuSonuOtomasyonKaynaklariniTemizleme() {
->>>>>>> origin/main
-
-        ReportManager.info(
-                "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME BAŞLATILDI"
-        );
+        ReportManager.info("KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME BAŞLATILDI");
 
         try {
-
-            OtomasyonKaynakTemizleyici
-                    .kosuSonuTemizliginiCalistir();
-
-
-            ReportManager.info(
-                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME TAMAMLANDI"
-            );
-
+            OtomasyonKaynakTemizleyici.kosuSonuTemizliginiCalistir();
+            ReportManager.info("KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME TAMAMLANDI");
         } catch (Exception e) {
-
-            ReportManager.error(
-                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLENEMEDİ"
-                            + " | Hata: "
-                            + e.getMessage()
-            );
-
+            ReportManager.error("KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLENEMEDİ"
+                    + " | Hata: " + e.getMessage());
             e.printStackTrace();
         }
-<<<<<<< HEAD
     }
-=======
-    }*/
->>>>>>> origin/main
 }

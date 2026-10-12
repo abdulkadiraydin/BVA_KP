@@ -161,4 +161,19 @@ public class KaynakDuzenleModal {
 
         return mesaj.isVisible();
     }
+    /**
+     * Düzenleme ekranındaki kaynak adını okur.
+     * Mevcut ve güncellenmiş değerin doğrulanmasında kullanılır.
+     */
+    public String kaynakAdiAlma() {
+        return adAlani.inputValue().trim();
+    }
+
+    /**
+     * Düzenleme ekranındaki kaynak açıklamasını okur.
+     * Mevcut ve güncellenmiş değerin doğrulanmasında kullanılır.
+     */
+    public String kaynakAciklamasiAlma() {
+        return aciklamaAlani.inputValue().trim();
+    }
 }

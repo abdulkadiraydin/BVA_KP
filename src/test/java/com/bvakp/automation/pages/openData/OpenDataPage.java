@@ -1358,7 +1358,6 @@ public class OpenDataPage extends BasePage {
     /**
      * Sorumlu birimi seçer.
      */
-<<<<<<< HEAD
     public void sorumluBirimSecme(
 
             String sorumluBirim) {
@@ -1381,18 +1380,6 @@ public class OpenDataPage extends BasePage {
 
         ).click();
 
-=======
-    public void sorumluBirimSecme(String sorumluBirim) {
-        page.getByRole(
-                AriaRole.COMBOBOX,
-                new Page.GetByRoleOptions()
-                        .setName("Sorumlu Birim")).click();
-
-        page.locator("[role='listbox'] [role='option']")
-                .filter(new Locator.FilterOptions()
-                        .setHasText(sorumluBirim))
-                .click();
->>>>>>> origin/main
     }
 
 
@@ -1402,7 +1389,6 @@ public class OpenDataPage extends BasePage {
     public void kategoriSecme(
             String kategori) {
 
-<<<<<<< HEAD
         page.getByLabel(
                 "Kategori *"
         ).click();
@@ -1413,24 +1399,12 @@ public class OpenDataPage extends BasePage {
                         .setName(kategori)
                         .setExact(true)
         ).click();
-=======
-        page.getByRole(
-                AriaRole.COMBOBOX,
-                new Page.GetByRoleOptions()
-                        .setName("Kategori")).click();
-
-        page.locator("[role='listbox'] [role='option']")
-                .filter(new Locator.FilterOptions()
-                        .setHasText(kategori))
-                .click();
->>>>>>> origin/main
     }
 
 
     /**
      * Kullanım lisansını seçer.
      */
-<<<<<<< HEAD
     public void kullanimLisansiSecme(
             String lisans) {
 
@@ -1444,18 +1418,6 @@ public class OpenDataPage extends BasePage {
                         .setName(lisans)
                         .setExact(true)
         ).click();
-=======
-    public void kullanimLisansiSecme(String lisans) {
-        page.getByRole(
-                AriaRole.COMBOBOX,
-                new Page.GetByRoleOptions()
-                        .setName("Kullanım Lisansı")).click();
-
-        page.locator("[role='listbox'] [role='option']")
-                .filter(new Locator.FilterOptions()
-                        .setHasText(lisans))
-                .click();
->>>>>>> origin/main
     }
 
 
@@ -1645,7 +1607,6 @@ public class OpenDataPage extends BasePage {
      *
      * @param kolonAdi maskeleme uygulanacak kolon
      */
-<<<<<<< HEAD
     public void kolonaMaskelemeKuraliUygulama(
             String kolonAdi) {
 
@@ -1677,19 +1638,6 @@ public class OpenDataPage extends BasePage {
                         .setName("Maskele")
                         .setExact(true)
         ).click();
-=======
-    public void kolonaMaskelemeKuraliUygulama(String kolonAdi) {
-
-        Locator kolonSatiri = page.locator(
-                "[role='row'][data-id='" + kolonAdi + "']"
-        );
-
-        kolonSatiri.locator(
-                "[data-field='__rule'] [role='combobox']"
-        ).click();
-
-        page.locator("li[role='option'][data-value='MASK']").click();
->>>>>>> origin/main
     }
 
 

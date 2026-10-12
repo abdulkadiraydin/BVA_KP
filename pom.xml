@@ -229,46 +229,33 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.plugin.version}</version>
 
+
                 <configuration>
 
-                    <!--
-                        Proje kökündeki testng.xml çalıştırılır.
-                    -->
+                    <!-- TestNG test paketi -->
                     <suiteXmlFiles>
                         <suiteXmlFile>
                             ${project.basedir}/testng.xml
                         </suiteXmlFile>
                     </suiteXmlFiles>
 
-
-                    <!--
-                        Test bulunamazsa build sessizce geçmesin.
-                    -->
                     <failIfNoTests>true</failIfNoTests>
-
-
-                    <!--
-                        Stack trace'leri hata analizinde tam görelim.
-                    -->
                     <trimStackTrace>false</trimStackTrace>
 
+                    <!-- Java 21 için UTF-8 ayarları -->
+                    <argLine>
+                        -Dfile.encoding=UTF-8
+                        -Dstdout.encoding=UTF-8
+                        -Dstderr.encoding=UTF-8
+                    </argLine>
 
-                    <!--
-                        Allure çıktılarının tek yerde tutulması.
-                    -->
+                    <!-- Allure sonuçlarının kaydedileceği dizin -->
                     <systemPropertyVariables>
-
-                        <allure.results.directory>
-                            ${project.build.directory}/allure-results
-                        </allure.results.directory>
-
-                        <file.encoding>
-                            UTF-8
-                        </file.encoding>
-
+                        <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
                     </systemPropertyVariables>
 
                 </configuration>
+
 
             </plugin>
 

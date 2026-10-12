@@ -70,4 +70,21 @@ public class KaynakSilModal {
             return false;
         }
     }
+    /**
+     * Silme modalında doğru kaynak adının görüntülendiğini doğrular.
+     * Yanlış kaynağın silinmesini önlemek için kullanılır.
+     */
+    public boolean kaynakSilModalGoruntulendiMi(String kaynakAdi) {
+
+        if (!kaynakSilModalGoruntulendiMi()) {
+            return false;
+        }
+
+        Locator dialog = page.getByRole(AriaRole.DIALOG);
+
+        return dialog.getByText(
+                kaynakAdi,
+                new Locator.GetByTextOptions().setExact(false)
+        ).isVisible();
+    }
 }

@@ -51,22 +51,39 @@ public final class ReportManager {
         );
     }
 
+
+    /**
+     * Ekran görüntüsünü HTML raporuna ekler.
+     * Aktif Allure testi varsa aynı görüntüyü
+     * Allure raporuna da ekler.
+     */
     public static void attachScreenshot(
             String name,
             Path screenshotPath) {
 
-        if (screenshotPath == null) {
+        if (screenshotPath == null
+                || !Files.isRegularFile(screenshotPath)) {
+            logger.warn("Screenshot dosyası bulunamadı: {}", screenshotPath);
             return;
         }
 
-        HtmlReportManager.setScreenshot(
-                screenshotPath
-        );
+        HtmlReportManager.setScreenshot(screenshotPath);
+
+        if (Allure.getLifecycle()
+                .getCurrentTestCase()
+                .isEmpty()) {
+
+            logger.warn(
+                    "Aktif Allure testi bulunamadı. " +
+                            "Screenshot yalnızca HTML raporuna eklendi: {}",
+                    screenshotPath
+            );
+
+            return;
+        }
 
         try (InputStream inputStream =
-                     Files.newInputStream(
-                             screenshotPath
-                     )) {
+                     Files.newInputStream(screenshotPath)) {
 
             Allure.addAttachment(
                     name,
@@ -76,16 +93,17 @@ public final class ReportManager {
             );
 
             logger.info(
-                    "ATTACHMENT | Screenshot rapora eklendi: {}",
+                    "ATTACHMENT | Screenshot Allure'a eklendi: {}",
                     screenshotPath
             );
 
         } catch (IOException e) {
 
             logger.error(
-                    "ERROR | Screenshot Allure raporuna eklenemedi.",
+                    "Screenshot Allure raporuna eklenemedi.",
                     e
             );
         }
     }
+
 }

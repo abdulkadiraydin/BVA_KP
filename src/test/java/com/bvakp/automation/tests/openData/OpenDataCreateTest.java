@@ -1,11 +1,9 @@
 package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.companents.KaynakDuzenleModal;
 import com.bvakp.automation.companents.KaynakEkleModal;
-<<<<<<< HEAD
-import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
-=======
->>>>>>> origin/main
+import com.bvakp.automation.companents.KaynakSilModal;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.ScreenshotUtil;
@@ -16,2382 +14,560 @@ import org.testng.asserts.SoftAssert;
 
 import java.nio.file.Path;
 
+/**
+ * Açık Veri Portalı kaynak yönetimi, hazır sorgu ve veri seti oluşturma testleri.
+ * Her test kendi ön koşul verisini oluşturur; ayrı bir Flow katmanı kullanılmaz.
+ */
 public class OpenDataCreateTest extends AvpBaseTest {
 
-<<<<<<< HEAD
-=======
+    private static final String KAYNAK_TABLOSU = "arac_bakim_is_yeri_sayisi";
+    private OpenDataPage openDataPage;
+    private KaynakEkleModal kaynakEkleModal;
 
->>>>>>> origin/main
     /**
-     * Dinamik test verisi kullanarak yeni kaynak oluşturur
-     * ve oluşturulan kaydın listeye doğru yansıdığını doğrular.
+     * Her @Test içinden çağrılarak sayfa nesnelerini ve AVP oturumunu hazırlar.
+     * Login ve geçiş loglarının ilgili Allure testine eklenmesi için @BeforeMethod
+     * yerine test gövdesinden çağrılır. BaseTest.setUp() Page'i önceden açar.
+     */
+    private void testHazirligi() {
+        openDataPage = new OpenDataPage(page);
+        kaynakEkleModal = new KaynakEkleModal(page);
+        avpOturumuHazirlama();
+        ReportManager.step("Açık Veri Portalına geçiliyor.");
+        openDataPage.acikVeriPortalinaGitme();
+    }
+
+    /**
+     * Başka bir işlevi test etmek için gereken kaynağı oluşturur ve görünürlüğünü doğrular.
+     * Kaynak oluşturmanın kendisinin sınandığı testte bu yardımcı metot kullanılmaz.
+     */
+    private void testKaynagiOlusturma(String kaynakAdi, String tabloAdi, String aciklama) {
+        ReportManager.step("Test ön koşulu: kaynak oluşturuluyor | " + kaynakAdi);
+        openDataPage.kaynakEklemeEkraniniAcma();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Ön koşul: Kaynak Ekle formu açılamadı.");
+
+        ReportManager.step("Kaynak adı giriliyor: " + kaynakAdi);
+        kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
+        ReportManager.step("Kaynak tablosu seçiliyor: " + tabloAdi);
+        kaynakEkleModal.kaynakTablosuSecme(tabloAdi);
+        ReportManager.step("Kaynak açıklaması giriliyor.");
+        kaynakEkleModal.kaynakAciklamasiGirme(aciklama);
+        Assert.assertTrue(kaynakEkleModal.veriOnizlemeGoruntulendiMi(),
+                "Ön koşul: Veri Önizleme görüntülenemedi.");
+
+        ReportManager.step("Kaynak ekleme işlemi tamamlanıyor.");
+        kaynakEkleModal.kaynakEkleme();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuKapandiMi(),
+                "Ön koşul: Kaynak oluşturulduktan sonra form kapanmadı.");
+        Assert.assertTrue(openDataPage.kaynakListedeMi(kaynakAdi),
+                "Ön koşul: Kaynak listede bulunamadı: " + kaynakAdi);
+        ReportManager.info("Test kaynağı oluşturuldu | " + kaynakAdi);
+    }
+
+    /**
+     * Kaynak ekleme alanlarını, veri önizlemesini ve kalıcı kaydı adım adım doğrular.
      */
     @Test(priority = 1)
     public void kaynakOlusturma() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String kaynakAciklamasi = "Otomasyon kaynak oluşturma testi - " + kaynakAdi;
+        ReportManager.info("KAYNAK OLUŞTURMA TEST VERİSİ | Kaynak: " + kaynakAdi
+                + " | Tablo: " + KAYNAK_TABLOSU);
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
+        ReportManager.step("Kaynak Tablo / Sorgu bölümü kontrol ediliyor.");
+        Assert.assertTrue(openDataPage.kaynakTabloSorguGoruntulendiMi(),
+                "Kaynak Tablo / Sorgu bölümü görüntülenemedi.");
 
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
+        ReportManager.step("Kaynak Ekle formu açılıyor.");
+        openDataPage.kaynakEklemeEkraniniAcma();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak Ekle formu görüntülenemedi.");
 
+        ReportManager.step("Kaynak adı giriliyor: " + kaynakAdi);
+        kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
+        Assert.assertEquals(kaynakEkleModal.kaynakAdiAlma(), kaynakAdi,
+                "Kaynak adı alanındaki değer beklenen değerle uyuşmuyor.");
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_kaynak"
-                );
+        ReportManager.step("Kaynak tablosu seçiliyor: " + KAYNAK_TABLOSU);
+        kaynakEkleModal.kaynakTablosuSecme(KAYNAK_TABLOSU);
+        Assert.assertEquals(kaynakEkleModal.seciliTabloyuAlma(), KAYNAK_TABLOSU,
+                "Seçilen kaynak tablosu beklenen değerle uyuşmuyor.");
 
-        String tabloAdi =
-                "arac_bakim_is_yeri_sayisi";
+        ReportManager.step("Kaynak açıklaması giriliyor.");
+        kaynakEkleModal.kaynakAciklamasiGirme(kaynakAciklamasi);
+        Assert.assertEquals(kaynakEkleModal.kaynakAciklamasiAlma(), kaynakAciklamasi,
+                "Kaynak açıklaması beklenen değerle uyuşmuyor.");
 
-        String kaynakAciklamasi =
-                "Otomasyon kaynak oluşturma testi - "
-                        + kaynakAdi;
+        ReportManager.step("Veri Önizleme bölümü doğrulanıyor.");
+        Assert.assertTrue(kaynakEkleModal.veriOnizlemeGoruntulendiMi(),
+                "Veri Önizleme bölümü görüntülenemedi.");
 
+        ReportManager.step("Kaynak oluşturuluyor ve formun kapandığı doğrulanıyor.");
+        kaynakEkleModal.kaynakEkleme();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuKapandiMi(),
+                "Kaynak oluşturma işleminden sonra form kapanmadı.");
 
-        ReportManager.info(
-                "KAYNAK OLUŞTURMA TEST VERİSİ"
-                        + " | Kaynak: "
-                        + kaynakAdi
-                        + " | Tablo: "
-                        + tabloAdi
-        );
-
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        ReportManager.step(
-                "Kaynak Tablo / Sorgu bölümünün görüntülendiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakTabloSorguGoruntulendiMi(),
-                "Kaynak Tablo / Sorgu bölümü görüntülenemedi."
-        );
-
-
-        ReportManager.step(
-                "Kaynak Ekle formu açılıyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak Ekle formu görüntülenemedi."
-        );
-
-
-        ReportManager.step(
-                "Kaynak adı giriliyor: "
-                        + kaynakAdi
-        );
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-        Assert.assertEquals(
-                kaynakEkleModal
-                        .kaynakAdiAlma(),
-                kaynakAdi,
-                "Kaynak adı alanındaki değer beklenen değerle uyuşmuyor."
-        );
-
-
-        ReportManager.step(
-                "Kaynak tablosu seçiliyor: "
-                        + tabloAdi
-        );
-
-        kaynakEkleModal
-                .kaynakTablosuSecme(
-                        tabloAdi
-                );
-
-        Assert.assertEquals(
-                kaynakEkleModal
-                        .seciliTabloyuAlma(),
-                tabloAdi,
-                "Seçilen kaynak tablosu beklenen değerle uyuşmuyor."
-        );
-
-
-        ReportManager.step(
-                "Kaynak açıklaması giriliyor."
-        );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-        Assert.assertEquals(
-                kaynakEkleModal
-                        .kaynakAciklamasiAlma(),
-                kaynakAciklamasi,
-                "Kaynak açıklaması beklenen değerle uyuşmuyor."
-        );
-
-
-        ReportManager.step(
-                "Veri Önizleme bölümünün görüntülendiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .veriOnizlemeGoruntulendiMi(),
-                "Veri Önizleme bölümü görüntülenemedi."
-        );
-
-
-        ReportManager.step(
-                "Kaynak oluşturuluyor."
-        );
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuKapandiMi(),
-                "Kaynak oluşturma işleminden sonra form kapanmadı."
-        );
-
-
-        ReportManager.step(
-                "Oluşturulan kaynağın listede bulunduğu doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Oluşturulan kaynak listede bulunamadı: "
-                        + kaynakAdi
-        );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakBilgileriDogruMu(
-                                kaynakAdi,
-                                kaynakAciklamasi
-                        ),
-                "Kaynak bilgileri oluşturulan değerlerle uyuşmuyor."
-        );
-
-
-        ReportManager.info(
-                "KAYNAK OLUŞTURMA BAŞARILI"
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
+        ReportManager.step("Oluşturulan kaynak ve açıklaması listede doğrulanıyor.");
+        Assert.assertTrue(openDataPage.kaynakListedeMi(kaynakAdi),
+                "Oluşturulan kaynak listede bulunamadı: " + kaynakAdi);
+        Assert.assertTrue(openDataPage.kaynakBilgileriDogruMu(kaynakAdi, kaynakAciklamasi),
+                "Kaynak bilgileri oluşturulan değerlerle uyuşmuyor.");
+        ReportManager.info("KAYNAK OLUŞTURMA BAŞARILI | Kaynak: " + kaynakAdi);
     }
 
-
     /**
-     * Test tarafından oluşturulan kaynağın
-     * başarılı şekilde silinebildiğini doğrular.
+     * Yalnızca bu testin oluşturduğu kaynağın silme modalı üzerinden silindiğini doğrular.
      */
     @Test(priority = 2)
     public void kaynakSilme() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_silinecek_kaynak");
+        String aciklama = "Otomasyon silme testi - " + kaynakAdi;
+        testKaynagiOlusturma(kaynakAdi, KAYNAK_TABLOSU, aciklama);
+        KaynakSilModal silModal = new KaynakSilModal(page);
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
+        ReportManager.step("Kaynağın Sil butonuna tıklanıyor: " + kaynakAdi);
+        openDataPage.kaynakSilmeButonunaTiklama(kaynakAdi);
 
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
+        ReportManager.step("Silme modalında doğru kaynak adı doğrulanıyor.");
+        Assert.assertTrue(silModal.kaynakSilModalGoruntulendiMi(kaynakAdi),
+                "Silme onay ekranında beklenen kaynak adı görüntülenemedi.");
 
-
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_silinecek_kaynak"
-                );
-
-        String tabloAdi =
-                "arac_bakim_is_yeri_sayisi";
-
-        String kaynakAciklamasi =
-                "Otomasyon silme testi - "
-                        + kaynakAdi;
-
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        ReportManager.step(
-                "Silme testi için kaynak oluşturuluyor: "
-                        + kaynakAdi
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-        kaynakEkleModal
-                .kaynakTablosuSecme(
-                        tabloAdi
-                );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .veriOnizlemeGoruntulendiMi(),
-                "Veri Önizleme bölümü görüntülenemedi."
-        );
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Silme testi için oluşturulan kaynak listede bulunamadı."
-        );
-
-
-        ReportManager.step(
-                "Oluşturulan kaynağın Sil butonuna tıklanıyor."
-        );
-
-        openDataPage
-                .kaynakSilmeButonunaTiklama(
-                        kaynakAdi
-                );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakSilmeOnayiGoruntulendiMi(
-                                kaynakAdi
-                        ),
-                "Silme onay ekranı doğrulanamadı."
-        );
-
-
-        ReportManager.step(
-                "Kaynak silme işlemi onaylanıyor."
-        );
-
-        openDataPage
-                .kaynakSilmeOnayiVerme();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakSilmeDialoguKapandiMi(),
-                "Silme işleminden sonra dialog kapanmadı."
-        );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedenSilindiMi(
-                                kaynakAdi
-                        ),
-                "Silinen kaynak hâlâ listede görüntüleniyor."
-        );
-
-
-        ReportManager.info(
-                "KAYNAK SİLME BAŞARILI"
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
+        ReportManager.step("Kaynak silme işlemi onaylanıyor.");
+        silModal.silmeOnaylama();
+        Assert.assertTrue(silModal.kaynakSilModalKapandiMi(),
+                "Silme işleminden sonra dialog kapanmadı.");
+        Assert.assertTrue(openDataPage.kaynakListedenSilindiMi(kaynakAdi),
+                "Silinen kaynak hâlâ listede görüntüleniyor: " + kaynakAdi);
+        ReportManager.info("KAYNAK SİLME BAŞARILI | Kaynak: " + kaynakAdi);
     }
 
-
     /**
-     * Bir kaynak kaydının Genel Bilgi ve
-     * Önizleme ekranlarının görüntülenebildiğini doğrular.
+     * Dinamik kaynak oluşturarak Genel Bilgi ve Önizleme ekranlarını doğrular.
+     * Ortamda önceden var olan başka bir kayda bağımlı değildir.
      */
     @Test(priority = 3)
     public void kaynakGoruntuleme() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_goruntuleme_kaynak");
+        String aciklama = "Otomasyon kaynak görüntüleme testi - " + kaynakAdi;
+        testKaynagiOlusturma(kaynakAdi, KAYNAK_TABLOSU, aciklama);
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
+        ReportManager.step("Test kaynağının Görüntüle butonuna tıklanıyor: " + kaynakAdi);
+        openDataPage.kaynakGoruntulemeButonunaTiklama(kaynakAdi);
 
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
+        ReportManager.step("Genel Bilgi sekmesindeki kaynak ve kayıt bilgileri doğrulanıyor.");
+        openDataPage.genelBilgiSekmesineTiklama();
+        Assert.assertTrue(openDataPage.genelBilgiSayfasiGoruntulendiMi(),
+                "Kaynak Genel Bilgi ekranı doğru şekilde görüntülenemedi.");
 
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        ReportManager.step(
-                "Görüntülenecek mevcut kaynak kontrol ediliyor."
-        );
-
-
-        if (openDataPage.kaynakKaydiVarMi()) {
-
-            ReportManager.info(
-                    "Kaynak listesinde mevcut kayıt bulundu."
-            );
-
-            ReportManager.step(
-                    "Mevcut kaynağın Görüntüle butonuna tıklanıyor."
-            );
-
-            openDataPage
-                    .ilkKaynagiGoruntuleme();
-
-        } else {
-
-            String kaynakAdi =
-                    TestDataUtil.dinamikAdOlusturma(
-                            "otomasyon_goruntuleme_kaynak"
-                    );
-
-            String tabloAdi =
-                    "arac_bakim_is_yeri_sayisi";
-
-            String kaynakAciklamasi =
-                    "Otomasyon kaynak görüntüleme testi - "
-                            + kaynakAdi;
-
-
-            ReportManager.info(
-                    "Mevcut kaynak bulunamadı."
-                            + " Yeni kaynak oluşturulacak: "
-                            + kaynakAdi
-            );
-
-
-            openDataPage
-                    .kaynakEklemeEkraniniAcma();
-
-            Assert.assertTrue(
-                    kaynakEkleModal
-                            .kaynakEkleFormuGoruntulendiMi(),
-                    "Kaynak Ekle formu görüntülenemedi."
-            );
-
-
-            kaynakEkleModal
-                    .kaynakAdiGirme(
-                            kaynakAdi
-                    );
-
-            kaynakEkleModal
-                    .kaynakTablosuSecme(
-                            tabloAdi
-                    );
-
-            kaynakEkleModal
-                    .kaynakAciklamasiGirme(
-                            kaynakAciklamasi
-                    );
-
-
-            Assert.assertTrue(
-                    kaynakEkleModal
-                            .veriOnizlemeGoruntulendiMi(),
-                    "Veri Önizleme bölümü görüntülenemedi."
-            );
-
-
-            kaynakEkleModal
-                    .kaynakEkleme();
-
-
-            Assert.assertTrue(
-                    openDataPage
-                            .kaynakListedeMi(
-                                    kaynakAdi
-                            ),
-                    "Görüntüleme testi için oluşturulan kaynak listede bulunamadı."
-            );
-
-
-            ReportManager.step(
-                    "Oluşturulan kaynağın Görüntüle butonuna tıklanıyor."
-            );
-
-            openDataPage
-                    .kaynakGoruntulemeButonunaTiklama(
-                            kaynakAdi
-                    );
-        }
-
-
-        ReportManager.step(
-                "Genel Bilgi sekmesine geçiliyor."
-        );
-
-        openDataPage
-                .genelBilgiSekmesineTiklama();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .genelBilgiSayfasiGoruntulendiMi(),
-                "Kaynak Genel Bilgi ekranı doğru şekilde görüntülenemedi."
-        );
-
-
-        ReportManager.step(
-                "Önizleme sekmesine geçiliyor."
-        );
-
-        openDataPage
-                .onizlemeSekmesineTiklama();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .onizlemeSayfasiGoruntulendiMi(),
-                "Kaynak Önizleme ekranı görüntülenemedi."
-        );
-
-
-        ReportManager.info(
-                "KAYNAK GÖRÜNTÜLEME VE ÖNİZLEME KONTROLÜ BAŞARILI"
-        );
+        ReportManager.step("Önizleme sekmesindeki ham veri doğrulanıyor.");
+        openDataPage.onizlemeSekmesineTiklama();
+        Assert.assertTrue(openDataPage.onizlemeSayfasiGoruntulendiMi(),
+                "Kaynak Önizleme ekranı görüntülenemedi.");
+        ReportManager.info("KAYNAK GÖRÜNTÜLEME VE ÖNİZLEME KONTROLÜ BAŞARILI");
     }
 
-
     /**
-     * Dinamik olarak oluşturulan bir kaynağın
-     * ad ve açıklama bilgilerinin güncellenebildiğini doğrular.
+     * Kaynak adı ve açıklamasının düzenleme modalından güncellenebildiğini doğrular.
      */
     @Test(priority = 4)
     public void kaynakDuzenleme() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_duzenleme_kaynak");
+        String aciklama = "Otomasyon kaynak düzenleme testi - " + kaynakAdi;
+        String yeniKaynakAdi = kaynakAdi + "_duzenlendi";
+        String yeniAciklama = "Otomasyon kaynak düzenleme testi güncellendi - " + yeniKaynakAdi;
+        testKaynagiOlusturma(kaynakAdi, KAYNAK_TABLOSU, aciklama);
+        KaynakDuzenleModal duzenleModal = new KaynakDuzenleModal(page);
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
+        ReportManager.step("Kaynağın Düzenle butonuna tıklanıyor: " + kaynakAdi);
+        openDataPage.kaynakDuzenlemeButonunaTiklama(kaynakAdi);
+        Assert.assertTrue(duzenleModal.kaynakDuzenleModalGoruntulendiMi(),
+                "Kaynak düzenleme ekranı görüntülenemedi.");
+        Assert.assertEquals(duzenleModal.kaynakAdiAlma(), kaynakAdi,
+                "Düzenleme ekranındaki kaynak adı hatalı.");
+        Assert.assertEquals(duzenleModal.kaynakAciklamasiAlma(), aciklama,
+                "Düzenleme ekranındaki açıklama hatalı.");
 
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
+        ReportManager.step("Kaynak adı ve açıklaması güncelleniyor.");
+        duzenleModal.adDegistirme(yeniKaynakAdi);
+        duzenleModal.aciklamaDegistirme(yeniAciklama);
+        Assert.assertEquals(duzenleModal.kaynakAdiAlma(), yeniKaynakAdi,
+                "Yeni kaynak adı forma doğru yazılmadı.");
+        Assert.assertEquals(duzenleModal.kaynakAciklamasiAlma(), yeniAciklama,
+                "Yeni açıklama forma doğru yazılmadı.");
 
-
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_duzenleme_kaynak"
-                );
-
-        String tabloAdi =
-                "arac_bakim_is_yeri_sayisi";
-
-        String kaynakAciklamasi =
-                "Otomasyon kaynak düzenleme testi - "
-                        + kaynakAdi;
-
-        String yeniKaynakAdi =
-                kaynakAdi
-                        + "_duzenlendi";
-
-        String yeniKaynakAciklamasi =
-                "Otomasyon kaynak düzenleme testi güncellendi - "
-                        + yeniKaynakAdi;
-
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        ReportManager.step(
-                "Düzenleme testi için kaynak oluşturuluyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-        kaynakEkleModal
-                .kaynakTablosuSecme(
-                        tabloAdi
-                );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .veriOnizlemeGoruntulendiMi(),
-                "Veri Önizleme bölümü görüntülenemedi."
-        );
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Düzenleme testi için oluşturulan kaynak listede bulunamadı."
-        );
-
-
-        ReportManager.step(
-                "Kaynağın Düzenle butonuna tıklanıyor."
-        );
-
-        openDataPage
-                .kaynakDuzenlemeButonunaTiklama(
-                        kaynakAdi
-                );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakDuzenlemeEkraniGoruntulendiMi(),
-                "Kaynak düzenleme ekranı görüntülenemedi."
-        );
-
-
-        Assert.assertEquals(
-                openDataPage
-                        .duzenlemeKaynakAdiAlma(),
-                kaynakAdi,
-                "Düzenleme ekranındaki kaynak adı hatalı."
-        );
-
-        Assert.assertEquals(
-                openDataPage
-                        .duzenlemeKaynakAciklamasiAlma(),
-                kaynakAciklamasi,
-                "Düzenleme ekranındaki açıklama hatalı."
-        );
-
-
-        ReportManager.step(
-                "Kaynak adı ve açıklaması güncelleniyor."
-        );
-
-        openDataPage
-                .kaynakAdiniGuncelleme(
-                        yeniKaynakAdi
-                );
-
-        openDataPage
-                .kaynakAciklamasiniGuncelleme(
-                        yeniKaynakAciklamasi
-                );
-
-
-        Assert.assertEquals(
-                openDataPage
-                        .duzenlemeKaynakAdiAlma(),
-                yeniKaynakAdi,
-                "Yeni kaynak adı forma doğru yazılmadı."
-        );
-
-        Assert.assertEquals(
-                openDataPage
-                        .duzenlemeKaynakAciklamasiAlma(),
-                yeniKaynakAciklamasi,
-                "Yeni açıklama forma doğru yazılmadı."
-        );
-
-
-        ReportManager.step(
-                "Kaynak düzenleme işlemi kaydediliyor."
-        );
-
-        openDataPage
-                .kaynakDuzenlemeyiKaydetme();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                yeniKaynakAdi
-                        ),
-                "Güncellenen kaynak listede bulunamadı."
-        );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakBilgileriDogruMu(
-                                yeniKaynakAdi,
-                                yeniKaynakAciklamasi
-                        ),
-                "Güncellenen kaynak bilgileri listede doğrulanamadı."
-        );
-
-
-        Assert.assertFalse(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Eski kaynak adı hâlâ listede görüntüleniyor."
-        );
-
-
-        ReportManager.info(
-                "KAYNAK DÜZENLEME BAŞARILI"
-                        + " | Yeni kaynak: "
-                        + yeniKaynakAdi
-        );
+        ReportManager.step("Kaynak düzenleme işlemi kaydediliyor.");
+        duzenleModal.kaydetme();
+        Assert.assertTrue(openDataPage.kaynakListedeMi(yeniKaynakAdi),
+                "Güncellenen kaynak listede bulunamadı.");
+        Assert.assertTrue(openDataPage.kaynakBilgileriDogruMu(yeniKaynakAdi, yeniAciklama),
+                "Güncellenen kaynak bilgileri listede doğrulanamadı.");
+        Assert.assertFalse(openDataPage.kaynakListedeMi(kaynakAdi),
+                "Eski kaynak adı hâlâ listede görüntüleniyor.");
+        ReportManager.info("KAYNAK DÜZENLEME BAŞARILI | Yeni kaynak: " + yeniKaynakAdi);
     }
 
-
     /**
-     * Mevcut ve mevcut olmayan kriterler kullanılarak
-     * kaynak arama fonksiyonunu doğrular.
+     * Kendi oluşturduğu kaynağı pozitif kriterle, olmayan kaynağı negatif kriterle arar.
+     * Her iki sonucun ekran görüntüsünü rapora ekler.
      */
     @Test(priority = 5)
     public void kaynakArama() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_arama_kaynak");
+        String olmayanKriter = TestDataUtil.dinamikAdOlusturma("otomasyon_bulunmayan");
+        testKaynagiOlusturma(kaynakAdi, KAYNAK_TABLOSU,
+                "Otomasyon arama testi - " + kaynakAdi);
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
-
-
-        String mevcutAramaKriteri =
-                "otomasyon";
-
-        String bulunmayanAramaKriteri =
-                "bu kayıt yok";
-
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        /*
-         * Pozitif arama
-         */
-        ReportManager.step(
-                "Kaynak Ara alanında mevcut kayıt aranıyor: "
-                        + mevcutAramaKriteri
-        );
-
-        openDataPage
-                .kaynakArama(
-                        mevcutAramaKriteri
-                );
-
-
-        /*
-         * Bu metod sonuç yüklenene kadar beklemelidir.
-         */
-        ReportManager.step(
-                "Arama sonucunda '"
-                        + mevcutAramaKriteri
-                        + "' kriterini içeren kaynak bulunduğu doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakAramaSonuclariUygunMu(
-                                mevcutAramaKriteri
-                        ),
-                "Arama sonucunda '"
-                        + mevcutAramaKriteri
-                        + "' kriterini içeren kaynak bulunamadı."
-        );
-
-
-        /*
-         * Sonuç yüklendikten sonra screenshot alınır.
-         */
-        ReportManager.step(
-                "Pozitif kaynak arama sonucu ekran görüntüsü alınıyor."
-        );
-
-        Path pozitifScreenshot =
-                ScreenshotUtil.takeScreenshot(
-                        page,
-                        "kaynak_arama_pozitif_otomasyon"
-                );
-
+        ReportManager.step("Pozitif kaynak araması yapılıyor: " + kaynakAdi);
+        openDataPage.kaynakArama(kaynakAdi);
+        Assert.assertTrue(openDataPage.kaynakAramaSonuclariUygunMu(kaynakAdi),
+                "Aranan kaynak listede bulunamadı: " + kaynakAdi);
+        ReportManager.step("Pozitif arama sonucu ekran görüntüsü alınıyor.");
+        Path pozitifScreenshot = ScreenshotUtil.takeScreenshot(page, "kaynak_arama_pozitif_otomasyon");
         if (pozitifScreenshot != null) {
-
-            ReportManager.attachScreenshot(
-                    "Kaynak Arama - Pozitif Sonuç",
-                    pozitifScreenshot
-            );
+            ReportManager.attachScreenshot("Kaynak Arama - Pozitif Sonuç", pozitifScreenshot);
         }
 
-
-        /*
-         * Negatif arama
-         */
-        ReportManager.step(
-                "Kaynak Ara alanında bulunmayan kayıt aranıyor: "
-                        + bulunmayanAramaKriteri
-        );
-
-        openDataPage
-                .kaynakArama(
-                        bulunmayanAramaKriteri
-                );
-
-
-        ReportManager.step(
-                "Kaynak bulunamadığında boş liste mesajının görüntülendiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakBulunamadiMesajiGoruntulendiMi(),
-                "Kaynak bulunamadı mesajı görüntülenemedi."
-        );
-
-
-        Path negatifScreenshot =
-                ScreenshotUtil.takeScreenshot(
-                        page,
-                        "kaynak_arama_negatif_kayit_yok"
-                );
-
+        ReportManager.step("Negatif kaynak araması yapılıyor: " + olmayanKriter);
+        openDataPage.kaynakArama(olmayanKriter);
+        Assert.assertTrue(openDataPage.kaynakBulunamadiMesajiGoruntulendiMi(),
+                "Kaynak bulunamadı mesajı görüntülenemedi.");
+        ReportManager.step("Negatif arama sonucu ekran görüntüsü alınıyor.");
+        Path negatifScreenshot = ScreenshotUtil.takeScreenshot(page, "kaynak_arama_negatif_kayit_yok");
         if (negatifScreenshot != null) {
-
-            ReportManager.attachScreenshot(
-                    "Kaynak Arama - Sonuç Bulunamadı",
-                    negatifScreenshot
-            );
+            ReportManager.attachScreenshot("Kaynak Arama - Sonuç Bulunamadı", negatifScreenshot);
         }
-
-
-        ReportManager.info(
-                "KAYNAK ARAMA KONTROLÜ BAŞARILI"
-        );
+        ReportManager.info("KAYNAK ARAMA KONTROLÜ BAŞARILI");
     }
 
-
     /**
-     * Ad ve Tablo zorunlu alanlarının ikisi de boşken
-     * kayıt oluşturulamadığını doğrular.
+     * Kaynak Adı ve Tablo boş bırakıldığında iki zorunlu alan hatasını doğrular.
      */
     @Test(priority = 6)
     public void kaynakEklemeZorunluAlanKontrolu() {
+        testHazirligi();
+        ReportManager.step("Kaynak Ekle formu açılıyor.");
+        openDataPage.kaynakEklemeEkraniniAcma();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak Ekle formu görüntülenemedi.");
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
-
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
-
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        ReportManager.step(
-                "Kaynak Ekle formu açılıyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak Ekle formu görüntülenemedi."
-        );
-
-
-        ReportManager.step(
-                "Ad ve Tablo alanları boş bırakılarak kaynak ekleme deneniyor."
-        );
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakAdiZorunluMesajiGoruntulendiMi(),
-                "Kaynak adı zorunlu alan mesajı görüntülenmedi."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .tabloZorunluMesajiGoruntulendiMi(),
-                "Tablo zorunlu alan mesajı görüntülenmedi."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Validasyon hatasına rağmen form kapandı."
-        );
-
-
-        ReportManager.info(
-                "TÜM ZORUNLU ALAN KONTROLÜ BAŞARILI"
-        );
+        ReportManager.step("Ad ve Tablo boş bırakılarak Kaynak Ekle seçiliyor.");
+        kaynakEkleModal.kaynakEkleme();
+        Assert.assertTrue(kaynakEkleModal.kaynakAdiZorunluMesajiGoruntulendiMi(),
+                "Kaynak adı zorunlu alan mesajı görüntülenmedi.");
+        Assert.assertTrue(kaynakEkleModal.tabloZorunluMesajiGoruntulendiMi(),
+                "Tablo zorunlu alan mesajı görüntülenmedi.");
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Validasyon hatasına rağmen form kapandı.");
+        ReportManager.info("TÜM ZORUNLU ALAN KONTROLÜ BAŞARILI");
     }
 
-
     /**
-     * Kaynak adı dolu, Tablo alanı boş bırakıldığında
-     * Tablo zorunlu alan validasyonunu doğrular.
+     * Kaynak Adı dolu, Tablo boşken yalnızca Tablo validasyonu oluşmasını doğrular.
      */
     @Test(priority = 7)
     public void kaynakEklemeTabloZorunluAlanKontrolu() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_zorunlu_tablo");
+        ReportManager.step("Kaynak Ekle formu açılıyor, yalnızca ad giriliyor.");
+        openDataPage.kaynakEklemeEkraniniAcma();
+        kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
+        kaynakEkleModal.kaynakEkleme();
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
-
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
-
-
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_zorunlu_tablo"
-                );
-
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        ReportManager.step(
-                "Kaynak adı dolduruluyor, Tablo alanı boş bırakılıyor."
-        );
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .tabloZorunluMesajiGoruntulendiMi(),
-                "Tablo zorunlu alan mesajı görüntülenmedi."
-        );
-
-        Assert.assertFalse(
-                kaynakEkleModal
-                        .kaynakAdiZorunluMesajiGoruntulendiMi(),
-                "Kaynak adı dolu olmasına rağmen zorunlu alan mesajı görüntülendi."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Tablo alanı boş olmasına rağmen form kapandı."
-        );
-
-
-        ReportManager.info(
-                "TABLO ZORUNLU ALAN KONTROLÜ BAŞARILI"
-        );
+        Assert.assertTrue(kaynakEkleModal.tabloZorunluMesajiGoruntulendiMi(),
+                "Tablo zorunlu alan mesajı görüntülenmedi.");
+        Assert.assertFalse(kaynakEkleModal.kaynakAdiZorunluMesajiGoruntulendiMi(),
+                "Kaynak adı dolu olmasına rağmen zorunlu alan mesajı görüntülendi.");
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Tablo alanı boş olmasına rağmen form kapandı.");
+        ReportManager.info("TABLO ZORUNLU ALAN KONTROLÜ BAŞARILI");
     }
 
-
     /**
-     * Tablo seçili, Kaynak Adı boş bırakıldığında
-     * Kaynak Adı zorunlu alan validasyonunu doğrular.
+     * Tablo seçili, Kaynak Adı boşken yalnızca Ad validasyonu oluşmasını doğrular.
      */
     @Test(priority = 8)
     public void kaynakEklemeAdZorunluAlanKontrolu() {
+        testHazirligi();
+        ReportManager.step("Kaynak Ekle formu açılıyor, yalnızca Tablo seçiliyor.");
+        openDataPage.kaynakEklemeEkraniniAcma();
+        kaynakEkleModal.kaynakTablosuSecme(KAYNAK_TABLOSU);
+        kaynakEkleModal.kaynakEkleme();
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
-
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
-
-
-        String tabloAdi =
-                "arac_bakim_is_yeri_sayisi";
-
-
-        avpOturumuHazirlama();
-
-
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        ReportManager.step(
-                "Kaynak adı boş bırakılıyor ve Tablo seçiliyor."
-        );
-
-        kaynakEkleModal
-                .kaynakTablosuSecme(
-                        tabloAdi
-                );
-
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakAdiZorunluMesajiGoruntulendiMi(),
-                "Kaynak adı zorunlu alan mesajı görüntülenmedi."
-        );
-
-        Assert.assertFalse(
-                kaynakEkleModal
-                        .tabloZorunluMesajiGoruntulendiMi(),
-                "Tablo seçili olmasına rağmen Tablo zorunlu alan mesajı görüntülendi."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak adı boş olmasına rağmen form kapandı."
-        );
-
-
-        ReportManager.info(
-                "KAYNAK ADI ZORUNLU ALAN KONTROLÜ BAŞARILI"
-        );
+        Assert.assertTrue(kaynakEkleModal.kaynakAdiZorunluMesajiGoruntulendiMi(),
+                "Kaynak adı zorunlu alan mesajı görüntülenmedi.");
+        Assert.assertFalse(kaynakEkleModal.tabloZorunluMesajiGoruntulendiMi(),
+                "Tablo seçili olmasına rağmen Tablo zorunlu alan mesajı görüntülendi.");
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak adı boş olmasına rağmen form kapandı.");
+        ReportManager.info("KAYNAK ADI ZORUNLU ALAN KONTROLÜ BAŞARILI");
     }
+
     /**
-     * Hazır Sorgu kullanılarak dinamik ad ve açıklama ile
-     * yeni kaynak oluşturulabildiğini doğrular.
-     *
-     * Sorgu doğrulaması sonrasında beklenen kolonlar ve
-     * Veri Önizleme bölümü kontrol edilir.
+     * Hazır SELECT sorgusuyla kaynak oluşturur; kolonları ve kayıt bilgilerini doğrular.
      */
     @Test(priority = 9)
     public void hazirSorguIleKaynakOlusturma() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_sorgu_kaynak");
+        String aciklama = "Otomasyon hazır sorgu kaynak testi - " + kaynakAdi;
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
+        // Recorder'da doğrulanmış sorgu aynen korunur; JOIN ve kolon adları testin parçasıdır.
+        String sorgu = "SELECT\n"
+                + "    a.yil AS yil_yillik_hat_km,\n"
+                + "    a.bolge_kodu AS bolge_kodu_yillik_hat_km,\n"
+                + "    a.bolge_adi AS bolge_adi_yillik_hat_km,\n"
+                + "    b.hat_kodu AS hat_kodu_yillik_hat_kapasitesi,\n"
+                + "    b.hat_adi AS hat_adi_yillik_hat_kapasitesi\n"
+                + "FROM yillik_hat_km a\n"
+                + "LEFT JOIN yillik_hat_kapasitesi b\n"
+                + "    ON a.bolge_kodu = b.bolge_kodu\n"
+                + "    AND a.yil = b.yil;";
+        ReportManager.info("HAZIR SORGU KAYNAK TEST VERİSİ | Kaynak: " + kaynakAdi);
 
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
+        ReportManager.step("Kaynak Ekle formu açılıyor.");
+        openDataPage.kaynakEklemeEkraniniAcma();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Kaynak Ekle formu görüntülenemedi.");
 
+        ReportManager.step("Hazır Sorgu seçeneğine geçiliyor.");
+        kaynakEkleModal.hazirSorguyaGecme();
+        kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
+        Assert.assertEquals(kaynakEkleModal.kaynakAdiAlma(), kaynakAdi,
+                "Kaynak adı alanındaki değer beklenen değerle uyuşmuyor.");
+        kaynakEkleModal.kaynakAciklamasiGirme(aciklama);
+        Assert.assertEquals(kaynakEkleModal.kaynakAciklamasiAlma(), aciklama,
+                "Kaynak açıklaması beklenen değerle uyuşmuyor.");
 
-        /*
-         * Her koşuda benzersiz kaynak adı oluşturulur.
-         */
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_sorgu_kaynak"
-                );
+        ReportManager.step("Hazır SQL sorgusu giriliyor ve doğrulanıyor.");
+        kaynakEkleModal.hazirSorguGirme(sorgu);
+        kaynakEkleModal.hazirSorguDogrulama();
+        Assert.assertTrue(kaynakEkleModal.hazirSorguKolonlariGoruntulendiMi(),
+                "Sorgu doğrulaması sonrasında beklenen kolonlar görüntülenemedi.");
+        Assert.assertTrue(kaynakEkleModal.veriOnizlemeGoruntulendiMi(),
+                "Hazır sorgu sonrasında Veri Önizleme bölümü görüntülenemedi.");
 
-
-        /*
-         * Açıklama kaynak adına bağlı olarak
-         * dinamik oluşturulur.
-         */
-        String kaynakAciklamasi =
-                "Otomasyon hazır sorgu kaynak testi - "
-                        + kaynakAdi;
-
-
-        /*
-         * Recorder üzerinde kullanılan sorgu
-         * hiçbir değişiklik yapılmadan kullanılır.
-         */
-        String sorgu =
-                "SELECT\n"
-                        + "    a.yil AS yil_yillik_hat_km,\n"
-                        + "    a.bolge_kodu AS bolge_kodu_yillik_hat_km,\n"
-                        + "    a.bolge_adi AS bolge_adi_yillik_hat_km,\n"
-                        + "    b.hat_kodu AS hat_kodu_yillik_hat_kapasitesi,\n"
-                        + "    b.hat_adi AS hat_adi_yillik_hat_kapasitesi\n"
-                        + "FROM yillik_hat_km a\n"
-                        + "LEFT JOIN yillik_hat_kapasitesi b\n"
-                        + "    ON a.bolge_kodu = b.bolge_kodu\n"
-                        + "    AND a.yil = b.yil;";
-
-
-        ReportManager.info(
-                "HAZIR SORGU KAYNAK TEST VERİSİ"
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
-
-
-        /*
-         * AVP oturumu hazırlanır.
-         */
-        avpOturumuHazirlama();
-
-
-        /*
-         * Açık Veri Portalına geçilir.
-         */
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        /*
-         * Kaynak Ekle formu açılır.
-         */
-        ReportManager.step(
-                "Kaynak Ekle formu açılıyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak Ekle formu görüntülenemedi."
-        );
-
-
-        /*
-         * Hazır Sorgu seçeneğine geçilir.
-         */
-        ReportManager.step(
-                "Hazır Sorgu seçeneğine geçiliyor."
-        );
-
-        kaynakEkleModal
-                .hazirSorguyaGecme();
-
-
-        /*
-         * Dinamik kaynak adı girilir.
-         */
-        ReportManager.step(
-                "Dinamik kaynak adı giriliyor: "
-                        + kaynakAdi
-        );
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-
-        Assert.assertEquals(
-                kaynakEkleModal
-                        .kaynakAdiAlma(),
-                kaynakAdi,
-                "Kaynak adı alanındaki değer beklenen değerle uyuşmuyor."
-        );
-
-
-        /*
-         * Dinamik açıklama girilir.
-         */
-        ReportManager.step(
-                "Dinamik kaynak açıklaması giriliyor."
-        );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-
-        Assert.assertEquals(
-                kaynakEkleModal
-                        .kaynakAciklamasiAlma(),
-                kaynakAciklamasi,
-                "Kaynak açıklaması beklenen değerle uyuşmuyor."
-        );
-
-
-        /*
-         * Hazır SQL sorgusu girilir.
-         */
-        ReportManager.step(
-                "Hazır kaynak sorgusu giriliyor."
-        );
-
-        kaynakEkleModal
-                .hazirSorguGirme(
-                        sorgu
-                );
-
-
-        /*
-         * Sorgu doğrulanır.
-         */
-        ReportManager.step(
-                "Hazır sorgu doğrulanıyor."
-        );
-
-        kaynakEkleModal
-                .hazirSorguDogrulama();
-
-
-        /*
-         * Sorgunun başarılı çalıştığı, dönen kolonlar
-         * üzerinden doğrulanır.
-         */
-        ReportManager.step(
-                "Sorgu sonucunda beklenen kolonların görüntülendiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .hazirSorguKolonlariGoruntulendiMi(),
-                "Hazır sorgu doğrulaması sonrasında beklenen kolonlar görüntülenemedi."
-        );
-
-
-        /*
-         * Sorgu doğrulaması sonrasında
-         * Veri Önizleme alanı kontrol edilir.
-         */
-        ReportManager.step(
-                "Hazır sorguya ait Veri Önizleme bölümünün görüntülendiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .veriOnizlemeGoruntulendiMi(),
-                "Hazır sorgu sonrasında Veri Önizleme bölümü görüntülenemedi."
-        );
-
-
-        /*
-         * Kaynak oluşturulur.
-         */
-        ReportManager.step(
-                "Hazır sorgu kaynağı oluşturuluyor."
-        );
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        /*
-         * Kaynak Ekle formunun kapandığı doğrulanır.
-         */
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuKapandiMi(),
-                "Hazır sorgu kaynağı oluşturulduktan sonra form kapanmadı."
-        );
-
-
-        /*
-         * Oluşturulan kaydın listede bulunduğu doğrulanır.
-         */
-        ReportManager.step(
-                "Oluşturulan hazır sorgu kaynağının listede bulunduğu doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Hazır sorgu ile oluşturulan kaynak listede bulunamadı: "
-                        + kaynakAdi
-        );
-
-
-        /*
-         * Kaynak adı ve açıklamanın listeye
-         * doğru kaydedildiği doğrulanır.
-         */
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakBilgileriDogruMu(
-                                kaynakAdi,
-                                kaynakAciklamasi
-                        ),
-                "Hazır sorgu ile oluşturulan kaynak bilgileri beklenen değerlerle uyuşmuyor."
-        );
-
-
-        ReportManager.info(
-                "HAZIR SORGU İLE KAYNAK OLUŞTURMA BAŞARILI"
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
+        ReportManager.step("Hazır sorgu kaynağı oluşturuluyor.");
+        kaynakEkleModal.kaynakEkleme();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuKapandiMi(),
+                "Hazır sorgu kaynağı oluşturulduktan sonra form kapanmadı.");
+        Assert.assertTrue(openDataPage.kaynakListedeMi(kaynakAdi),
+                "Hazır sorguyla oluşturulan kaynak listede bulunamadı: " + kaynakAdi);
+        Assert.assertTrue(openDataPage.kaynakBilgileriDogruMu(kaynakAdi, aciklama),
+                "Hazır sorgu kaynağının ad/açıklama bilgileri uyuşmuyor.");
+        ReportManager.info("HAZIR SORGU İLE KAYNAK OLUŞTURMA BAŞARILI | Kaynak: " + kaynakAdi);
     }
     /**
-     * Hazır Sorgu alanında SELECT dışındaki veri değiştiren
-     * SQL komutlarının sistem tarafından engellendiğini doğrular.
+     * Hazır Sorgu alanında SELECT dışındaki UPDATE komutunun
+     * sistem tarafından engellendiğini ve beklenen hata
+     * mesajının görüntülendiğini doğrular.
      */
     @Test(priority = 10)
     public void hazirSorguGecirsizDmlKomutlari() {
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
+        testHazirligi();
 
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
+        // Test verileri hazırlanır.
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_update_kontrol");
+        String aciklama = "Otomasyon UPDATE sorgu kontrolü - " + kaynakAdi;
 
+        // WHERE 1 = 0, sorgu çalışsa bile veri güncellenmesini önler.
+        String sorgu = "UPDATE yillik_hat_km\n"
+                + "SET yil = yil\n"
+                + "WHERE 1 = 0;";
 
-        /*
-         * Dinamik test verileri oluşturulur.
-         */
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_update_kontrol"
-                );
+        ReportManager.info("HAZIR SORGU UPDATE NEGATİF TESTİ | Kaynak: " + kaynakAdi);
 
-        String kaynakAciklamasi =
-                "Otomasyon UPDATE sorgu kontrolü - "
-                        + kaynakAdi;
+        // 1. Kaynak Ekle formu açılır.
+        ReportManager.step("Kaynak Ekle formu açılıyor.");
 
-
-        /*
-         * Veri değiştirmeyen güvenli UPDATE sorgusu kullanılır.
-         *
-         * Sistem yalnızca SELECT sorgularına izin verdiği için
-         * sorgunun doğrulama aşamasında reddedilmesi beklenir.
-         */
-        String sorgu =
-                "UPDATE yillik_hat_km\n"
-                        + "SET yil = yil\n"
-                        + "WHERE 1 = 0;";
-
-
-        ReportManager.info(
-                "HAZIR SORGU UPDATE NEGATİF TESTİ"
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
-
-
-        /*
-         * AVP oturumu hazırlanır.
-         */
-        avpOturumuHazirlama();
-
-
-        /*
-         * Açık Veri Portalına geçilir.
-         */
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        /*
-         * Kaynak Ekle formu açılır.
-         */
-        ReportManager.step(
-                "Kaynak Ekle formu açılıyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
+        openDataPage.kaynakEklemeEkraniniAcma();
 
         Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
+                kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
                 "Kaynak Ekle formu görüntülenemedi."
         );
 
+        // 2. Hazır Sorgu sekmesine geçilir ve bilgiler doldurulur.
+        ReportManager.step("Hazır Sorgu alanına geçiliyor.");
 
-        /*
-         * Hazır Sorgu seçeneğine geçilir.
-         */
-        ReportManager.step(
-                "Hazır Sorgu seçeneğine geçiliyor."
-        );
+        kaynakEkleModal.hazirSorguyaGecme();
+        kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
+        kaynakEkleModal.kaynakAciklamasiGirme(aciklama);
 
-        kaynakEkleModal
-                .hazirSorguyaGecme();
+        // 3. UPDATE sorgusu girilir ve doğrulanmaya çalışılır.
+        ReportManager.step("SELECT dışı UPDATE sorgusu giriliyor ve doğrulanıyor.");
 
+        kaynakEkleModal.hazirSorguGirme(sorgu);
+        kaynakEkleModal.hazirSorguDogrulama();
 
-        /*
-         * Dinamik kaynak adı girilir.
-         */
-        ReportManager.step(
-                "Dinamik kaynak adı giriliyor: "
-                        + kaynakAdi
-        );
+        // 4. Beklenen hata mesajları doğrulanır.
+        ReportManager.step("UPDATE sorgusunun engellendiği doğrulanıyor.");
 
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-
-        /*
-         * Dinamik açıklama girilir.
-         */
-        ReportManager.step(
-                "Dinamik kaynak açıklaması giriliyor."
-        );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-
-        /*
-         * SELECT dışı UPDATE sorgusu girilir.
-         */
-        ReportManager.step(
-                "Hazır Sorgu alanına UPDATE komutu giriliyor."
-        );
-
-        kaynakEkleModal
-                .hazirSorguGirme(
-                        sorgu
-                );
-
-
-        /*
-         * UPDATE sorgusu doğrulanmaya çalışılır.
-         */
-        ReportManager.step(
-                "UPDATE sorgusu doğrulanıyor."
-        );
-
-        kaynakEkleModal
-                .hazirSorguDogrulama();
-
-
-        /*
-         * Kullanıcı Kaynaklı Hata alanının
-         * görüntülendiği doğrulanır.
-         */
-        ReportManager.step(
-                "Kullanıcı Kaynaklı Hata mesajının görüntülendiği doğrulanıyor."
+        Assert.assertTrue(
+                kaynakEkleModal.kullaniciKaynakliHataGoruntulendiMi(),
+                "Kullanıcı Kaynaklı Hata mesajı görüntülenmedi."
         );
 
         Assert.assertTrue(
-                kaynakEkleModal
-                        .kullaniciKaynakliHataGoruntulendiMi(),
-                "UPDATE sorgusu sonrasında Kullanıcı Kaynaklı Hata görüntülenmedi."
-        );
-
-
-        /*
-         * Sistemin yalnızca SELECT sorgularına
-         * izin verdiği mesajı doğrulanır.
-         */
-        ReportManager.step(
-                "Sorgunun yalnızca SELECT olması gerektiğine ait hata mesajı doğrulanıyor."
+                kaynakEkleModal.sadeceSelectSorgusuHatasiGoruntulendiMi(),
+                "Yalnızca SELECT sorgularına izin verildiği mesajı görüntülenmedi."
         );
 
         Assert.assertTrue(
-                kaynakEkleModal
-                        .sadeceSelectSorgusuHatasiGoruntulendiMi(),
-                "SELECT dışındaki sorguların engellendiğine ait hata mesajı görüntülenmedi."
-        );
-
-
-        /*
-         * Teknik hata kodu doğrulanır.
-         */
-        ReportManager.step(
-                "Read-only sorgu hata kodu doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .readOnlySorguHataKoduGoruntulendiMi(),
+                kaynakEkleModal.readOnlySorguHataKoduGoruntulendiMi(),
                 "OPEN_DATA.SOURCE.QUERY_NOT_READ_ONLY hata kodu görüntülenmedi."
         );
 
-
-        /*
-         * Hata sonrasında Kaynak Ekle formunun
-         * açık kalmaya devam ettiği doğrulanır.
-         */
-
         ReportManager.info(
-                "UPDATE SORGUSU ENGELLEME KONTROLÜ BAŞARILI"
-                        + " | Kaynak: "
-                        + kaynakAdi
+                "UPDATE SORGUSU ENGELLEME KONTROLÜ BAŞARILI | Kaynak: " + kaynakAdi
         );
     }
-<<<<<<< HEAD
-  /**
-=======
+
+
     /**
->>>>>>> origin/main
-     * Dinamik kaynak üzerinden veri seti oluşturur,
-     * anonimleştirme kuralı uygular ve veri setini
-     * KVKK onay sürecine gönderir.
+     * Dinamik kaynak ile maskeleme uygular ve veri setini KVKK onay sürecine gönderir.
      */
     @Test(priority = 11)
     public void veriSetiOnayaGonderme() {
-
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
-
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
-
-
-        /*
-         * Test kendi kaynağını oluşturur.
-         */
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_onay_kaynak"
-                );
-
-        String kaynakAciklamasi =
-                "Otomasyon veri seti onay kaynağı - "
-                        + kaynakAdi;
-
-        String tabloAdi =
-                "arac_bakim_is_yeri_sayisi";
-
-
-        /*
-         * Veri setine ait dinamik bilgiler oluşturulur.
-         */
-        String veriSetiAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_veri_seti"
-                );
-
-        String veriSetiAciklamasi =
-                "Otomasyon KVKK onay veri seti - "
-                        + veriSetiAdi;
-
-
-<<<<<<< HEAD
-       /*String sorumluBirim =
-                "İşletme Dairesi Başkanlığı";*/
-        openDataPage.sorumluBirimSecme("İşletme Dairesi Başkanlığı");
-=======
-        String sorumluBirim =
-                "İşletme Dairesi Başkanlığı";
->>>>>>> origin/main
-
-        String kategori =
-                "Altyapı & Şebeke";
-
-        String kullanimLisansi =
-                "TCDD Taşımacılık Açık Veri Lisansı";
-
-
-        ReportManager.info(
-                "VERİ SETİ ONAYA GÖNDERME TEST VERİSİ"
-                        + " | Kaynak: "
-                        + kaynakAdi
-                        + " | Veri Seti: "
-                        + veriSetiAdi
-        );
-
-
-        /*
-         * AVP oturumu hazırlanır.
-         */
-        avpOturumuHazirlama();
-
-
-        /*
-         * Açık Veri Portalına geçilir.
-         */
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        /*
-         * Testin kullanacağı kaynak oluşturulur.
-         */
-        ReportManager.step(
-                "Veri seti oluşturma testi için dinamik kaynak oluşturuluyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .kaynakEkleFormuGoruntulendiMi(),
-                "Kaynak Ekle formu görüntülenemedi."
-        );
-
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-        kaynakEkleModal
-                .kaynakTablosuSecme(
-                        tabloAdi
-                );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .veriOnizlemeGoruntulendiMi(),
-                "Kaynak Veri Önizleme bölümü görüntülenemedi."
-        );
-
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Onaya gönderme testi için oluşturulan kaynak listede bulunamadı."
-        );
-
-
-        /*
-         * Oluşturulan kaynak seçilir.
-         */
-        ReportManager.step(
-                "Oluşturulan kaynak veri seti için seçiliyor: "
-                        + kaynakAdi
-        );
-
-        openDataPage
-                .kaynakSecme(
-                        kaynakAdi
-                );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakSeciliMi(
-                                kaynakAdi
-                        ),
-                "Kaynak seçimi gerçekleştirilemedi."
-        );
-
-
-        /*
-         * Alan Seçimi ve Anonimleştirme adımına geçilir.
-         */
-        ReportManager.step(
-                "Alan Seçimi ve Anonimleştirme adımına geçiliyor."
-        );
-
-        openDataPage
-                .veriSetiIleriGitme();
-
-
-        /*
-         * Yıl alanına Maskele kuralı uygulanır.
-         */
-        ReportManager.step(
-                "yil alanına Maskele anonimleştirme kuralı uygulanıyor."
-        );
-
-        openDataPage
-                .yilAlaninaMaskeleKuraliUygulama();
-
-
-        /*
-         * Veri seti adı girilir.
-         */
-        ReportManager.step(
-                "Dinamik veri seti adı giriliyor: "
-                        + veriSetiAdi
-        );
-
-        openDataPage
-                .veriSetiAdiGirme(
-                        veriSetiAdi
-                );
-
-
-        Assert.assertEquals(
-                openDataPage
-                        .veriSetiAdiAlma(),
-                veriSetiAdi,
-                "Veri Seti Adı alanındaki değer beklenen değerle uyuşmuyor."
-        );
-
-
-        /*
-         * Sorumlu birim seçilir.
-         */
-<<<<<<< HEAD
-       /* ReportManager.step(
-=======
-        ReportManager.step(
->>>>>>> origin/main
-                "Sorumlu Birim seçiliyor: "
-                        + sorumluBirim
-        );
-
-        openDataPage
-                .sorumluBirimSecme(
-                        sorumluBirim
-                );
-<<<<<<< HEAD
-*/
-=======
-
->>>>>>> origin/main
-
-        /*
-         * Kategori seçilir.
-         */
-        ReportManager.step(
-                "Kategori seçiliyor: "
-                        + kategori
-        );
-
-        openDataPage
-                .kategoriSecme(
-                        kategori
-                );
-
-
-        /*
-         * Kullanım lisansı seçilir.
-         */
-        ReportManager.step(
-                "Kullanım Lisansı seçiliyor: "
-                        + kullanimLisansi
-        );
-
-        openDataPage
-                .kullanimLisansiSecme(
-                        kullanimLisansi
-                );
-
-
-        /*
-         * Dinamik açıklama girilir.
-         */
-        ReportManager.step(
-                "Dinamik veri seti açıklaması giriliyor."
-        );
-
-        openDataPage
-                .veriSetiAciklamasiGirme(
-                        veriSetiAciklamasi
-                );
-
-
-        Assert.assertEquals(
-                openDataPage
-                        .veriSetiAciklamasiAlma(),
-                veriSetiAciklamasi,
-                "Veri seti açıklaması beklenen değerle uyuşmuyor."
-        );
-
-
-        /*
-         * Veri seti önizleme ekranına geçilir.
-         */
-        ReportManager.step(
-                "Veri seti önizleme ekranına geçiliyor."
-        );
-
-        openDataPage
-                .veriSetiOnizleme();
-
-
-        /*
-         * Veri seti KVKK onayına gönderilir.
-         */
-        ReportManager.step(
-                "Veri seti KVKK onayına gönderiliyor."
-        );
-
-        openDataPage
-                .veriSetiOnayaGonderme();
-
-
-        /*
-         * Onaya gönderme işlemi onaylanır.
-         */
-        ReportManager.step(
-                "Onaya gönderme işlemi onaylanıyor."
-        );
-
-        openDataPage
-                .veriSetiOnayaGondermeyiOnaylama();
-
-
-        /*
-         * Başarı mesajı doğrulanır.
-         */
-        ReportManager.step(
-                "Veri setinin oluşturulup KVKK onayına gönderildiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .veriSetiKvkkOnayinaGonderildiMi(),
-                "Veri setinin KVKK onayına gönderildiğine ait başarı mesajı görüntülenmedi."
-        );
-
-
-        ReportManager.info(
-                "VERİ SETİ KVKK ONAYINA GÖNDERME BAŞARILI"
-                        + " | Veri Seti: "
-                        + veriSetiAdi
-                        + " | Kaynak: "
-                        + kaynakAdi
-        );
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_onay_kaynak");
+        String kaynakAciklamasi = "Otomasyon veri seti onay kaynağı - " + kaynakAdi;
+        String veriSetiAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_veri_seti");
+        String veriSetiAciklamasi = "Otomasyon KVKK onay veri seti - " + veriSetiAdi;
+        String sorumluBirim = "İşletme Dairesi Başkanlığı";
+        String kategori = "Altyapı & Şebeke";
+        String kullanimLisansi = "TCDD Taşımacılık Açık Veri Lisansı";
+        ReportManager.info("VERİ SETİ ONAYA GÖNDERME | Kaynak: " + kaynakAdi
+                + " | Veri Seti: " + veriSetiAdi);
+        testKaynagiOlusturma(kaynakAdi, KAYNAK_TABLOSU, kaynakAciklamasi);
+
+        ReportManager.step("Oluşturulan kaynak veri seti için seçiliyor: " + kaynakAdi);
+        openDataPage.kaynakSecme(kaynakAdi);
+        Assert.assertTrue(openDataPage.kaynakSeciliMi(kaynakAdi),
+                "Kaynak seçimi gerçekleştirilemedi.");
+
+        ReportManager.step("Alan Seçimi ve Anonimleştirme adımına geçiliyor.");
+        openDataPage.veriSetiIleriGitme();
+        ReportManager.step("yil alanına Maskele anonimleştirme kuralı uygulanıyor.");
+        openDataPage.yilAlaninaMaskeleKuraliUygulama();
+
+        ReportManager.step("Veri seti adı giriliyor: " + veriSetiAdi);
+        openDataPage.veriSetiAdiGirme(veriSetiAdi);
+        Assert.assertEquals(openDataPage.veriSetiAdiAlma(), veriSetiAdi,
+                "Veri Seti Adı alanındaki değer beklenen değerle uyuşmuyor.");
+        ReportManager.step("Sorumlu Birim, Kategori ve Kullanım Lisansı seçiliyor.");
+        openDataPage.sorumluBirimSecme(sorumluBirim);
+        openDataPage.kategoriSecme(kategori);
+        openDataPage.kullanimLisansiSecme(kullanimLisansi);
+        ReportManager.step("Veri seti açıklaması giriliyor.");
+        openDataPage.veriSetiAciklamasiGirme(veriSetiAciklamasi);
+        Assert.assertEquals(openDataPage.veriSetiAciklamasiAlma(), veriSetiAciklamasi,
+                "Veri seti açıklaması beklenen değerle uyuşmuyor.");
+
+        ReportManager.step("Veri seti önizlemesine geçiliyor.");
+        openDataPage.veriSetiOnizleme();
+        ReportManager.step("Veri seti KVKK onayına gönderiliyor.");
+        openDataPage.veriSetiOnayaGonderme();
+        ReportManager.step("Onaya gönderme işlemi onaylanıyor.");
+        openDataPage.veriSetiOnayaGondermeyiOnaylama();
+        Assert.assertTrue(openDataPage.veriSetiKvkkOnayinaGonderildiMi(),
+                "Veri setinin KVKK onayına gönderilme başarı mesajı görüntülenmedi.");
+        ReportManager.info("VERİ SETİ KVKK ONAYINA GÖNDERME BAŞARILI | Veri Seti: "
+                + veriSetiAdi + " | Kaynak: " + kaynakAdi);
     }
+
     /**
-     * Verilen kaynağı seçerek Veri Seti Katalog
-     * Bilgileri ekranına geçer.
-     */
-    private void veriSetiKatalogEkraniniAcma(
-            OpenDataPage openDataPage,
-            String kaynakAdi) {
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-        openDataPage
-                .kaynakSecme(
-                        kaynakAdi
-                );
-
-        openDataPage
-                .veriSetiIleriGitme();
-    }
-    /**
-     * Veri Seti Katalog Bilgileri ekranındaki
-     * Veri Seti Adı, Sorumlu Birim ve Kategori
-     * zorunlu alan kontrollerini doğrular.
+     * Veri Seti Adı, Sorumlu Birim ve Kategori için bağımsız validasyonları topluca doğrular.
      */
     @Test(priority = 12)
     public void veriSetiZorunluAlanKontrolleri() {
-
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
-
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
-
-        SoftAssert softAssert =
-                new SoftAssert();
-
-
-        /*
-         * Test için dinamik kaynak hazırlanır.
-         */
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_zorunlu_alan_kaynak"
-                );
-
-        String kaynakAciklamasi =
-                "Otomasyon veri seti zorunlu alan testi - "
-                        + kaynakAdi;
-
-        String tabloAdi =
-                "arac_bakim_is_yeri_sayisi";
-
-
-        /*
-         * Veri seti test bilgileri hazırlanır.
-         */
-        String veriSetiAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_zorunlu_veri_seti"
-                );
-
-        String sorumluBirim =
-                "İşletme Dairesi Başkanlığı";
-
-        String kategori =
-                "Yolcu Taşımacılığı";
-
-
-        /*
-         * AVP oturumu hazırlanır.
-         */
-        avpOturumuHazirlama();
-
-
-        /*
-         * Açık Veri Portalına geçilir.
-         */
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        /*
-         * Testin kullanacağı kaynak oluşturulur.
-         */
-        ReportManager.step(
-                "Zorunlu alan testi için dinamik kaynak oluşturuluyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-        kaynakEkleModal
-                .kaynakTablosuSecme(
-                        tabloAdi
-                );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Zorunlu alan testi için kaynak oluşturulamadı."
-        );
-
-
-        /*
-         * Oluşturulan kaynak seçilir.
-         */
-        ReportManager.step(
-                "Oluşturulan kaynak seçiliyor: "
-                        + kaynakAdi
-        );
-
-        openDataPage
-                .kaynakSecme(
-                        kaynakAdi
-                );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakSeciliMi(
-                                kaynakAdi
-                        ),
-                "Kaynak seçilemedi."
-        );
-
-
-        /*
-         * Veri Seti Katalog Bilgileri ekranına geçilir.
-         */
-        ReportManager.step(
-                "Veri Seti Katalog Bilgileri ekranına geçiliyor."
-        );
-
-        openDataPage
-                .veriSetiIleriGitme();
-
-
-        /*
-         * =====================================================
-         * 1. SORUMLU BİRİM + KATEGORİ ZORUNLU ALAN KONTROLÜ
-         * =====================================================
-         *
-         * Veri Seti Adı doldurulur.
-         * Sorumlu Birim ve Kategori boş bırakılır.
-         */
-        ReportManager.step(
-                "Veri Seti Adı dolduruluyor."
-        );
-
-        openDataPage
-                .veriSetiAdiGirme(
-                        veriSetiAdi
-                );
-
-
-        Assert.assertEquals(
-                openDataPage
-                        .veriSetiAdiAlma(),
-                veriSetiAdi,
-                "Veri Seti Adı alanındaki değer beklenen değerle uyuşmuyor."
-        );
-
-
-        ReportManager.step(
-                "Sorumlu Birim ve Kategori boş bırakılarak Önizle butonuna tıklanıyor."
-        );
-
-        openDataPage
-                .veriSetiOnizleme();
-
-
-        /*
-         * Sorumlu Birim validasyonu kontrol edilir.
-         */
-        softAssert.assertTrue(
-                openDataPage
-                        .sorumluBirimZorunluMesajiGoruntulendiMi(),
-                "Sorumlu Birim boş bırakıldığında zorunlu alan mesajı görüntülenmedi."
-        );
-
-
-        /*
-         * Kategori validasyonu kontrol edilir.
-         */
-        softAssert.assertTrue(
-                openDataPage
-                        .kategoriZorunluMesajiGoruntulendiMi(),
-                "Kategori boş bırakıldığında zorunlu alan mesajı görüntülenmedi."
-        );
-
-
-        /*
-         * =====================================================
-         * 2. VERİ SETİ ADI ZORUNLU ALAN KONTROLÜ
-         * =====================================================
-         *
-         * Sorumlu Birim ve Kategori doldurulur.
-         */
-        ReportManager.step(
-                "Sorumlu Birim seçiliyor: "
-                        + sorumluBirim
-        );
-
-        openDataPage
-                .sorumluBirimSecme(
-                        sorumluBirim
-                );
-
-
-        ReportManager.step(
-                "Kategori seçiliyor: "
-                        + kategori
-        );
-
-        openDataPage
-                .kategoriSecme(
-                        kategori
-                );
-
-
-        /*
-         * Veri Seti Adı boşaltılır.
-         *
-         * veriSetiAdiGirme metodu fill kullandığı için
-         * boş String verilmesi alanı temizler.
-         */
-        ReportManager.step(
-                "Veri Seti Adı alanı boşaltılıyor."
-        );
-
-        openDataPage
-                .veriSetiAdiGirme(
-                        ""
-                );
-
-
-        Assert.assertEquals(
-                openDataPage
-                        .veriSetiAdiAlma(),
-                "",
-                "Veri Seti Adı alanı boşaltılamadı."
-        );
-
-
-        ReportManager.step(
-                "Sorumlu Birim ve Kategori doluyken Veri Seti Adı boş bırakılarak Önizle butonuna tıklanıyor."
-        );
-
-        openDataPage
-                .veriSetiOnizleme();
-
-
-        /*
-         * Veri Seti Adı validasyonu kontrol edilir.
-         */
-        softAssert.assertTrue(
-                openDataPage
-                        .veriSetiAdiZorunluMesajiGoruntulendiMi(),
-                "Veri Seti Adı boş bırakıldığında zorunlu alan mesajı görüntülenmedi."
-        );
-
-
-        /*
-         * Bütün zorunlu alan kontrolleri
-         * test sonunda birlikte değerlendirilir.
-         */
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_zorunlu_alan_kaynak");
+        String aciklama = "Otomasyon veri seti zorunlu alan testi - " + kaynakAdi;
+        String veriSetiAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_zorunlu_veri_seti");
+        String sorumluBirim = "İşletme Dairesi Başkanlığı";
+        String kategori = "Yolcu Taşımacılığı";
+        SoftAssert softAssert = new SoftAssert();
+        testKaynagiOlusturma(kaynakAdi, KAYNAK_TABLOSU, aciklama);
+
+        ReportManager.step("Kaynak seçiliyor ve katalog bilgileri ekranına geçiliyor.");
+        openDataPage.kaynakSecme(kaynakAdi);
+        Assert.assertTrue(openDataPage.kaynakSeciliMi(kaynakAdi), "Kaynak seçilemedi.");
+        openDataPage.veriSetiIleriGitme();
+
+        // 1. Veri Seti Adı dolu, Sorumlu Birim ve Kategori boş.
+        ReportManager.step("Sorumlu Birim ve Kategori boş bırakılarak Önizle seçiliyor.");
+        openDataPage.veriSetiAdiGirme(veriSetiAdi);
+        Assert.assertEquals(openDataPage.veriSetiAdiAlma(), veriSetiAdi,
+                "Veri Seti Adı alanı doğru doldurulamadı.");
+        openDataPage.veriSetiOnizleme();
+        softAssert.assertTrue(openDataPage.sorumluBirimZorunluMesajiGoruntulendiMi(),
+                "Sorumlu Birim boşken zorunlu alan mesajı görüntülenmedi.");
+        softAssert.assertTrue(openDataPage.kategoriZorunluMesajiGoruntulendiMi(),
+                "Kategori boşken zorunlu alan mesajı görüntülenmedi.");
+
+        // 2. Sorumlu Birim ve Kategori dolu, Veri Seti Adı boş.
+        ReportManager.step("Sorumlu Birim ve Kategori seçiliyor, Veri Seti Adı boşaltılıyor.");
+        openDataPage.sorumluBirimSecme(sorumluBirim);
+        openDataPage.kategoriSecme(kategori);
+        openDataPage.veriSetiAdiGirme(""); // fill("") mevcut içeriği temizler.
+        Assert.assertEquals(openDataPage.veriSetiAdiAlma(), "",
+                "Veri Seti Adı alanı boşaltılamadı.");
+        openDataPage.veriSetiOnizleme();
+        softAssert.assertTrue(openDataPage.veriSetiAdiZorunluMesajiGoruntulendiMi(),
+                "Veri Seti Adı boşken zorunlu alan mesajı görüntülenmedi.");
         softAssert.assertAll();
-
-
-        ReportManager.info(
-                "VERİ SETİ KATALOG ZORUNLU ALAN KONTROLLERİ BAŞARILI"
-        );
+        ReportManager.info("VERİ SETİ KATALOG ZORUNLU ALAN KONTROLLERİ BAŞARILI");
     }
+
     /**
-     * Seçilen kaynak kolonuna Maskele anonimleştirme
-     * kuralının uygulanabildiğini ve önizlemede verilerin
-     * maskelenmiş olarak görüntülendiğini doğrular.
+     * Belirli bir kolona Maskele kuralı uygulayıp önizlemede maskelemenin etkisini doğrular.
      */
     @Test(priority = 13)
     public void veriSetiKolonMaskelemeKontrolu() {
+        testHazirligi();
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_maskeleme_kaynak");
+        String aciklama = "Otomasyon kolon maskeleme testi - " + kaynakAdi;
+        String maskelenecekKolon = "bolge_adi";
+        String veriSetiAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_maskeli_veri_seti");
+        String sorumluBirim = "İşletme Dairesi Başkanlığı";
+        String kategori = "Yolcu Taşımacılığı";
+        ReportManager.info("VERİ SETİ MASKELEME | Kaynak: " + kaynakAdi
+                + " | Kolon: " + maskelenecekKolon);
+        testKaynagiOlusturma(kaynakAdi, KAYNAK_TABLOSU, aciklama);
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
+        ReportManager.step("Kaynak seçiliyor: " + kaynakAdi);
+        openDataPage.kaynakSecme(kaynakAdi);
+        Assert.assertTrue(openDataPage.kaynakSeciliMi(kaynakAdi),
+                "Maskeleme testi için kaynak seçilemedi.");
+        ReportManager.step("Alan Seçimi ve Anonimleştirme adımına geçiliyor.");
+        openDataPage.veriSetiIleriGitme();
 
-        KaynakEkleModal kaynakEkleModal =
-                new KaynakEkleModal(page);
+        ReportManager.step(maskelenecekKolon + " kolonuna Maskele kuralı uygulanıyor.");
+        openDataPage.kolonaMaskelemeKuraliUygulama(maskelenecekKolon);
+        ReportManager.step("Veri seti katalog bilgileri dolduruluyor.");
+        openDataPage.veriSetiAdiGirme(veriSetiAdi);
+        openDataPage.sorumluBirimSecme(sorumluBirim);
+        openDataPage.kategoriSecme(kategori);
+        ReportManager.step("Anonimleştirilmiş veri önizlemesine geçiliyor.");
+        openDataPage.veriSetiOnizleme();
 
-
-        /*
-         * Test için dinamik kaynak bilgileri hazırlanır.
-         */
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_maskeleme_kaynak"
-                );
-
-        String kaynakAciklamasi =
-                "Otomasyon kolon maskeleme testi - "
-                        + kaynakAdi;
-
-        String tabloAdi =
-                "arac_bakim_is_yeri_sayisi";
-
-
-        /*
-         * Maskeleme uygulanacak kolon.
-         */
-        String maskelenecekKolon =
-                "bolge_adi";
-
-
-        /*
-         * Veri seti bilgileri hazırlanır.
-         */
-        String veriSetiAdi =
-                TestDataUtil.dinamikAdOlusturma(
-                        "otomasyon_maskeli_veri_seti"
-                );
-
-        String sorumluBirim =
-                "İşletme Dairesi Başkanlığı";
-
-        String kategori =
-                "Yolcu Taşımacılığı";
-
-
-        ReportManager.info(
-                "VERİ SETİ MASKELEME TEST VERİSİ"
-                        + " | Kaynak: "
-                        + kaynakAdi
-                        + " | Kolon: "
-                        + maskelenecekKolon
-        );
-
-
-        /*
-         * AVP oturumu hazırlanır.
-         */
-        avpOturumuHazirlama();
-
-
-        /*
-         * Açık Veri Portalına geçilir.
-         */
-        ReportManager.step(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-        openDataPage
-                .acikVeriPortalinaGitme();
-
-
-        /*
-         * Test kendi kaynağını oluşturur.
-         */
-        ReportManager.step(
-                "Maskeleme testi için dinamik kaynak oluşturuluyor."
-        );
-
-        openDataPage
-                .kaynakEklemeEkraniniAcma();
-
-
-        kaynakEkleModal
-                .kaynakAdiGirme(
-                        kaynakAdi
-                );
-
-        kaynakEkleModal
-                .kaynakTablosuSecme(
-                        tabloAdi
-                );
-
-        kaynakEkleModal
-                .kaynakAciklamasiGirme(
-                        kaynakAciklamasi
-                );
-
-
-        Assert.assertTrue(
-                kaynakEkleModal
-                        .veriOnizlemeGoruntulendiMi(),
-                "Kaynak oluşturma sırasında Veri Önizleme görüntülenemedi."
-        );
-
-
-        kaynakEkleModal
-                .kaynakEkleme();
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakListedeMi(
-                                kaynakAdi
-                        ),
-                "Maskeleme testi için oluşturulan kaynak listede bulunamadı."
-        );
-
-
-        /*
-         * Oluşturulan kaynak seçilir.
-         */
-        ReportManager.step(
-                "Oluşturulan kaynak seçiliyor: "
-                        + kaynakAdi
-        );
-
-        openDataPage
-                .kaynakSecme(
-                        kaynakAdi
-                );
-
-
-        Assert.assertTrue(
-                openDataPage
-                        .kaynakSeciliMi(
-                                kaynakAdi
-                        ),
-                "Maskeleme testi için kaynak seçilemedi."
-        );
-
-
-        /*
-         * Alan Seçimi ve Anonimleştirme
-         * adımına geçilir.
-         */
-        ReportManager.step(
-                "Alan Seçimi ve Anonimleştirme adımına geçiliyor."
-        );
-
-        openDataPage
-                .veriSetiIleriGitme();
-
-
-        /*
-         * bolge_adi kolonuna Maskele
-         * kuralı uygulanır.
-         */
-        ReportManager.step(
-                maskelenecekKolon
-                        + " kolonuna Maskele kuralı uygulanıyor."
-        );
-
-        openDataPage
-                .kolonaMaskelemeKuraliUygulama(
-                        maskelenecekKolon
-                );
-
-
-        /*
-         * Veri seti katalog bilgileri doldurulur.
-         */
-        ReportManager.step(
-                "Veri seti katalog bilgileri dolduruluyor."
-        );
-
-        openDataPage
-                .veriSetiAdiGirme(
-                        veriSetiAdi
-                );
-
-        openDataPage
-                .sorumluBirimSecme(
-                        sorumluBirim
-                );
-
-        openDataPage
-                .kategoriSecme(
-                        kategori
-                );
-
-
-        /*
-         * Önizleme ekranına geçilir.
-         */
-        ReportManager.step(
-                "Anonimleştirilmiş veri önizlemesine geçiliyor."
-        );
-
-        openDataPage
-                .veriSetiOnizleme();
-
-
-        /*
-         * Maskelenen kolonun önizlemede
-         * bulunduğu doğrulanır.
-         */
-        ReportManager.step(
-                maskelenecekKolon
-                        + " kolonunun önizlemede görüntülendiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .onizlemeKolonuGoruntulendiMi(
-                                maskelenecekKolon
-                        ),
-                "Maskelenen kolon önizleme ekranında görüntülenmedi: "
-                        + maskelenecekKolon
-        );
-
-
-        /*
-         * Kolonun Maskelendi olarak
-         * işaretlendiği doğrulanır.
-         */
-        ReportManager.step(
-                maskelenecekKolon
-                        + " kolonunda Maskelendi bilgisinin görüntülendiği doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .maskelendiBilgisiGoruntulendiMi(),
-                "Maskeleme uygulanan kolon için Maskelendi bilgisi görüntülenmedi."
-        );
-
-
-        /*
-         * Önizleme verilerinin gerçekten
-         * yıldızlarla maskelendiği doğrulanır.
-         */
-        ReportManager.step(
-                "Önizleme tablosunda maskelenmiş **** değerlerinin bulunduğu doğrulanıyor."
-        );
-
-        Assert.assertTrue(
-                openDataPage
-                        .maskelenmisVeriGoruntulendiMi(),
-                "Anonimleştirilmiş önizlemede maskelenmiş veri bulunamadı."
-        );
-
-
-        ReportManager.info(
-                "KOLON MASKELEME KONTROLÜ BAŞARILI"
-                        + " | Kolon: "
-                        + maskelenecekKolon
-                        + " | Veri Seti: "
-                        + veriSetiAdi
-        );
+        ReportManager.step(maskelenecekKolon + " kolonunun önizlemede bulunması doğrulanıyor.");
+        Assert.assertTrue(openDataPage.onizlemeKolonuGoruntulendiMi(maskelenecekKolon),
+                "Maskelenen kolon önizlemede görüntülenmedi: " + maskelenecekKolon);
+        ReportManager.step("Kolonun Maskelendi bilgisinin görüntülenmesi doğrulanıyor.");
+        Assert.assertTrue(openDataPage.maskelendiBilgisiGoruntulendiMi(),
+                "Maskeleme uygulanan kolonda Maskelendi bilgisi görüntülenmedi.");
+        ReportManager.step("Önizleme tablosundaki maskeli **** değerleri doğrulanıyor.");
+        Assert.assertTrue(openDataPage.maskelenmisVeriGoruntulendiMi(),
+                "Anonimleştirilmiş önizlemede maskelenmiş veri bulunamadı.");
+        ReportManager.info("KOLON MASKELEME KONTROLÜ BAŞARILI | Kolon: "
+                + maskelenecekKolon + " | Veri Seti: " + veriSetiAdi);
     }
-
 }

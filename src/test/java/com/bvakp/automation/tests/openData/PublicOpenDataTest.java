@@ -1,9 +1,8 @@
 package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
-import com.bvakp.automation.flows.OpenDataCreateFlow1.CreateDataSetForApproval;
+import com.bvakp.automation.flows.OpenDataCreateFlow;
 import com.bvakp.automation.flows.OpenDataPublishFlow;
-import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.pages.openData.PublicDataSetPage;
@@ -24,9 +23,9 @@ public class PublicOpenDataTest extends AvpBaseTest {
     private OpenDataPage openDataPage;
     private OpenDataPublishPage publishPage;
 
-    private CreateSource createSource;
-    private CreateDataSetForApproval createDataSetForApproval;
+
     private OpenDataPublishFlow publishFlow;
+    private OpenDataCreateFlow openDataCreateFlow;
 
     @BeforeMethod
     public void setUpPublicOpenData() {
@@ -40,14 +39,14 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
         publishPage = new OpenDataPublishPage(page);
 
-        createSource = new CreateSource(page);
-        createDataSetForApproval = new CreateDataSetForApproval(page);
         publishFlow = new OpenDataPublishFlow(publishPage);
 
         publicOpenDataPage = new PublicOpenDataPage(page);
         dataStoreApi = new DataStoreApi(
                 PlaywrightManager.getApiRequestContext()
         );
+        openDataCreateFlow =
+                new OpenDataCreateFlow(page);
     }
     @Test
     public void yayinlananVeriSetiPublicPortalKontrolu() {
@@ -58,13 +57,13 @@ public class PublicOpenDataTest extends AvpBaseTest {
         String dataSetName =
                 TestDataUtil.dinamikAdOlusturma("otomasyon_public_api");
 
-        createSource.createSource(
+        openDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Public portal API testi kaynağı"
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        openDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
