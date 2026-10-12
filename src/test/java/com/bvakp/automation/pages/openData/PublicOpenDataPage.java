@@ -2,7 +2,6 @@ package com.bvakp.automation.pages.openData;
 
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.pages.BasePage;
-import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;

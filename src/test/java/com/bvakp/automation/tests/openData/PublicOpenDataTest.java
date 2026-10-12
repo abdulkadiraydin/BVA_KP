@@ -1,15 +1,14 @@
 package com.bvakp.automation.tests.openData;
 
-import com.bvakp.automation.base.BaseTest;
-import com.bvakp.automation.core.config.ConfigManager;
-import com.bvakp.automation.flows.OpenDataCreateFlow;
+import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.flows.OpenDataCreateFlow1.CreateDataSetForApproval;
 import com.bvakp.automation.flows.OpenDataPublishFlow;
-import com.bvakp.automation.flows.OpenDataSourceFlow;
+import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.pages.openData.PublicDataSetPage;
 import com.bvakp.automation.pages.openData.PublicOpenDataPage;
-import com.bvakp.automation.pages.LoginPage;
+import com.bvakp.automation.utils.TestDataUtil;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -17,7 +16,7 @@ import com.bvakp.automation.api.DataStoreApi;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.microsoft.playwright.APIResponse;
 
-public class PublicOpenDataTest extends BaseTest {
+public class PublicOpenDataTest extends AvpBaseTest {
 
     private PublicOpenDataPage publicOpenDataPage;
     private DataStoreApi dataStoreApi;
@@ -25,32 +24,24 @@ public class PublicOpenDataTest extends BaseTest {
     private OpenDataPage openDataPage;
     private OpenDataPublishPage publishPage;
 
-    private OpenDataSourceFlow sourceFlow;
-    private OpenDataCreateFlow createFlow;
+    private CreateSource createSource;
+    private CreateDataSetForApproval createDataSetForApproval;
     private OpenDataPublishFlow publishFlow;
 
     @BeforeMethod
     public void setUpPublicOpenData() {
 
-        LoginPage loginPage = new LoginPage(page);
-
-        loginPage.open()
-                .enterUsername(ConfigManager.get("username"))
-                .enterPassword(ConfigManager.get("password"))
-                .clickLogin();
-
-        Assert.assertEquals(
-                loginPage.getTitle(),
-                "Büyük Veri Analitiği Kaynak Planlama"
-        );
+        avpOturumuHazirlama();
 
         openDataPage = new OpenDataPage(page);
         openDataPage.clickAcikVeriPortali();
 
         publishPage = new OpenDataPublishPage(page);
 
-        sourceFlow = new OpenDataSourceFlow(page, openDataPage);
-        createFlow = new OpenDataCreateFlow(openDataPage, sourceFlow);
+        publishPage = new OpenDataPublishPage(page);
+
+        createSource = new CreateSource(page);
+        createDataSetForApproval = new CreateDataSetForApproval(page);
         publishFlow = new OpenDataPublishFlow(publishPage);
 
         publicOpenDataPage = new PublicOpenDataPage(page);
@@ -61,7 +52,26 @@ public class PublicOpenDataTest extends BaseTest {
     @Test
     public void yayinlananVeriSetiPublicPortalKontrolu() {
 
-        String dataSetName = createFlow.createDataSetForApproval();
+        String kaynakAdi =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+
+        String dataSetName =
+                TestDataUtil.dinamikAdOlusturma("otomasyon_public_api");
+
+        createSource.createSource(
+                kaynakAdi,
+                "arac_bakim_is_yeri_sayisi",
+                "Public portal API testi kaynağı"
+        );
+
+        createDataSetForApproval.createDataSetForApproval(
+                kaynakAdi,
+                dataSetName,
+                "İşletme Dairesi Başkanlığı",
+                "Altyapı & Şebeke",
+                "TCDD Taşımacılık Açık Veri Lisansı",
+                "Public portal API testi veri seti"
+        );
 
         publishFlow.approveKvkk(dataSetName);
 
