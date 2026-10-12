@@ -2,6 +2,7 @@ package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.companents.KaynakEkleModal;
+import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.ScreenshotUtil;
@@ -13,7 +14,6 @@ import org.testng.asserts.SoftAssert;
 import java.nio.file.Path;
 
 public class OpenDataCreateTest extends AvpBaseTest {
-
 
     /**
      * Dinamik test verisi kullanarak yeni kaynak oluşturur
@@ -1531,8 +1531,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + veriSetiAdi;
 
 
-        String sorumluBirim =
-                "İşletme Dairesi Başkanlığı";
+       /*String sorumluBirim =
+                "İşletme Dairesi Başkanlığı";*/
+        openDataPage.sorumluBirimSecme("İşletme Dairesi Başkanlığı");
 
         String kategori =
                 "Altyapı & Şebeke";
@@ -1691,7 +1692,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
         /*
          * Sorumlu birim seçilir.
          */
-        ReportManager.step(
+       /* ReportManager.step(
                 "Sorumlu Birim seçiliyor: "
                         + sorumluBirim
         );
@@ -1700,7 +1701,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 .sorumluBirimSecme(
                         sorumluBirim
                 );
-
+*/
 
         /*
          * Kategori seçilir.

@@ -1359,18 +1359,27 @@ public class OpenDataPage extends BasePage {
      * Sorumlu birimi seçer.
      */
     public void sorumluBirimSecme(
+
             String sorumluBirim) {
 
         page.getByLabel(
+
                 "Sorumlu Birim *"
+
         ).click();
 
         page.getByRole(
+
                 AriaRole.OPTION,
+
                 new Page.GetByRoleOptions()
+
                         .setName(sorumluBirim)
+
                         .setExact(true)
+
         ).click();
+
     }
 
 

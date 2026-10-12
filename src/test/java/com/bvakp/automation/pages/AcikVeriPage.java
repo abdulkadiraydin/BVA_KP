@@ -78,4 +78,6 @@ public class AcikVeriPage extends BasePage {
 
         return kaynak.isVisible();
     }
+
+
 }
