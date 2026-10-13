@@ -1,7 +1,7 @@
 package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
-import com.bvakp.automation.flows.OpenDataCreateFlow1.CreateDataSetForApproval;
+import com.bvakp.automation.flows.OpenDataCreateFlow.CreateDataSetForApproval;
 import com.bvakp.automation.flows.OpenDataPublishFlow;
 import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
 import com.bvakp.automation.pages.openData.OpenDataPage;
