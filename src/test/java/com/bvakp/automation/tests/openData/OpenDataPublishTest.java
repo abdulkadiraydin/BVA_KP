@@ -2,9 +2,8 @@ package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
-import com.bvakp.automation.flows.OpenDataCreateFlow.CreateDataSetForApproval;
 import com.bvakp.automation.flows.OpenDataPublishFlow;
-import com.bvakp.automation.flows.OpenDataSourceFlow.CreateSource;
+import com.bvakp.automation.flows.OpenDataCreateFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
@@ -17,8 +16,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
     private OpenDataPage openDataPage;
     private OpenDataPublishPage publishPage;
     private OpenDataPublishFlow publishFlow;
-    private CreateDataSetForApproval createDataSetForApproval;
-    private CreateSource createSource;
+    private OpenDataCreateFlow OpenDataCreateFlow;
 
     @BeforeMethod
     public void setUpPublish() {
@@ -29,14 +27,11 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         publishPage = new OpenDataPublishPage(page);
 
-        createSource = new CreateSource(page);
+        OpenDataCreateFlow = new OpenDataCreateFlow(page);
 
         publishFlow = new OpenDataPublishFlow(publishPage);
 
-        createDataSetForApproval = new CreateDataSetForApproval(page);
-
     }
-
     @Test
     public void veriSetiKvkkOnaylama() {
 
@@ -49,7 +44,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("KVKK onaylama testi başlatılıyor. Veri seti: " + dataSetName);
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK onay testi kaynağı"
@@ -57,7 +52,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -103,7 +98,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK reddetme testi kaynağı"
@@ -111,7 +106,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -162,14 +157,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayinlama");
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayınlama testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -235,7 +230,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
 
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın reddetme testi kaynağı"
@@ -250,7 +245,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
                         + dataSetName
         );
 
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -332,7 +327,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
 
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK düzenleme testi kaynağı"
@@ -344,7 +339,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
 
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -418,7 +413,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
 
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın onayı düzenleme testi kaynağı"
@@ -428,7 +423,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
 
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -524,14 +519,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın öncesi silme testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -576,14 +571,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın sonrası silme testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -642,14 +637,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti görüntüleme testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -681,7 +676,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti arama testi kaynağı"
@@ -689,7 +684,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -743,7 +738,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Manuel güncelleme testi kaynağı"
@@ -751,7 +746,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -859,7 +854,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        createSource.createSource(
+        OpenDataCreateFlow.createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti arşivleme testi kaynağı"
@@ -867,7 +862,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        createDataSetForApproval.createDataSetForApproval(
+        OpenDataCreateFlow.createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
