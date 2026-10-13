@@ -83,15 +83,10 @@ public class OpenDataPublishTest extends AvpBaseTest {
         publishFlow.approveKvkk(dataSetName);
 
         ReportManager.info("Veri setinin Yayın Onayında olduğu doğrulanıyor.");
-        Assert.assertTrue(
-                publishPage.isStatus(
-                        dataSetName,
-                        "Yayın Onayında"
-                ),
-                "Veri seti KVKK onaylanamadı. Veri seti: " + dataSetName
+        publishPage.waitForStatus(
+                dataSetName,
+                "Yayın Onayında"
         );
-        ReportManager.pass("Veri seti Yayın Onayında durumunda: " + dataSetName);
-
         ReportManager.pass("KVKK onaylama testi başarıyla tamamlandı: " + dataSetName);
     }
     @Test
