@@ -1,7 +1,6 @@
 package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
-import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.flows.OpenDataPublishFlow;
 import com.bvakp.automation.flows.OpenDataCreateFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -9,29 +8,123 @@ import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.TestDataUtil;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+import com.microsoft.playwright.Page;
 
 public class OpenDataPublishTest extends AvpBaseTest {
-    private OpenDataPage openDataPage;
-    private OpenDataPublishPage publishPage;
-    private OpenDataPublishFlow publishFlow;
-    private OpenDataCreateFlow OpenDataCreateFlow;
 
+    private final ThreadLocal<TestContext> testContextThread =
+            new ThreadLocal<>();
+
+    /**
+     * Her test metodunun kullanacağı Page ve Page Object nesnelerini
+     * thread bazında birlikte tutar.
+     */
+    private record TestContext(
+            Page page,
+            OpenDataPage openDataPage,
+            OpenDataPublishPage publishPage,
+            OpenDataPublishFlow publishFlow,
+            OpenDataCreateFlow openDataCreateFlow) {
+    }
+
+    /**
+     * Her test öncesinde aktif thread için AVP oturumunu hazırlar
+     * ve yalnızca o teste ait Page Object/Flow nesnelerini oluşturur.
+     */
     @BeforeMethod
     public void setUpPublish() {
+
         avpOturumuHazirlama();
 
-        openDataPage = new OpenDataPage(page);
+        Page aktifPage =
+                page();
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(aktifPage);
+
         openDataPage.clickAcikVeriPortali();
 
-        publishPage = new OpenDataPublishPage(page);
+        OpenDataPublishPage publishPage =
+                new OpenDataPublishPage(aktifPage);
 
-        OpenDataCreateFlow = new OpenDataCreateFlow(page);
+        OpenDataCreateFlow openDataCreateFlow =
+                new OpenDataCreateFlow(aktifPage);
 
-        publishFlow = new OpenDataPublishFlow(publishPage);
+        OpenDataPublishFlow publishFlow =
+                new OpenDataPublishFlow(publishPage);
 
+        testContextThread.set(
+                new TestContext(
+                        aktifPage,
+                        openDataPage,
+                        publishPage,
+                        publishFlow,
+                        openDataCreateFlow
+                )
+        );
     }
+
+    /**
+     * Aktif test thread'ine ait context bilgisini döndürür.
+     */
+    private TestContext context() {
+
+        TestContext context =
+                testContextThread.get();
+
+        if (context == null) {
+            throw new IllegalStateException(
+                    "OpenDataPublishTest context oluşturulmamış."
+            );
+        }
+
+        return context;
+    }
+
+    /**
+     * Aktif test thread'ine ait OpenDataPage nesnesini döndürür.
+     */
+    private OpenDataPage openDataPage() {
+
+        return context().openDataPage();
+    }
+
+    /**
+     * Aktif test thread'ine ait OpenDataPublishPage nesnesini döndürür.
+     */
+    private OpenDataPublishPage publishPage() {
+
+        return context().publishPage();
+    }
+
+    /**
+     * Aktif test thread'ine ait OpenDataPublishFlow nesnesini döndürür.
+     */
+    private OpenDataPublishFlow publishFlow() {
+
+        return context().publishFlow();
+    }
+
+    /**
+     * Aktif test thread'ine ait OpenDataCreateFlow nesnesini döndürür.
+     */
+    private OpenDataCreateFlow openDataCreateFlow() {
+
+        return context().openDataCreateFlow();
+    }
+
+    /**
+     * Test tamamlandığında thread üzerinde tutulan test context'ini temizler.
+     */
+    @AfterMethod(alwaysRun = true)
+    public void publishContextTemizleme() {
+
+        testContextThread.remove();
+    }
+
     @Test
     public void veriSetiKvkkOnaylama() {
 
@@ -44,7 +137,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("KVKK onaylama testi başlatılıyor. Veri seti: " + dataSetName);
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK onay testi kaynağı"
@@ -52,7 +145,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -62,23 +155,23 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");
 
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "KVKK Onayında"
         );
         ReportManager.pass("Veri seti KVKK Onayında durumuna ulaştı: " + dataSetName);
 
         ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        publishFlow.approveKvkk(dataSetName);
+        publishFlow().approveKvkk(dataSetName);
 
         ReportManager.info("Veri setinin Yayın Onayında olduğu doğrulanıyor.");
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Yayın Onayında"
         );
@@ -98,7 +191,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK reddetme testi kaynağı"
@@ -106,7 +199,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -117,27 +210,27 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri setinin kaydedilmesi için 3 saniye bekleniyor.");
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info(
                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."
         );
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "KVKK Onayında"
         );
 
         ReportManager.info("KVKK reddetme işlemi başlatılıyor.");
-        publishFlow.rejectKvkk(dataSetName);
+        publishFlow().rejectKvkk(dataSetName);
 
         ReportManager.info(
                 "KVKK reddi sonrası veri setinin Düzenleme Bekliyor durumuna geçmesi bekleniyor."
         );
 
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Düzenleme Bekliyor"
         );
@@ -157,14 +250,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayinlama");
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayınlama testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -175,22 +268,22 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");
         ReportManager.info("Veri setinin kaydedilmesi için 3 saniye bekleniyor.");
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info("Veri setinin KVKK Onayında durumuna geçmesi bekleniyor.");
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "KVKK Onayında"
         );
 
         ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        publishFlow.approveKvkk(dataSetName);
+        publishFlow().approveKvkk(dataSetName);
 
         ReportManager.info("Veri setinin Yayın Onayında durumuna geçmesi bekleniyor.");
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Yayın Onayında"
         );
@@ -198,18 +291,18 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.pass("Veri seti Yayın Onayında durumuna ulaştı: " + dataSetName);
 
         ReportManager.info("Veri seti yayınlama işlemi başlatılıyor.");
-        publishFlow.publishDataSet(dataSetName);
+        publishFlow().publishDataSet(dataSetName);
 
         ReportManager.info("Veri setinin Yayında durumunda olduğu doğrulanıyor.");
         Assert.assertTrue(
-                publishPage.isStatus(dataSetName, "Yayında"),
+                publishPage().isStatus(dataSetName, "Yayında"),
                 "Veri seti Yayında durumuna geçmedi."
         );
         ReportManager.pass("Veri seti Yayında durumunda: " + dataSetName);
 
         ReportManager.info("Veri setinin portala aktarım durumu doğrulanıyor.");
         Assert.assertTrue(
-                publishPage.isPortalStatus(dataSetName, "Aktarıldı"),
+                publishPage().isPortalStatus(dataSetName, "Aktarıldı"),
                 "Veri seti portala aktarılmadı."
         );
         ReportManager.pass("Veri seti portala başarıyla aktarıldı: " + dataSetName);
@@ -230,7 +323,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
 
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın reddetme testi kaynağı"
@@ -245,7 +338,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
                         + dataSetName
         );
 
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -260,12 +353,12 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info(
                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."
         );
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info(
                 "Veri setinin KVKK Onayında statüsüne geçmesi bekleniyor."
         );
-        publishPage.waitForStatus(dataSetName, "KVKK Onayında");
+        publishPage().waitForStatus(dataSetName, "KVKK Onayında");
 
         ReportManager.pass(
                 "Veri seti KVKK Onayında durumuna ulaştı: " + dataSetName
@@ -273,13 +366,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("KVKK onay işlemi başlatılıyor.");
 
-        publishFlow.approveKvkk(dataSetName);
+        publishFlow().approveKvkk(dataSetName);
 
         ReportManager.info(
                 "Veri setinin Yayın Onayında statüsüne geçmesi bekleniyor."
         );
 
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Yayın Onayında"
         );
@@ -290,7 +383,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Veri seti yayın reddetme işlemi başlatılıyor.");
 
-        publishFlow.rejectPublication(dataSetName);
+        publishFlow().rejectPublication(dataSetName);
 
         ReportManager.info(
                 "Yayın reddi sonrasında veri setinin Düzenleme Bekliyor "
@@ -298,7 +391,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         Assert.assertTrue(
-                publishPage.isStatus(
+                publishPage().isStatus(
                         dataSetName,
                         "Düzenleme Bekliyor"
                 ),
@@ -327,7 +420,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
 
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "KVKK düzenleme testi kaynağı"
@@ -339,7 +432,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
 
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -354,16 +447,16 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."
         );
 
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info(
                 "Veri setinin KVKK Onayında statüsüne geçmesi bekleniyor."
         );
 
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "KVKK Onayında"
         );
@@ -373,13 +466,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("KVKK reddetme işlemi başlatılıyor.");
-        publishFlow.rejectKvkk(dataSetName);
+        publishFlow().rejectKvkk(dataSetName);
 
         ReportManager.info(
                 "KVKK reddi sonrasında veri seti düzenleme işlemi başlatılıyor."
         );
 
-        publishFlow.editKvkkPendingDataSet(dataSetName);
+        publishFlow().editKvkkPendingDataSet(dataSetName);
 
         ReportManager.info(
                 "Düzenleme sonrasında veri setinin KVKK Onayında "
@@ -387,7 +480,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         Assert.assertTrue(
-                publishPage.isStatus(dataSetName, "KVKK Onayında"),
+                publishPage().isStatus(dataSetName, "KVKK Onayında"),
                 "Veri seti KVKK Onayında durumuna geçmedi. Veri seti: "
                         + dataSetName
         );
@@ -413,7 +506,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
 
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın onayı düzenleme testi kaynağı"
@@ -423,7 +516,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
 
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -438,13 +531,13 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."
         );
 
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info("KVKK Onayında statüsü bekleniyor.");
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "KVKK Onayında"
         );
@@ -454,10 +547,10 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        publishFlow.approveKvkk(dataSetName);
+        publishFlow().approveKvkk(dataSetName);
 
         ReportManager.info("Yayın Onayında statüsü bekleniyor.");
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Yayın Onayında"
         );
@@ -467,12 +560,12 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Yayın reddetme işlemi başlatılıyor.");
-        publishFlow.rejectPublication(dataSetName);
+        publishFlow().rejectPublication(dataSetName);
 
         ReportManager.info(
                 "Yayın reddi sonrasında düzenleme işlemi başlatılıyor."
         );
-        publishFlow.editPublicationPendingDataSet(dataSetName);
+        publishFlow().editPublicationPendingDataSet(dataSetName);
 
         ReportManager.info(
                 "Düzenleme sonrası veri setinin KVKK Onayında olduğu "
@@ -480,7 +573,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         Assert.assertTrue(
-                publishPage.isStatus(dataSetName, "KVKK Onayında"),
+                publishPage().isStatus(dataSetName, "KVKK Onayında"),
                 "Düzenleme sonrası veri seti KVKK Onayında durumuna geçmedi. "
                         + "Veri seti: " + dataSetName
         );
@@ -495,7 +588,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         Assert.assertTrue(
-                publishPage.isPortalStatus(dataSetName, "Aktarılmadı"),
+                publishPage().isPortalStatus(dataSetName, "Aktarılmadı"),
                 "Düzenleme sonrası portal durumu Aktarılmadı olmadı. "
                         + "Veri seti: " + dataSetName
         );
@@ -519,14 +612,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın öncesi silme testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -538,18 +631,18 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info(
                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."
         );
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info(
                 "Veri seti yayın öncesinde siliniyor: " + dataSetName
         );
-        publishFlow.deleteBeforePublication(dataSetName);
+        publishFlow().deleteBeforePublication(dataSetName);
 
         ReportManager.info(
                 "Silme işlemi sonrası veri setinin listede olmadığı kontrol ediliyor."
         );
         Assert.assertFalse(
-                publishPage.isDataSetDisplayed(dataSetName),
+                publishPage().isDataSetDisplayed(dataSetName),
                 "Veri seti yayın öncesinde silinemedi."
         );
 
@@ -571,14 +664,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Yayın sonrası silme testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -587,35 +680,35 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 "Yayın sonrası silme testi veri seti"
         );
 
-        page.waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info(
                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."
         );
-        publishPage.clickPublishTab();
-        publishPage.waitForStatus(dataSetName, "KVKK Onayında");
+        publishPage().clickPublishTab();
+        publishPage().waitForStatus(dataSetName, "KVKK Onayında");
 
         ReportManager.pass(
                 "Veri seti KVKK Onayında durumuna ulaştı: " + dataSetName
         );
 
         ReportManager.info("KVKK onayı veriliyor.");
-        publishFlow.approveKvkk(dataSetName);
+        publishFlow().approveKvkk(dataSetName);
 
         ReportManager.info("Veri seti yayınlanıyor.");
-        publishFlow.publishDataSet(dataSetName);
+        publishFlow().publishDataSet(dataSetName);
 
         ReportManager.info("Yayınlanan veri seti arşivleniyor.");
-        publishFlow.archiveDataSet(dataSetName);
+        publishFlow().archiveDataSet(dataSetName);
 
         ReportManager.info("Arşivlenen veri seti siliniyor.");
-        publishFlow.deleteAfterPublication(dataSetName);
+        publishFlow().deleteAfterPublication(dataSetName);
 
         ReportManager.info(
                 "Silme işlemi sonrası veri setinin listede olmadığı doğrulanıyor."
         );
         Assert.assertFalse(
-                publishPage.isDataSetDisplayed(dataSetName),
+                publishPage().isDataSetDisplayed(dataSetName),
                 "Arşivlenen veri seti silinemedi."
         );
 
@@ -637,14 +730,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti görüntüleme testi kaynağı"
         );
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -653,10 +746,10 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 "Veri seti görüntüleme testi"
         );
 
-        page.waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri seti görüntüleme işlemi başlatılıyor.");
-        publishFlow.viewDataSet(dataSetName);
+        publishFlow().viewDataSet(dataSetName);
 
         ReportManager.pass(
                 "Veri seti görüntüleme akışı tamamlandı: " + dataSetName
@@ -676,7 +769,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti arama testi kaynağı"
@@ -684,7 +777,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -697,26 +790,26 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info(
                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."
         );
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info(
                 "Arama alanına veri seti adı yazılıyor: " + dataSetName
         );
-        publishFlow.searchDataSet(dataSetName);
+        publishFlow().searchDataSet(dataSetName);
 
         ReportManager.info(
                 "Arama sonuçlarının güncellenmesi için 3 saniye bekleniyor."
         );
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info(
                 "Aranan veri setinin listede bulunduğu doğrulanıyor."
         );
         Assert.assertTrue(
-                publishPage.isDataSetNameMatching(dataSetName),
+                publishPage().isDataSetNameMatching(dataSetName),
                 "Aranan veri seti listede bulunamadı. Veri seti: " + dataSetName
         );
 
@@ -738,7 +831,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Manuel güncelleme testi kaynağı"
@@ -746,7 +839,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -759,15 +852,15 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info(
                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."
         );
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info(
                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."
         );
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "KVKK Onayında"
         );
@@ -776,12 +869,12 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Veri seti için KVKK onayı veriliyor.");
-        publishFlow.approveKvkk(dataSetName);
+        publishFlow().approveKvkk(dataSetName);
 
         ReportManager.info(
                 "Veri setinin Yayın Onayında durumuna geçmesi bekleniyor."
         );
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Yayın Onayında"
         );
@@ -790,22 +883,22 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Veri seti yayınlanıyor.");
-        publishFlow.publishDataSet(dataSetName);
+        publishFlow().publishDataSet(dataSetName);
 
         ReportManager.info("Güncelleme öncesi veri seti versiyonu alınıyor.");
         int oldVersion = Integer.parseInt(
-                publishPage.getCurrentVersion(dataSetName).replace("v", "")
+                publishPage().getCurrentVersion(dataSetName).replace("v", "")
         );
 
         ReportManager.info("Güncelleme öncesi versiyon: v" + oldVersion);
 
         ReportManager.info("Veri seti manuel olarak güncelleniyor.");
-        publishFlow.manuallyUpdateDataSet(dataSetName);
+        publishFlow().manuallyUpdateDataSet(dataSetName);
 
         ReportManager.info(
                 "Manuel güncelleme sonrası portal aktarım durumu bekleniyor."
         );
-        publishPage.waitForPortalStatus(
+        publishPage().waitForPortalStatus(
                 dataSetName,
                 "Aktarıldı"
         );
@@ -816,14 +909,14 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info(
                 "Güncelleme işleminin tamamlanması için sayfa yenileniyor."
         );
-        PlaywrightManager.getPage().reload();
+        page().reload();
 
         ReportManager.info(
                 "Sayfa yenilendi. Veri setinin güncel versiyonu okunuyor."
         );
 
         int newVersion = Integer.parseInt(
-                publishPage.getCurrentVersion(dataSetName).replace("v", "")
+                publishPage().getCurrentVersion(dataSetName).replace("v", "")
         );
 
         ReportManager.info("Güncelleme sonrası versiyon: v" + newVersion);
@@ -854,7 +947,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);
-        OpenDataCreateFlow.createSource(
+        openDataCreateFlow().createSource(
                 kaynakAdi,
                 "arac_bakim_is_yeri_sayisi",
                 "Veri seti arşivleme testi kaynağı"
@@ -862,7 +955,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");
 
         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);
-        OpenDataCreateFlow.createDataSetForApproval(
+        openDataCreateFlow().createDataSetForApproval(
                 kaynakAdi,
                 dataSetName,
                 "İşletme Dairesi Başkanlığı",
@@ -875,15 +968,15 @@ public class OpenDataPublishTest extends AvpBaseTest {
         ReportManager.info(
                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."
         );
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        page().waitForTimeout(3000);
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
+        publishPage().clickPublishTab();
 
         ReportManager.info(
                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."
         );
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "KVKK Onayında"
         );
@@ -892,12 +985,12 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Veri seti için KVKK onayı veriliyor.");
-        publishFlow.approveKvkk(dataSetName);
+        publishFlow().approveKvkk(dataSetName);
 
         ReportManager.info(
                 "Veri setinin Yayın Onayında durumuna geçmesi bekleniyor."
         );
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Yayın Onayında"
         );
@@ -906,15 +999,15 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
 
         ReportManager.info("Veri seti yayınlanıyor.");
-        publishFlow.publishDataSet(dataSetName);
+        publishFlow().publishDataSet(dataSetName);
 
         ReportManager.info("Veri seti arşivleniyor.");
-        publishFlow.archiveDataSet(dataSetName);
+        publishFlow().archiveDataSet(dataSetName);
 
         ReportManager.info(
                 "Veri setinin Arşivlendi durumuna geçmesi bekleniyor."
         );
-        publishPage.waitForStatus(
+        publishPage().waitForStatus(
                 dataSetName,
                 "Arşivlendi"
         );
@@ -922,7 +1015,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 "Veri seti Arşivlendi durumuna ulaştı: " + dataSetName
         );
 
-        publishPage.waitForPortalStatus(
+        publishPage().waitForPortalStatus(
                 dataSetName,
                 "Aktarılmadı"
         );

@@ -89,10 +89,6 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
      */
     private void otomasyonKaynaklariniTemizleme() {
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(page);
-
-
         ReportManager.info(
                 "OTOMASYON KAYNAK TEMİZLİĞİ BAŞLADI"
         );
@@ -102,6 +98,14 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
          * AVP oturumu hazırlanır.
          */
         avpOturumuHazirlama();
+
+        Page aktifPage =
+                page();
+
+        OpenDataPage openDataPage =
+                new OpenDataPage(
+                        aktifPage
+                );
 
 
         /*
@@ -139,7 +143,9 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
         );
 
 
-        otomasyonKayitlarininYuklenmesiniBekleme();
+        otomasyonKayitlarininYuklenmesiniBekleme(
+                aktifPage
+        );
 
 
         int silinenKayitSayisi =
@@ -158,7 +164,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
              * yeniden oluşturulur.
              */
             Locator otomasyonSatirlari =
-                    page.getByRole(
+                    aktifPage.getByRole(
                             AriaRole.ROW
                     ).filter(
                             new Locator.FilterOptions()
@@ -315,6 +321,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
              */
             int silmeOncesiKayitSayisi =
                     gorunurKaynakSayisi(
+                            aktifPage,
                             silinecekKaynakAdi
                     );
 
@@ -349,7 +356,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
              * Silme onay dialogunun açılması beklenir.
              */
             Locator dialog =
-                    page.getByRole(
+                    aktifPage.getByRole(
                             AriaRole.DIALOG
                     );
 
@@ -421,9 +428,10 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
              * Aynı isimdeki görünür kayıt sayısının
              * azalması beklenir.
              */
-            page.waitForCondition(
+            aktifPage.waitForCondition(
                     () ->
                             gorunurKaynakSayisi(
+                                    aktifPage,
                                     kaynakAdiBeklenen
                             )
                                     < oncekiKayitSayisi,
@@ -466,10 +474,11 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
      * @return görünür kaynak sayısı
      */
     private int gorunurKaynakSayisi(
+            Page aktifPage,
             String kaynakAdi) {
 
         Locator kaynakAdiLocator =
-                page.getByText(
+                aktifPage.getByText(
                         kaynakAdi,
                         new Page.GetByTextOptions()
                                 .setExact(
@@ -479,7 +488,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
         Locator kaynakSatirlari =
-                page.getByRole(
+                aktifPage.getByRole(
                         AriaRole.ROW
                 ).filter(
                         new Locator.FilterOptions()
@@ -525,10 +534,11 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
      * En az bir otomasyon kaydı veya
      * boş sonuç bilgisi oluşana kadar beklenir.
      */
-    private void otomasyonKayitlarininYuklenmesiniBekleme() {
+    private void otomasyonKayitlarininYuklenmesiniBekleme(
+            Page aktifPage) {
 
         Locator otomasyonSatiri =
-                page.getByRole(
+                aktifPage.getByRole(
                         AriaRole.ROW
                 ).filter(
                         new Locator.FilterOptions()
@@ -539,7 +549,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
 
         Locator bosListeMesaji =
-                page.getByText(
+                aktifPage.getByText(
                         "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.",
                         new Page.GetByTextOptions()
                                 .setExact(
@@ -548,7 +558,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
                 );
 
 
-        page.waitForCondition(
+        aktifPage.waitForCondition(
                 () ->
                         otomasyonSatiri.isVisible()
                                 || bosListeMesaji.isVisible(),

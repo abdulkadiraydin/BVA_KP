@@ -2,7 +2,8 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 
 <suite name="BVA Automation Suite"
-       preserve-order="true"
+       parallel="tests"
+       thread-count="3"
        verbose="1">
 
     <listeners>
@@ -10,10 +11,37 @@
         <listener class-name="com.bvakp.automation.reporting.TestListener"/>
     </listeners>
 
-    <test name="OpenDataTest" preserve-order="true">
+
+    <test name="LoginTests"
+          parallel="methods"
+          thread-count="2">
+
+        <classes>
+            <class name="com.bvakp.automation.tests.LoginTest"/>
+        </classes>
+
+    </test>
+
+
+    <test name="OpenDataCreateTests"
+          parallel="methods"
+          thread-count="2">
+
+        <classes>
+            <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
+        </classes>
+
+    </test>
+
+
+    <test name="OpenDataPublishTests"
+          parallel="methods"
+          thread-count="2">
+
         <classes>
             <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/>
         </classes>
+
     </test>
 
 </suite>
