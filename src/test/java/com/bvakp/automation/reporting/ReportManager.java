@@ -50,6 +50,17 @@ public final class ReportManager {
                 throwable
         );
     }
+    public static void pass(String message) {
+        logger.info("PASS | {}", message);
+        Allure.step("PASS | " + message);
+        HtmlReportManager.addStep("PASS | " + message);
+    }
+
+    public static void fail(String message) {
+        logger.error("FAIL | {}", message);
+        Allure.step("FAIL | " + message);
+        HtmlReportManager.addStep("FAIL | " + message);
+    }
 
 
     /**
