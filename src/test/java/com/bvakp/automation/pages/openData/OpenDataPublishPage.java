@@ -98,9 +98,9 @@ public class OpenDataPublishPage extends BasePage {
                         .setExact(true)
         ).last();
     }
-    public void clickPublishTab() {
+    public void clickPublishTab()
+    {
         publishTab.click();
-        ReportManager.step("Veri Seti Yönetimi sekmesi açıldı.");
     }
     public Locator getDataSetRow(String dataSetName) {
 
@@ -116,10 +116,6 @@ public class OpenDataPublishPage extends BasePage {
                 );
     }
     public void clickGoruntule(String dataSetName) {
-        ReportManager.step(
-                "Görüntülenecek veri seti aranıyor: " + dataSetName
-        );
-
         searchDataSet(dataSetName);
 
         Locator row = getDataSetRow(dataSetName);
@@ -127,25 +123,12 @@ public class OpenDataPublishPage extends BasePage {
         row.waitFor(
                 new Locator.WaitForOptions().setTimeout(10_000)
         );
-
-        ReportManager.step(
-                "Veri seti bulundu. Görüntüle butonuna tıklanıyor."
-        );
-
         row.getByRole(
                 AriaRole.BUTTON,
                 new Locator.GetByRoleOptions().setName("Görüntüle")
         ).click();
-
-        ReportManager.step(
-                "Veri seti görüntüleme ekranı açıldı: " + dataSetName
-        );
     }
     public void clickKvkkOnayla(String dataSetName) {
-        ReportManager.step(
-                "Veri seti satırında KVKK Onayla butonuna tıklanıyor: " + dataSetName
-        );
-
         Locator row = getDataSetRow(dataSetName);
         row.getByRole(
                 AriaRole.BUTTON,
@@ -154,15 +137,7 @@ public class OpenDataPublishPage extends BasePage {
     }
 
     public boolean isStatus(String dataSetName, String expectedStatus) {
-        ReportManager.step(
-                "Veri seti statü kontrolü başlatılıyor: " + dataSetName
-        );
-
         try {
-            ReportManager.step(
-                    "Statü kontrolü öncesinde veri seti aranıyor: " + dataSetName
-            );
-
             searchDataSet(dataSetName);
 
             Locator rows = page.locator("[role='row']");
@@ -184,9 +159,7 @@ public class OpenDataPublishPage extends BasePage {
                     continue;
                 }
 
-                ReportManager.step(
-                        "Aranan veri seti bulundu ve adı eşleşti: " + actualName
-                );
+                ReportManager.info("Aranan veri seti bulundu ve adı eşleşti: " + actualName);
 
                 Locator statusCell = row.locator(
                         "[role='gridcell'][data-field='status']"
@@ -194,19 +167,19 @@ public class OpenDataPublishPage extends BasePage {
 
                 String actualStatus = statusCell.innerText().trim();
 
-                ReportManager.step(
+                ReportManager.info(
                         "Mevcut statü: " + actualStatus
                                 + " | Beklenen statü: " + expectedStatus
                 );
 
                 if (actualStatus.equals(expectedStatus)) {
-                    ReportManager.step(
+                    ReportManager.info(
                             "Statü doğrulaması başarılı: " + expectedStatus
                     );
                     return true;
                 }
 
-                ReportManager.step(
+                ReportManager.error(
                         "Statü doğrulaması başarısız. Beklenen: "
                                 + expectedStatus + " | Gerçek: " + actualStatus
                 );
@@ -214,27 +187,26 @@ public class OpenDataPublishPage extends BasePage {
                 return false;
             }
 
-            ReportManager.step(
+            ReportManager.error(
                     "Aranan veri seti tabloda bulunamadı: " + dataSetName
             );
             return false;
 
         } catch (Exception e) {
-            ReportManager.step(
-                    "Statü kontrolü sırasında hata oluştu: "
-                            + e.getMessage()
+            ReportManager.error(
+                    "Statü kontrolü sırasında hata oluştu: " + e.getMessage()
             );
             return false;
         }
     }
 
     public boolean isPortalStatus(String dataSetName, String expectedPortalStatus) {
-        ReportManager.step(
+        ReportManager.info(
                 "Portal aktarım statüsü kontrolü başlatılıyor: " + dataSetName
         );
 
         try {
-            ReportManager.step(
+            ReportManager.info(
                     "Portal statüsü kontrolü öncesinde veri seti aranıyor: "
                             + dataSetName
             );
@@ -260,7 +232,7 @@ public class OpenDataPublishPage extends BasePage {
                     continue;
                 }
 
-                ReportManager.step(
+                ReportManager.info(
                         "Veri seti bulundu ve adı eşleşti: " + actualName
                 );
 
@@ -270,21 +242,21 @@ public class OpenDataPublishPage extends BasePage {
 
                 String actualPortalStatus = portalCell.innerText().trim();
 
-                ReportManager.step(
+                ReportManager.info(
                         "Mevcut portal statüsü: " + actualPortalStatus
                                 + " | Beklenen portal statüsü: "
                                 + expectedPortalStatus
                 );
 
                 if (actualPortalStatus.equals(expectedPortalStatus)) {
-                    ReportManager.step(
+                    ReportManager.info(
                             "Portal statüsü doğrulaması başarılı: "
                                     + expectedPortalStatus
                     );
                     return true;
                 }
 
-                ReportManager.step(
+                ReportManager.error(
                         "Portal statüsü doğrulaması başarısız. Beklenen: "
                                 + expectedPortalStatus
                                 + " | Gerçek: " + actualPortalStatus
@@ -293,13 +265,13 @@ public class OpenDataPublishPage extends BasePage {
                 return false;
             }
 
-            ReportManager.step(
+            ReportManager.error(
                     "Aranan veri seti tabloda bulunamadı: " + dataSetName
             );
             return false;
 
         } catch (Exception e) {
-            ReportManager.step(
+            ReportManager.error(
                     "Portal statüsü kontrolünde hata oluştu: "
                             + e.getMessage()
             );
@@ -312,7 +284,7 @@ public class OpenDataPublishPage extends BasePage {
         int timeout = 60_000;
         String actualStatus = "Veri seti bulunamadı";
 
-        ReportManager.step(
+        ReportManager.info(
                 "Veri seti aranarak statü bekleniyor: " + dataSetName
                         + " | Beklenen statü: " + expectedStatus
         );
@@ -359,7 +331,7 @@ public class OpenDataPublishPage extends BasePage {
                 actualStatus = statusCell.innerText().trim();
 
                 if (expectedStatus.equals(actualStatus)) {
-                    ReportManager.step(
+                    ReportManager.info(
                             "Veri seti bulundu ve beklenen statü doğrulandı: "
                                     + dataSetName + " | Statü: " + actualStatus
                     );
@@ -376,7 +348,7 @@ public class OpenDataPublishPage extends BasePage {
             page.waitForTimeout(3000);
         }
 
-        ReportManager.step(
+        ReportManager.error(
                 "Statü bekleme işlemi başarısız. Veri seti: " + dataSetName
                         + " | Beklenen statü: " + expectedStatus
                         + " | Son durum: " + actualStatus
@@ -394,7 +366,7 @@ public class OpenDataPublishPage extends BasePage {
         long startTime = System.currentTimeMillis();
         String actualPortalStatus = "Veri seti bulunamadı";
 
-        ReportManager.step(
+        ReportManager.info(
                 "Portal aktarım statüsü bekleniyor. Veri seti: "
                         + dataSetName
                         + " | Beklenen statü: " + expectedPortalStatus
@@ -442,7 +414,7 @@ public class OpenDataPublishPage extends BasePage {
                 actualPortalStatus = portalStatusCell.innerText().trim();
 
                 if (expectedPortalStatus.equals(actualPortalStatus)) {
-                    ReportManager.step(
+                    ReportManager.info(
                             "Portal aktarım statüsü doğrulandı. Veri seti: "
                                     + dataSetName
                                     + " | Statü: " + actualPortalStatus
@@ -460,7 +432,7 @@ public class OpenDataPublishPage extends BasePage {
             page.waitForTimeout(PORTAL_REFRESH_INTERVAL);
         }
 
-        ReportManager.step(
+        ReportManager.error(
                 "Portal aktarım statüsü beklenen değere ulaşmadı. Veri seti: "
                         + dataSetName
                         + " | Beklenen: " + expectedPortalStatus
@@ -477,10 +449,6 @@ public class OpenDataPublishPage extends BasePage {
     }
 
     public void clickYayinla(String dataSetName) {
-        ReportManager.step(
-                "Yayınlanacak veri seti aranıyor: " + dataSetName
-        );
-
         searchDataSet(dataSetName);
 
         Locator row = getDataSetRow(dataSetName);
@@ -489,44 +457,31 @@ public class OpenDataPublishPage extends BasePage {
                 new Locator.WaitForOptions()
                         .setTimeout(10_000)
         );
-
-        ReportManager.step(
-                "Veri seti bulundu. Yayınla butonuna tıklanıyor."
-        );
-
         row.getByRole(
                 AriaRole.BUTTON,
                 new Locator.GetByRoleOptions().setName("Yayınla")
         ).click();
 
-        ReportManager.step(
+        ReportManager.info(
                 "Yayınla butonuna tıklandı: " + dataSetName
         );
     }
     public void enterKvkkAciklama(String aciklama) {
-        ReportManager.step("KVKK onay açıklaması giriliyor.");
         popupAciklamaInput.fill(aciklama);
     }
     public void confirmKvkkOnay() {
-        ReportManager.step("KVKK onay penceresinde Onayla butonuna tıklanıyor.");
         kvkkOnaylaButton.click();
     }
     public void cancelKvkkOnay() {
         kvkkIptalButton.click();
-        ReportManager.step("KVKK onay işlemi iptal edildi.");
     }
     public void enterYayinAciklama(String aciklama) {
         popupAciklamaInput.fill(aciklama);
-        ReportManager.step("Yayın açıklaması girildi.");
     }
     public void confirmYayinla() {
         yayinlaButton.click();
-        ReportManager.step("Veri seti yayınlama işlemi onaylandı.");
     }
     public void clickArsivle(String dataSetName) {
-        ReportManager.step(
-                "Arşivlenecek veri seti aranıyor: " + dataSetName
-        );
 
         searchDataSet(dataSetName);
 
@@ -535,74 +490,46 @@ public class OpenDataPublishPage extends BasePage {
         row.waitFor(
                 new Locator.WaitForOptions()
                         .setTimeout(10_000)
-        );
-
-        ReportManager.step(
-                "Veri seti bulundu. Arşivle butonuna tıklanıyor."
         );
 
         row.getByRole(
                 AriaRole.BUTTON,
                 new Locator.GetByRoleOptions().setName("Arşivle")
         ).click();
-
-        ReportManager.step(
+        ReportManager.info(
                 "Arşivle butonuna tıklandı: " + dataSetName
         );
     }
     public void enterArsivAciklama(String aciklama) {
         popupAciklamaInput.fill(aciklama);
-        ReportManager.step("Arşivleme açıklaması girildi.");
     }
     public void confirmArsivle() {
         arsivleButton.click();
-        ReportManager.step("Veri seti arşivleme işlemi onaylandı.");
     }
     public void cancelArsivle() {
         arsivIptalButton.click();
-        ReportManager.step("Veri seti arşivleme işlemi iptal edildi.");
     }
     public void clickSil(String dataSetName) {
-        ReportManager.step("Silinecek veri seti aranıyor: " + dataSetName);
-
         Locator row = getDataSetRow(dataSetName);
 
         row.waitFor(
                 new Locator.WaitForOptions().setTimeout(10_000)
         );
-
-        ReportManager.step("Veri seti bulundu. Sil butonuna tıklanıyor.");
-
         row.getByRole(
                 AriaRole.BUTTON,
                 new Locator.GetByRoleOptions().setName("Sil")
         ).click();
-
-        ReportManager.step("Sil butonuna tıklandı: " + dataSetName);
+        ReportManager.info("Sil butonuna tıklandı: " + dataSetName);
     }
 
     public void confirmSil() {
-        ReportManager.step("Veri seti silme işlemi onaylanıyor.");
-
         silButton.click();
-
-        ReportManager.step("Veri seti silme işlemi onaylandı.");
     }
 
     public void cancelSil() {
-        ReportManager.step("Veri seti silme işlemi iptal ediliyor.");
-
         silIptalButton.click();
-
-        ReportManager.step("Veri seti silme işlemi iptal edildi.");
     }
-
     public boolean isDataSetDisplayed(String dataSetName) {
-        ReportManager.step(
-                "Veri setinin listede bulunup bulunmadığı kontrol ediliyor: "
-                        + dataSetName
-        );
-
         Locator row = getDataSetRow(dataSetName);
         PlaywrightManager.getPage().waitForTimeout(3000);
         try {
@@ -612,14 +539,14 @@ public class OpenDataPublishPage extends BasePage {
                             .setTimeout(3_000)
             );
 
-            ReportManager.step(
+            ReportManager.info(
                     "Veri seti hâlâ listede bulunuyor: " + dataSetName
             );
 
             return true;
 
         } catch (Exception e) {
-            ReportManager.step(
+            ReportManager.fail(
                     "Veri seti listede bulunamadı: " + dataSetName
             );
 
@@ -627,10 +554,6 @@ public class OpenDataPublishPage extends BasePage {
         }
     }
     public void clickKvkkReddet(String dataSetName) {
-        ReportManager.step(
-                "Veri seti satırında KVKK Reddet butonuna tıklanıyor: " + dataSetName
-        );
-
         Locator row = getDataSetRow(dataSetName);
 
         row.getByRole(
@@ -639,23 +562,16 @@ public class OpenDataPublishPage extends BasePage {
         ).click();
     }
     public void enterKvkkRedAciklama(String aciklama) {
-        ReportManager.step("KVKK ret açıklaması giriliyor.");
         popupAciklamaInput.fill(aciklama);
     }
     public void confirmKvkkRed() {
-        ReportManager.step("KVKK reddetme işlemi onaylanıyor.");
         kvkkRedOnaylaButton.click();
     }
     public void cancelKvkkRed() {
         kvkkRedIptalButton.click();
-        ReportManager.step("KVKK reddetme işlemi iptal edildi.");
     }
 
     public void clickDuzenle(String dataSetName) {
-
-        ReportManager.step(
-                "Düzenlenecek veri seti aranıyor: " + dataSetName
-        );
 
         searchDataSet(dataSetName);
 
@@ -666,65 +582,44 @@ public class OpenDataPublishPage extends BasePage {
                         .setTimeout(10_000)
         );
 
-        ReportManager.step(
-                "Veri seti bulundu. Düzenle butonuna tıklanıyor."
-        );
-
         row.getByRole(
                 AriaRole.BUTTON,
                 new Locator.GetByRoleOptions()
                         .setName("Düzenle")
         ).click();
 
-        ReportManager.step(
+        ReportManager.info(
                 "Veri seti düzenleme ekranı açıldı: " + dataSetName
         );
     }
 
     public void selectDropdown(String dropdownName, String option) {
-        ReportManager.step("Dropdown açılıyor: " + dropdownName);
-
         page.getByRole(
                 AriaRole.COMBOBOX,
                 new Page.GetByRoleOptions().setName(dropdownName)
         ).click();
-
-        ReportManager.step("Seçenek seçiliyor: " + option);
-
         Locator optionLocator = page.locator("li[role='option']")
                 .filter(new Locator.FilterOptions().setHasText(option));
 
         optionLocator.click();
 
-        ReportManager.step(
+        ReportManager.info(
                 "Dropdown seçimi tamamlandı: "
                         + dropdownName + " = " + option
         );
     }
     public void enterDuzenlemeAciklama(String aciklama) {
-        ReportManager.step("Düzenleme açıklaması giriliyor.");
-
         page.locator("textarea[name='description']").fill(aciklama);
-
-        ReportManager.step("Düzenleme açıklaması girildi.");
     }
 
     public void clickDuzenlemeKaydet() {
-        ReportManager.step("Düzenleme kaydet butonuna tıklanıyor.");
-
         duzenlemeKaydetButton.click();
-
-        ReportManager.step("Düzenleme kaydet butonuna tıklandı.");
     }
 
     public void assertDuzenlemeAlanlari(
             String sorumluBirim,
             String kategori,
             String aciklama) {
-
-        ReportManager.step(
-                "Düzenlenen Sorumlu Birim alanı doğrulanıyor: " + sorumluBirim
-        );
 
         Assert.assertEquals(
                 page.getByRole(
@@ -733,12 +628,6 @@ public class OpenDataPublishPage extends BasePage {
                 ).innerText(),
                 sorumluBirim,
                 "Sorumlu Birim alanı beklenen değerle eşleşmiyor."
-        );
-
-        ReportManager.step("Sorumlu Birim alanı doğrulandı.");
-
-        ReportManager.step(
-                "Düzenlenen Kategori alanı doğrulanıyor: " + kategori
         );
 
         Assert.assertEquals(
@@ -750,122 +639,61 @@ public class OpenDataPublishPage extends BasePage {
                 "Kategori alanı beklenen değerle eşleşmiyor."
         );
 
-        ReportManager.step("Kategori alanı doğrulandı.");
-
-        ReportManager.step("Düzenlenen açıklama alanı doğrulanıyor.");
-
         Assert.assertEquals(
                 page.locator("textarea[name='description']").inputValue(),
                 aciklama,
                 "Açıklama alanı beklenen değerle eşleşmiyor."
         );
 
-        ReportManager.step("Açıklama alanı doğrulandı.");
+        ReportManager.info("Açıklama alanı doğrulandı.");
     }
 
     public void clickDegisiklikOnayaGonder() {
-
-        ReportManager.step(
-                "Değişiklikleri Onaya Gönder butonuna tıklanıyor."
-        );
-
         degisiklikOnayaGonderButton.click();
-
-        ReportManager.step(
-                "Değişiklikleri Onaya Gönder butonuna tıklandı."
-        );
     }
 
     public void confirmDegisiklikOnayaGonder() {
-
-        ReportManager.step(
-                "Değişikliklerin onaya gönderilmesi onaylanıyor."
-        );
-
         degisiklikOnayaGonderConfirmButton.click();
-
-        ReportManager.step(
-                "Değişikliklerin onaya gönderilmesi onaylandı."
-        );
     }
 
     public void clickGeriDon() {
-
-        ReportManager.step("Geri Dön butonuna tıklanıyor.");
-
         page.getByRole(
                 AriaRole.BUTTON,
                 new Page.GetByRoleOptions().setName("Geri Dön")
         ).click();
-
-        ReportManager.step("Geri Dön butonuna tıklandı.");
     }
     public void searchDataSet(String dataSetName) {
-
-        ReportManager.step(
-                "Veri seti arama alanına yazılıyor: " + dataSetName
-        );
-
         Locator searchInput = page.getByPlaceholder("Veri seti ara");
         searchInput.fill(dataSetName);
 
         String searchValue = searchInput.inputValue();
 
-        ReportManager.step(
-                "Arama alanındaki değer: " + searchValue
-        );
-
-        System.out.println(
+        ReportManager.info(
                 "Arama alanındaki değer: " + searchValue
         );
     }
     public void clickGuncelle(String dataSetName) {
-
-        ReportManager.step(
-                "Güncellenecek veri seti aranıyor: " + dataSetName
-        );
-
         Locator row = getDataSetRow(dataSetName);
-
-        ReportManager.step(
-                "Veri seti satırındaki Güncelle butonuna tıklanıyor."
-        );
-
         row.getByRole(
                 AriaRole.BUTTON,
                 new Locator.GetByRoleOptions().setName("Güncelle")
         ).click();
-
-        ReportManager.step(
+        ReportManager.info(
                 "Güncelle butonuna tıklandı: " + dataSetName
         );
     }
     public void confirmGuncelle() {
-
-        ReportManager.step(
-                "Güncelleme işlemi onaylanıyor."
-        );
-
         page.getByRole(
                 AriaRole.BUTTON,
                 new Page.GetByRoleOptions()
                         .setName("Güncelle")
                         .setExact(true)
         ).click();
-
-        ReportManager.step(
-                "Güncelleme işlemi onaylandı."
-        );
     }
     public String getCurrentVersion(String dataSetName) {
-
-        ReportManager.step(
-                "Versiyonu okunacak veri seti aranıyor: " + dataSetName
-        );
-
         searchDataSet(dataSetName);
 
-        ReportManager.step(
+        ReportManager.info(
                 "Arama sonuçlarının güncellenmesi için 3 saniye bekleniyor."
         );
         page.waitForTimeout(3000);
@@ -884,19 +712,12 @@ public class OpenDataPublishPage extends BasePage {
 
         String version = versionCell.getAttribute("title");
 
-        ReportManager.step(
-                "Veri seti versiyonu okundu: " + version
-        );
+        ReportManager.info("Veri seti versiyonu okundu: " + version);
 
         return version;
     }
 
     public void clickYayinReddet(String dataSetName) {
-
-        ReportManager.step(
-                "Yayın reddedilecek veri seti aranıyor: " + dataSetName
-        );
-
         searchDataSet(dataSetName);
 
         Locator row = getDataSetRow(dataSetName);
@@ -906,36 +727,21 @@ public class OpenDataPublishPage extends BasePage {
                         .setTimeout(10_000)
         );
 
-        ReportManager.step(
-                "Veri seti bulundu. Yayını Reddet butonuna tıklanıyor."
-        );
-
         row.getByRole(
                 AriaRole.BUTTON,
                 new Locator.GetByRoleOptions()
                         .setName("Yayını Reddet")
         ).click();
-
-        ReportManager.step(
+        ReportManager.info(
                 "Yayını Reddet butonuna tıklandı."
         );
     }
 
 
     public void enterYayinRedAciklama(String aciklama) {
-
-        ReportManager.step("Yayın ret açıklaması giriliyor.");
-
         popupAciklamaInput.fill(aciklama);
-
-        ReportManager.step("Yayın ret açıklaması girildi.");
     }
-
-
     public void confirmYayinRed() {
-
-        ReportManager.step("Yayın reddi onay butonuna tıklanıyor.");
-
         page.getByRole(
                 AriaRole.BUTTON,
                 new Page.GetByRoleOptions()
@@ -943,28 +749,23 @@ public class OpenDataPublishPage extends BasePage {
                         .setExact(true)
         ).click();
 
-        ReportManager.step("Yayın reddi onaylandı.");
+        ReportManager.info("Yayın reddi onaylandı.");
     }
-
-
     public boolean isDataSetNameMatching(String dataSetName) {
-        ReportManager.step(
-                "Veri seti arama sonucu kontrol ediliyor: " + dataSetName
-        );
 
         Locator searchInput = page.getByPlaceholder("Veri seti ara");
 
         String searchValue = searchInput.inputValue().trim();
 
         if (!dataSetName.equals(searchValue)) {
-            ReportManager.step(
+            ReportManager.error(
                     "Arama alanı eşleşmiyor. Beklenen: "
                             + dataSetName + " | Gerçek: " + searchValue
             );
             return false;
         }
 
-        ReportManager.step(
+        ReportManager.info(
                 "Arama alanındaki değer doğrulandı: " + searchValue
         );
 
@@ -980,19 +781,15 @@ public class OpenDataPublishPage extends BasePage {
 
             String actualName = nameCell.first().getAttribute("title");
 
-            ReportManager.step(
-                    "Tablodaki veri seti adı kontrol ediliyor: " + actualName
-            );
-
             if (dataSetName.equals(actualName)) {
-                ReportManager.step(
+                ReportManager.info(
                         "Veri seti adı eşleşti: " + dataSetName
                 );
                 return true;
             }
         }
 
-        ReportManager.step(
+        ReportManager.error(
                 "Aranan veri seti adı tabloda bulunamadı: " + dataSetName
         );
 
