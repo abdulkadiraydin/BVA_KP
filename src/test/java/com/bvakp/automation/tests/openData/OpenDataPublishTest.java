@@ -22,12 +22,12 @@ public class OpenDataPublishTest extends AvpBaseTest {
     public void setUpPublish() {
         avpOturumuHazirlama();
 
-        openDataPage = new OpenDataPage(page());
+        openDataPage = new OpenDataPage(page);
         openDataPage.clickAcikVeriPortali();
 
-        publishPage = new OpenDataPublishPage(page());
+        publishPage = new OpenDataPublishPage(page);
 
-        OpenDataCreateFlow = new OpenDataCreateFlow(page());
+        OpenDataCreateFlow = new OpenDataCreateFlow(page);
 
         publishFlow = new OpenDataPublishFlow(publishPage);
 
