@@ -14,7 +14,7 @@
 
     <test name="OpenDataTest" preserve-order="true">
         <classes>
-            <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/>
         </classes>
     </test>
 

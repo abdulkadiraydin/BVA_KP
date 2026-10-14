@@ -163,7 +163,7 @@ public class OpenDataPublishPage extends BasePage {
                 ReportManager.info("Aranan veri seti bulundu ve adı eşleşti: " + actualName);
 
                 Locator statusCell = row.locator(
-                        "[role='gridcell'][data-field='status']"
+                        "[role='gridcell'][data-field='state']"
                 );
 
                 String actualStatus = statusCell.innerText().trim();
@@ -321,7 +321,7 @@ public class OpenDataPublishPage extends BasePage {
                 dataSetFound = true;
 
                 Locator statusCell = row.locator(
-                        "[role='gridcell'][data-field='status']"
+                        "[role='gridcell'][data-field='state']"
                 );
 
                 if (statusCell.count() == 0) {
