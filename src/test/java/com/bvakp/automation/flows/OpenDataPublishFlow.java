@@ -1,5 +1,6 @@
 package com.bvakp.automation.flows;
 
+import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
 
@@ -68,7 +69,7 @@ public class OpenDataPublishFlow {
 
         ReportManager.info("Yayın reddi onaylanıyor.");
         publishPage.confirmYayinRed();
-
+        PlaywrightManager.getPage().waitForTimeout(3000);
         ReportManager.info(
                 "Veri setinin Düzenleme Bekliyor statüsüne geçmesi bekleniyor."
         );

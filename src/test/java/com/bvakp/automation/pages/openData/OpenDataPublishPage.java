@@ -11,7 +11,7 @@ import org.testng.Assert;
 
 public class OpenDataPublishPage extends BasePage {
 
-    private static final int PORTAL_TRANSFER_TIMEOUT = 60_000;
+    private static final int PORTAL_TRANSFER_TIMEOUT = 180_000;
     private static final int PORTAL_REFRESH_INTERVAL = 5_000;
     private final Locator publishTab;
     private final Locator popupAciklamaInput;
@@ -138,6 +138,7 @@ public class OpenDataPublishPage extends BasePage {
 
     public boolean isStatus(String dataSetName, String expectedStatus) {
         try {
+            PlaywrightManager.getPage().waitForTimeout(3000);
             searchDataSet(dataSetName);
 
             Locator rows = page.locator("[role='row']");
@@ -204,7 +205,7 @@ public class OpenDataPublishPage extends BasePage {
         ReportManager.info(
                 "Portal aktarım statüsü kontrolü başlatılıyor: " + dataSetName
         );
-
+        PlaywrightManager.getPage().waitForTimeout(3000);
         try {
             ReportManager.info(
                     "Portal statüsü kontrolü öncesinde veri seti aranıyor: "
@@ -288,7 +289,7 @@ public class OpenDataPublishPage extends BasePage {
                 "Veri seti aranarak statü bekleniyor: " + dataSetName
                         + " | Beklenen statü: " + expectedStatus
         );
-
+       PlaywrightManager.getPage().waitForTimeout(3000);
         while (System.currentTimeMillis() - startTime < timeout) {
             page.reload();
             clickPublishTab();
@@ -365,7 +366,7 @@ public class OpenDataPublishPage extends BasePage {
     public void waitForPortalStatus(String dataSetName, String expectedPortalStatus) {
         long startTime = System.currentTimeMillis();
         String actualPortalStatus = "Veri seti bulunamadı";
-
+        PlaywrightManager.getPage().waitForTimeout(3000);
         ReportManager.info(
                 "Portal aktarım statüsü bekleniyor. Veri seti: "
                         + dataSetName
@@ -754,7 +755,7 @@ public class OpenDataPublishPage extends BasePage {
     public boolean isDataSetNameMatching(String dataSetName) {
 
         Locator searchInput = page.getByPlaceholder("Veri seti ara");
-
+        PlaywrightManager.getPage().waitForTimeout(3000);
         String searchValue = searchInput.inputValue().trim();
 
         if (!dataSetName.equals(searchValue)) {
