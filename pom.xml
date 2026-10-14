@@ -247,6 +247,8 @@
                         -Dfile.encoding=UTF-8
                         -Dstdout.encoding=UTF-8
                         -Dstderr.encoding=UTF-8
+                        -Duser.language=en
+                        -Duser.country=US
                     </argLine>
 
                     <!-- Allure sonuçlarının kaydedileceği dizin -->

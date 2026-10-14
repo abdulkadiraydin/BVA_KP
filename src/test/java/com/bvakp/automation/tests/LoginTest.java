@@ -27,7 +27,7 @@ public class LoginTest extends BaseTest {
     public void girisSayfasiAcma() {
 
         LoginPage loginPage =
-                new LoginPage(page);
+                new LoginPage(page());
 
 
         ReportManager.step(
@@ -63,7 +63,7 @@ public class LoginTest extends BaseTest {
     public void basariliGirisYapma() {
 
         LoginPage loginPage =
-                new LoginPage(page);
+                new LoginPage(page());
 
 
         ReportManager.step(
@@ -138,7 +138,7 @@ public class LoginTest extends BaseTest {
     public void hataliKullaniciAdiIleGirisYapma() {
 
         LoginPage loginPage =
-                new LoginPage(page);
+                new LoginPage(page());
 
 
         ReportManager.step(
@@ -236,7 +236,7 @@ public class LoginTest extends BaseTest {
     public void hataliKullaniciAdiVeSifreIleGirisYapma() {
 
         LoginPage loginPage =
-                new LoginPage(page);
+                new LoginPage(page());
 
 
         ReportManager.step(

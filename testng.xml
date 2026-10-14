@@ -3,7 +3,9 @@
 
 <suite name="BVA Automation Suite"
        preserve-order="true"
-       verbose="1">
+       verbose="1"
+       parallel="methods"
+       thread-count="3">
 
     <listeners>
         <listener class-name="io.qameta.allure.testng.AllureTestNg"/>

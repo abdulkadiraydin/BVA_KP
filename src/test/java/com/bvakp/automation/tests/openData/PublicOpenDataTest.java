@@ -32,21 +32,21 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
         avpOturumuHazirlama();
 
-        openDataPage = new OpenDataPage(page);
+        openDataPage = new OpenDataPage(page());
         openDataPage.clickAcikVeriPortali();
 
-        publishPage = new OpenDataPublishPage(page);
+        publishPage = new OpenDataPublishPage(page());
 
-        publishPage = new OpenDataPublishPage(page);
+        publishPage = new OpenDataPublishPage(page());
 
         publishFlow = new OpenDataPublishFlow(publishPage);
 
-        publicOpenDataPage = new PublicOpenDataPage(page);
+        publicOpenDataPage = new PublicOpenDataPage(page());
         dataStoreApi = new DataStoreApi(
                 PlaywrightManager.getApiRequestContext()
         );
         openDataCreateFlow =
-                new OpenDataCreateFlow(page);
+                new OpenDataCreateFlow(page());
     }
     @Test
     public void yayinlananVeriSetiPublicPortalKontrolu() {
@@ -85,7 +85,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
         publicOpenDataPage.clickDataSet(dataSetName);
 
         PublicDataSetPage publicDataSetPage =
-                new PublicDataSetPage(page);
+                new PublicDataSetPage(page());
 
         publicDataSetPage.clickApi();
 
