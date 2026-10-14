@@ -1,3 +1,4 @@
+
 package com.bvakp.automation.pages;
 
 import com.bvakp.automation.reporting.ReportManager;
@@ -18,9 +19,8 @@ public class LoginPage extends BasePage {
     private final Locator girisHataMesaji;
     private final Locator gostergePanosu;
 
-
     /**
-     * Login sayfasında kullanılacak locator'ları tanımlar.
+     * Yeni giriş ekranına ait locator'ları tanımlar.
      *
      * @param page aktif Playwright sayfası
      */
@@ -29,8 +29,8 @@ public class LoginPage extends BasePage {
         super(page);
 
         this.kullaniciAdiAlani =
-                page.getByLabel(
-                        "Username or email"
+                page.getByPlaceholder(
+                        "name.surname@tcddtasimacilik."
                 );
 
         this.sifreAlani =
@@ -44,10 +44,11 @@ public class LoginPage extends BasePage {
                 page.getByRole(
                         AriaRole.BUTTON,
                         new Page.GetByRoleOptions()
-                                .setName("Sign In")
+                                .setName("Sign in")
                                 .setExact(true)
                 );
 
+        // Yeni ekrandaki hata metni doğrulanana kadar korunur.
         this.girisHataMesaji =
                 page.getByText(
                         "Invalid username or password.",
@@ -55,6 +56,7 @@ public class LoginPage extends BasePage {
                                 .setExact(true)
                 );
 
+        // Başarılı giriş sonrası mevcut uygulama locator'ı.
         this.gostergePanosu =
                 page.getByLabel(
                         "breadcrumb"
@@ -66,79 +68,62 @@ public class LoginPage extends BasePage {
                 );
     }
 
-
     /**
-     * Portal login sayfasını açmak için kullanılır.
+     * Portal adresini açarak giriş ekranına yönlendirir.
      */
     public void girisSayfasiAcma() {
 
         openBaseUrl();
     }
 
-
     /**
-     * Kullanıcı adı alanına verilen değeri girmek için kullanılır.
+     * Kullanıcı adı veya e-posta alanını doldurur.
      *
      * @param kullaniciAdi kullanıcı adı
      */
-    public void kullaniciAdiGirme(
-            String kullaniciAdi) {
+    public void kullaniciAdiGirme(String kullaniciAdi) {
 
-        kullaniciAdiAlani.fill(
-                kullaniciAdi
-        );
+        kullaniciAdiAlani.fill(kullaniciAdi);
     }
 
-
     /**
-     * Şifre alanına verilen değeri girmek için kullanılır.
+     * Şifre alanını doldurur.
      *
      * @param sifre kullanıcı şifresi
      */
-    public void sifreGirme(
-            String sifre) {
+    public void sifreGirme(String sifre) {
 
-        sifreAlani.fill(
-                sifre
-        );
+        sifreAlani.fill(sifre);
     }
 
-
     /**
-     * Sign In butonuna tıklayarak giriş işlemini başlatmak için kullanılır.
+     * Giriş butonuna tıklayarak kimlik doğrulamayı başlatır.
      */
     public void girisButonunaTiklama() {
 
         girisButonu.click();
     }
 
-
     /**
-     * Kullanıcı adı ve şifre ile login işlemini tek adımda gerçekleştirmek için kullanılır.
+     * Kullanıcı adı ve şifreyle giriş işlemini gerçekleştirir.
      *
      * @param kullaniciAdi kullanıcı adı
      * @param sifre kullanıcı şifresi
      */
-    public void girisYapma(
-            String kullaniciAdi,
-            String sifre) {
+    public void girisYapma(String kullaniciAdi, String sifre) {
 
-        kullaniciAdiGirme(
-                kullaniciAdi
-        );
+        kullaniciAdiGirme(kullaniciAdi);
 
-        sifreGirme(
-                sifre
-        );
+        sifreGirme(sifre);
 
         girisButonunaTiklama();
     }
 
-
     /**
-     * Login ekranındaki temel alanların görüntülendiğini doğrulamak için kullanılır.
+     * Login ekranındaki temel alanların görünmesini bekler
+     * ve kullanıcı adı, şifre ve giriş butonunu kontrol eder.
      *
-     * @return login alanları görünüyorsa true
+     * @return tüm giriş alanları görünüyorsa true
      */
     public boolean girisEkraniGoruntuleniyorMu() {
 
@@ -146,9 +131,10 @@ public class LoginPage extends BasePage {
 
             kullaniciAdiAlani.waitFor(
                     new Locator.WaitForOptions()
-                            .setTimeout(
-                                    LOGIN_EKRANI_TIMEOUT
+                            .setState(
+                                    com.microsoft.playwright.options.WaitForSelectorState.VISIBLE
                             )
+                            .setTimeout(LOGIN_EKRANI_TIMEOUT)
             );
 
             return kullaniciAdiAlani.isVisible()
@@ -166,11 +152,11 @@ public class LoginPage extends BasePage {
         }
     }
 
-
     /**
-     * Başarılı login sonrasında ana uygulama ekranının açıldığını doğrulamak için kullanılır.
+     * Başarılı girişin ardından Gösterge Panosu'nun
+     * görüntülenmesini bekleyerek giriş sonucunu doğrular.
      *
-     * @return gösterge panosu görünüyorsa true
+     * @return Gösterge Panosu görünüyorsa true
      */
     public boolean basariliGirisYapildiMi() {
 
@@ -178,9 +164,7 @@ public class LoginPage extends BasePage {
 
             gostergePanosu.waitFor(
                     new Locator.WaitForOptions()
-                            .setTimeout(
-                                    BASARILI_GIRIS_TIMEOUT
-                            )
+                            .setTimeout(BASARILI_GIRIS_TIMEOUT)
             );
 
             return gostergePanosu.isVisible();
@@ -196,9 +180,9 @@ public class LoginPage extends BasePage {
         }
     }
 
-
     /**
-     * Hatalı giriş sonrasında hata mesajının görüntülendiğini doğrulamak için kullanılır.
+     * Hatalı girişten sonra beklenen hata mesajının
+     * görüntülenip görüntülenmediğini kontrol eder.
      *
      * @return hata mesajı görünüyorsa true
      */
@@ -208,9 +192,7 @@ public class LoginPage extends BasePage {
 
             girisHataMesaji.waitFor(
                     new Locator.WaitForOptions()
-                            .setTimeout(
-                                    HATA_MESAJI_TIMEOUT
-                            )
+                            .setTimeout(HATA_MESAJI_TIMEOUT)
             );
 
             return girisHataMesaji.isVisible();
@@ -226,11 +208,10 @@ public class LoginPage extends BasePage {
         }
     }
 
-
     /**
-     * Login ekranında görüntülenen hata mesajının metnini almak için kullanılır.
+     * Giriş ekranındaki hata mesajının metnini döndürür.
      *
-     * @return hata mesajı metni
+     * @return görüntülenen hata mesajı
      */
     public String girisHataMesajiAlma() {
 
@@ -238,11 +219,10 @@ public class LoginPage extends BasePage {
                 .innerText()
                 .trim();
     }
+
     /**
-     * Login ekranının o anda görünür olup olmadığını
-     * bekleme yapmadan kontrol etmek için kullanılır.
-     *
-     * AVP oturum hazırlama sırasında polling kontrolünde kullanılır.
+     * AVP oturum hazırlama sırasında login ekranının
+     * görünürlüğünü bekleme yapmadan kontrol eder.
      *
      * @return login ekranı görünüyorsa true
      */
@@ -260,12 +240,9 @@ public class LoginPage extends BasePage {
         }
     }
 
-
     /**
-     * Başarılı giriş sonrası Gösterge Panosu elementinin
-     * o anda görünür olup olmadığını bekleme yapmadan kontrol eder.
-     *
-     * AVP oturum hazırlama sırasında polling kontrolünde kullanılır.
+     * AVP oturum hazırlama sırasında Gösterge Panosu'nun
+     * görünürlüğünü bekleme yapmadan kontrol eder.
      *
      * @return Gösterge Panosu görünüyorsa true
      */

@@ -52,9 +52,8 @@ public class LoginTest extends BaseTest {
 
 
         ReportManager.step(
-                "Login ekranındaki kullanıcı adı, şifre ve Sign In alanları doğrulanıyor."
+                "Login ekranındaki kullanıcı adı, şifre ve Giriş Yap alanları doğrulanıyor."
         );
-
         Assert.assertTrue(
                 loginPage.girisEkraniGoruntuleniyorMu(),
                 "Login ekranı gerekli alanlarla birlikte görüntülenemedi."
