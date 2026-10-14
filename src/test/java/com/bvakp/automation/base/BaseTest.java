@@ -1,6 +1,5 @@
 package com.bvakp.automation.base;
 
-
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.reporting.AllureRunOrganizer;
 import com.bvakp.automation.reporting.TestListener;
@@ -13,15 +12,14 @@ import org.testng.annotations.Listeners;
 @Listeners(TestListener.class)
 public class BaseTest {
 
-    protected Page page;
-
     static {
         AllureRunOrganizer.initialize();
     }
 
+
     /**
-     * Her test öncesinde Playwright oturumunu başlatır
-     * ve aktif Page nesnesini hazırlar.
+     * Her test öncesinde ilgili test thread'i için
+     * bağımsız Playwright oturumu oluşturur.
      */
     @BeforeMethod
     public void setUp() {
@@ -29,10 +27,20 @@ public class BaseTest {
         PlaywrightManager.initialize(
                 authStateKullan()
         );
-
-        page =
-                PlaywrightManager.getPage();
     }
+
+
+    /**
+     * Aktif test thread'ine ait Playwright Page
+     * nesnesini döndürmek için kullanılır.
+     *
+     * @return aktif thread'e ait Page
+     */
+    protected Page page() {
+
+        return PlaywrightManager.getPage();
+    }
+
 
     /**
      * Testin kayıtlı authentication state
@@ -45,9 +53,10 @@ public class BaseTest {
         return false;
     }
 
+
     /**
-     * Test tamamlandıktan sonra Playwright oturumunu kapatır.
-     * Test sonucu video ve raporlama işlemleri için kullanılır.
+     * Test tamamlandıktan sonra yalnızca aktif
+     * test thread'ine ait Playwright oturumunu kapatır.
      */
     @AfterMethod(alwaysRun = true)
     public void tearDown(
