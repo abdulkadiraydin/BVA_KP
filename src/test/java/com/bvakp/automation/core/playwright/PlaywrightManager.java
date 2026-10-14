@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 public class PlaywrightManager {
 
@@ -128,6 +129,7 @@ public class PlaywrightManager {
             BrowserName browserName,
             boolean headless,
             boolean authStateKullan) {
+        Locale.setDefault(Locale.ENGLISH);
         Playwright playwright =
                 Playwright.create();
 
