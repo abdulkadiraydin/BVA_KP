@@ -13,6 +13,7 @@ import org.testng.annotations.Listeners;
 public class BaseTest {
 
     static {
+        java.util.Locale.setDefault(java.util.Locale.ENGLISH);
         AllureRunOrganizer.initialize();
     }
 

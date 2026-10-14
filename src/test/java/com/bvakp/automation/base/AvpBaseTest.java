@@ -241,7 +241,7 @@ public class AvpBaseTest extends BaseTest {
      * TestNG suite tamamlandıktan sonra koşu sırasında
      * oluşturulan otomasyon kaynaklarını temizler.
      */
-    @AfterSuite(alwaysRun = true)
+   /* @AfterSuite(alwaysRun = true)
     public void kosuSonuOtomasyonKaynaklariniTemizleme() {
 
         ReportManager.info(
@@ -269,5 +269,9 @@ public class AvpBaseTest extends BaseTest {
 
             e.printStackTrace();
         }
+<<<<<<< HEAD
     }
+=======
+    }*/
+>>>>>>> origin/main
 }

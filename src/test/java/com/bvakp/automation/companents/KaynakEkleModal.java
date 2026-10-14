@@ -1,5 +1,6 @@
 package com.bvakp.automation.companents;
 
+import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -237,7 +238,6 @@ public class KaynakEkleModal {
     public boolean kaynakEkleFormuKapandiMi() {
 
         try {
-
             adAlani.waitFor(
                     new Locator.WaitForOptions()
                             .setState(
@@ -249,7 +249,6 @@ public class KaynakEkleModal {
             return true;
 
         } catch (PlaywrightException e) {
-
             return false;
         }
     }
