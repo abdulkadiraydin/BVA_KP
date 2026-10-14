@@ -1,0 +1,1170 @@
+[1mdiff --git a/src/test/java/com/bvakp/automation/tests/openData/OpenDataPublishTest.java b/src/test/java/com/bvakp/automation/tests/openData/OpenDataPublishTest.java[m
+[1mindex b75abbc..07c3c2e 100644[m
+[1m--- a/src/test/java/com/bvakp/automation/tests/openData/OpenDataPublishTest.java[m
+[1m+++ b/src/test/java/com/bvakp/automation/tests/openData/OpenDataPublishTest.java[m
+[36m@@ -1,11 +1,7 @@[m
+ package com.bvakp.automation.tests.openData;[m
+ [m
+ import com.bvakp.automation.base.AvpBaseTest;[m
+[31m-<<<<<<< HEAD[m
+[31m-import com.bvakp.automation.flows.OpenDataPublishFlow;[m
+[31m-=======[m
+ import com.bvakp.automation.core.playwright.PlaywrightManager;[m
+[31m->>>>>>> origin/main[m
+ import com.bvakp.automation.flows.OpenDataCreateFlow;[m
+ import com.bvakp.automation.flows.OpenDataPublishFlow;[m
+ import com.bvakp.automation.pages.openData.OpenDataPage;[m
+[36m@@ -13,67 +9,10 @@[m [mimport com.bvakp.automation.pages.openData.OpenDataPublishPage;[m
+ import com.bvakp.automation.reporting.ReportManager;[m
+ import com.bvakp.automation.utils.TestDataUtil;[m
+ import org.testng.Assert;[m
+[31m-<<<<<<< HEAD[m
+[31m-import org.testng.annotations.AfterMethod;[m
+[31m-import org.testng.annotations.BeforeMethod;[m
+[31m-=======[m
+[31m->>>>>>> origin/main[m
+ import org.testng.annotations.Test;[m
+[31m-import com.microsoft.playwright.Page;[m
+ [m
+ public class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-    private final ThreadLocal<TestContext> testContextThread =[m
+[31m-            new ThreadLocal<>();[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Her test metodunun kullanacağı Page ve Page Object nesnelerini[m
+[31m-     * thread bazında birlikte tutar.[m
+[31m-     */[m
+[31m-    private record TestContext([m
+[31m-            Page page,[m
+[31m-            OpenDataPage openDataPage,[m
+[31m-            OpenDataPublishPage publishPage,[m
+[31m-            OpenDataPublishFlow publishFlow,[m
+[31m-            OpenDataCreateFlow openDataCreateFlow) {[m
+[31m-    }[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Her test öncesinde aktif thread için AVP oturumunu hazırlar[m
+[31m-     * ve yalnızca o teste ait Page Object/Flow nesnelerini oluşturur.[m
+[31m-     */[m
+[31m-    @BeforeMethod[m
+[31m-    public void setUpPublish() {[m
+[31m-[m
+[31m-        avpOturumuHazirlama();[m
+[31m-[m
+[31m-        Page aktifPage =[m
+[31m-                page();[m
+[31m-[m
+[31m-        OpenDataPage openDataPage =[m
+[31m-                new OpenDataPage(aktifPage);[m
+[31m-[m
+[31m-        openDataPage.clickAcikVeriPortali();[m
+[31m-[m
+[31m-        OpenDataPublishPage publishPage =[m
+[31m-                new OpenDataPublishPage(aktifPage);[m
+[31m-[m
+[31m-        OpenDataCreateFlow openDataCreateFlow =[m
+[31m-                new OpenDataCreateFlow(aktifPage);[m
+[31m-[m
+[31m-        OpenDataPublishFlow publishFlow =[m
+[31m-                new OpenDataPublishFlow(publishPage);[m
+[31m-[m
+[31m-        testContextThread.set([m
+[31m-                new TestContext([m
+[31m-                        aktifPage,[m
+[31m-                        openDataPage,[m
+[31m-                        publishPage,[m
+[31m-                        publishFlow,[m
+[31m-                        openDataCreateFlow[m
+[31m-                )[m
+[31m-=======[m
+     private record TestContext([m
+             OpenDataPublishPage publishPage,[m
+             OpenDataPublishFlow publishFlow,[m
+[36m@@ -92,68 +31,8 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+                 publishPage,[m
+                 new OpenDataPublishFlow(publishPage),[m
+                 new OpenDataCreateFlow(page())[m
+[31m->>>>>>> origin/main[m
+         );[m
+     }[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Aktif test thread'ine ait context bilgisini döndürür.[m
+[31m-     */[m
+[31m-    private TestContext context() {[m
+[31m-[m
+[31m-        TestContext context =[m
+[31m-                testContextThread.get();[m
+[31m-[m
+[31m-        if (context == null) {[m
+[31m-            throw new IllegalStateException([m
+[31m-                    "OpenDataPublishTest context oluşturulmamış."[m
+[31m-            );[m
+[31m-        }[m
+[31m-[m
+[31m-        return context;[m
+[31m-    }[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Aktif test thread'ine ait OpenDataPage nesnesini döndürür.[m
+[31m-     */[m
+[31m-    private OpenDataPage openDataPage() {[m
+[31m-[m
+[31m-        return context().openDataPage();[m
+[31m-    }[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Aktif test thread'ine ait OpenDataPublishPage nesnesini döndürür.[m
+[31m-     */[m
+[31m-    private OpenDataPublishPage publishPage() {[m
+[31m-[m
+[31m-        return context().publishPage();[m
+[31m-    }[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Aktif test thread'ine ait OpenDataPublishFlow nesnesini döndürür.[m
+[31m-     */[m
+[31m-    private OpenDataPublishFlow publishFlow() {[m
+[31m-[m
+[31m-        return context().publishFlow();[m
+[31m-    }[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Aktif test thread'ine ait OpenDataCreateFlow nesnesini döndürür.[m
+[31m-     */[m
+[31m-    private OpenDataCreateFlow openDataCreateFlow() {[m
+[31m-[m
+[31m-        return context().openDataCreateFlow();[m
+[31m-    }[m
+[31m-[m
+[31m-    /**[m
+[31m-     * Test tamamlandığında thread üzerinde tutulan test context'ini temizler.[m
+[31m-     */[m
+[31m-    @AfterMethod(alwaysRun = true)[m
+[31m-    public void publishContextTemizleme() {[m
+[31m-[m
+[31m-        testContextThread.remove();[m
+[31m-    }[m
+[31m-[m
+     @Test[m
+     public void veriSetiKvkkOnaylama() {[m
+         TestContext ctx = testHazirligi();[m
+[36m@@ -166,11 +45,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info("KVKK onaylama testi başlatılıyor. Veri seti: " + dataSetName);[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "KVKK onay testi kaynağı"[m
+[36m@@ -178,11 +53,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -192,37 +63,20 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-        ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-[m
+[31m-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+         ctx.publishPage().clickPublishTab();[m
+ [m
+         ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "KVKK Onayında"[m
+         );[m
+         ReportManager.pass("Veri seti KVKK Onayında durumuna ulaştı: " + dataSetName);[m
+ [m
+         ReportManager.info("KVKK onay işlemi başlatılıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().approveKvkk(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Veri setinin Yayın Onayında olduğu doğrulanıyor.");[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishFlow().approveKvkk(dataSetName);[m
+         ReportManager.info("Veri setinin Yayın Onayında olduğu doğrulanıyor.");[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Yayın Onayında"[m
+         );[m
+[36m@@ -242,11 +96,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "KVKK reddetme testi kaynağı"[m
+[36m@@ -254,11 +104,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");[m
+         ReportManager.info(dataSetName);[m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -268,45 +114,23 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        ReportManager.info("Veri setinin kaydedilmesi için 3 saniye bekleniyor.");[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-        ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-[m
+[31m-        ReportManager.info([m
+[31m-                "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."[m
+[31m-        );[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+         ctx.publishPage().clickPublishTab();[m
+         ReportManager.info([m
+                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."[m
+         );[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "KVKK Onayında"[m
+         );[m
+ [m
+         ReportManager.info("KVKK reddetme işlemi başlatılıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().rejectKvkk(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().rejectKvkk(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "KVKK reddi sonrası veri setinin Düzenleme Bekliyor durumuna geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Düzenleme Bekliyor"[m
+         );[m
+[36m@@ -326,22 +150,14 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+                 TestDataUtil.dinamikAdOlusturma("otomasyon_yayinlama");[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Yayınlama testi kaynağı"[m
+         );[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -351,35 +167,21 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");[m
+         ReportManager.info("Veri setinin kaydedilmesi için 3 saniye bekleniyor.");[m
+[31m-        page().waitForTimeout(3000);[m
+[32m+[m[32m        PlaywrightManager.getPage().waitForTimeout(3000);[m
+ [m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-[m
+[31m-        ReportManager.info("Veri setinin KVKK Onayında durumuna geçmesi bekleniyor.");[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().clickPublishTab();[m
+ [m
+         ReportManager.info("Veri setinin KVKK Onayında durumuna geçmesi bekleniyor.");[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "KVKK Onayında"[m
+         );[m
+ [m
+         ReportManager.info("KVKK onay işlemi başlatılıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().approveKvkk(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Veri setinin Yayın Onayında durumuna geçmesi bekleniyor.");[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishFlow().approveKvkk(dataSetName);[m
+         ReportManager.info("Veri setinin Yayın Onayında durumuna geçmesi bekleniyor.");[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Yayın Onayında"[m
+         );[m
+[36m@@ -387,30 +189,15 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.pass("Veri seti Yayın Onayında durumuna ulaştı: " + dataSetName);[m
+ [m
+         ReportManager.info("Veri seti yayınlama işlemi başlatılıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().publishDataSet(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Veri setinin Yayında durumunda olduğu doğrulanıyor.");[m
+[31m-        Assert.assertTrue([m
+[31m-                publishPage().isStatus(dataSetName, "Yayında"),[m
+[31m-                "Veri seti Yayında durumuna geçmedi."[m
+[31m-=======[m
+         ctx.publishFlow().publishDataSet(dataSetName);[m
+         ctx.publishPage().waitForStatus([m
+                 dataSetName,[m
+                 "Yayında"[m
+[31m->>>>>>> origin/main[m
+         );[m
+         ReportManager.pass("Veri seti Yayında durumunda: " + dataSetName);[m
+ [m
+         ReportManager.info("Veri setinin portala aktarım durumu doğrulanıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        Assert.assertTrue([m
+[31m-                publishPage().isPortalStatus(dataSetName, "Aktarıldı"),[m
+[31m-                "Veri seti portala aktarılmadı."[m
+[31m-=======[m
+         ctx.publishPage().waitForPortalStatus(dataSetName, "Aktarıldı"[m
+[31m->>>>>>> origin/main[m
+         );[m
+         ReportManager.pass("Veri seti portala başarıyla aktarıldı: " + dataSetName);[m
+     }[m
+[36m@@ -430,11 +217,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Yayın reddetme testi kaynağı"[m
+[36m@@ -449,11 +232,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+                         + dataSetName[m
+         );[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -468,28 +247,6 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info([m
+                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-        ReportManager.info([m
+[31m-                "Veri setinin KVKK Onayında statüsüne geçmesi bekleniyor."[m
+[31m-        );[m
+[31m-        publishPage().waitForStatus(dataSetName, "KVKK Onayında");[m
+[31m-[m
+[31m-        ReportManager.pass([m
+[31m-                "Veri seti KVKK Onayında durumuna ulaştı: " + dataSetName[m
+[31m-        );[m
+[31m-[m
+[31m-        ReportManager.info("KVKK onay işlemi başlatılıyor.");[m
+[31m-[m
+[31m-        publishFlow().approveKvkk(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info([m
+[31m-                "Veri setinin Yayın Onayında statüsüne geçmesi bekleniyor."[m
+[31m-        );[m
+[31m-[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");[m
+         ReportManager.info([m
+                 "Veri seti KVKK Onayında durumuna ulaştı: " + dataSetName[m
+[36m@@ -499,7 +256,6 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+                 "Veri setinin Yayın Onayında statüsüne geçmesi bekleniyor."[m
+         );[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Yayın Onayında"[m
+         );[m
+[36m@@ -510,22 +266,14 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Veri seti yayın reddetme işlemi başlatılıyor.");[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().rejectPublication(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().rejectPublication(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Yayın reddi sonrasında veri setinin Düzenleme Bekliyor "[m
+                         + "statüsünde olduğu doğrulanıyor."[m
+         );[m
+         Assert.assertTrue([m
+[31m-<<<<<<< HEAD[m
+[31m-                publishPage().isStatus([m
+[31m-=======[m
+                 ctx.publishPage().isStatus([m
+[31m->>>>>>> origin/main[m
+                         dataSetName,[m
+                         "Düzenleme Bekliyor"[m
+                 ),[m
+[36m@@ -553,11 +301,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "KVKK düzenleme testi kaynağı"[m
+[36m@@ -569,11 +313,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -584,29 +324,13 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        ReportManager.info([m
+[31m-                "Veri setinin kaydedilmesi için 3 saniye bekleniyor."[m
+[31m-        );[m
+[31m-[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-        ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-=======[m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+         ctx.publishPage().clickPublishTab();[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Veri setinin KVKK Onayında statüsüne geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "KVKK Onayında"[m
+         );[m
+[36m@@ -616,33 +340,19 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("KVKK reddetme işlemi başlatılıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().rejectKvkk(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info([m
+[31m-                "KVKK reddi sonrasında veri seti düzenleme işlemi başlatılıyor."[m
+[31m-        );[m
+[31m-[m
+[31m-        publishFlow().editKvkkPendingDataSet(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().rejectKvkk(dataSetName);[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+         ReportManager.info([m
+                 "KVKK reddi sonrasında veri seti düzenleme işlemi başlatılıyor."[m
+         );[m
+         ctx.publishFlow().editKvkkPendingDataSet(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Düzenleme sonrasında veri setinin KVKK Onayında "[m
+                         + "statüsünde olduğu doğrulanıyor."[m
+         );[m
+         Assert.assertTrue([m
+[31m-<<<<<<< HEAD[m
+[31m-                publishPage().isStatus(dataSetName, "KVKK Onayında"),[m
+[31m-=======[m
+                 ctx.publishPage().isStatus(dataSetName, "KVKK Onayında"),[m
+[31m->>>>>>> origin/main[m
+                 "Veri seti KVKK Onayında durumuna geçmedi. Veri seti: "[m
+                         + dataSetName[m
+         );[m
+[36m@@ -667,11 +377,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Yayın onayı düzenleme testi kaynağı"[m
+[36m@@ -681,11 +387,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -695,20 +397,6 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Veri seti oluşturma metodu tamamlandı.");[m
+[31m-<<<<<<< HEAD[m
+[31m-[m
+[31m-        ReportManager.info([m
+[31m-                "Veri setinin kaydedilmesi için 3 saniye bekleniyor."[m
+[31m-        );[m
+[31m-[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-        ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-[m
+[31m-        ReportManager.info("KVKK Onayında statüsü bekleniyor.");[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+         ReportManager.info("Veri setinin kaydedilmesi için 3 saniye bekleniyor.");[m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[36m@@ -716,7 +404,6 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("KVKK Onayında statüsü bekleniyor.");[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "KVKK Onayında"[m
+         );[m
+[36m@@ -726,16 +413,9 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("KVKK onay işlemi başlatılıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().approveKvkk(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Yayın Onayında statüsü bekleniyor.");[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishFlow().approveKvkk(dataSetName);[m
+         ReportManager.info("Yayın Onayında statüsü bekleniyor.");[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Yayın Onayında"[m
+         );[m
+[36m@@ -743,33 +423,18 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info([m
+                 "Veri seti Yayın Onayında durumuna ulaştı: " + dataSetName[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-[m
+[31m-        ReportManager.info("Yayın reddetme işlemi başlatılıyor.");[m
+[31m-        publishFlow().rejectPublication(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info([m
+[31m-                "Yayın reddi sonrasında düzenleme işlemi başlatılıyor."[m
+[31m-        );[m
+[31m-        publishFlow().editPublicationPendingDataSet(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().rejectPublication(dataSetName);[m
+         ReportManager.info([m
+                 "Yayın reddi sonrasında düzenleme işlemi başlatılıyor."[m
+         );[m
+         ctx.publishFlow().editPublicationPendingDataSet(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Düzenleme sonrası veri setinin KVKK Onayında olduğu "[m
+                         + "doğrulanıyor."[m
+         );[m
+         Assert.assertTrue([m
+[31m-<<<<<<< HEAD[m
+[31m-                publishPage().isStatus(dataSetName, "KVKK Onayında"),[m
+[31m-=======[m
+                 ctx.publishPage().isStatus(dataSetName, "KVKK Onayında"),[m
+[31m->>>>>>> origin/main[m
+                 "Düzenleme sonrası veri seti KVKK Onayında durumuna geçmedi. "[m
+                         + "Veri seti: " + dataSetName[m
+         );[m
+[36m@@ -778,23 +443,6 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+                         + dataSetName[m
+         );[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        ReportManager.info([m
+[31m-                "Düzenleme sonrası portal aktarım durumu kontrol ediliyor."[m
+[31m-        );[m
+[31m-[m
+[31m-        Assert.assertTrue([m
+[31m-                publishPage().isPortalStatus(dataSetName, "Aktarılmadı"),[m
+[31m-                "Düzenleme sonrası portal durumu Aktarılmadı olmadı. "[m
+[31m-                        + "Veri seti: " + dataSetName[m
+[31m-        );[m
+[31m-[m
+[31m-        ReportManager.pass([m
+[31m-                "Düzenleme sonrası portal aktarım durumu Aktarılmadı: "[m
+[31m-                        + dataSetName[m
+[31m-        );[m
+[31m-=======[m
+[31m->>>>>>> origin/main[m
+     }[m
+     @Test[m
+     public void veriSetiYayinOncesiSilme() {[m
+[36m@@ -810,22 +458,14 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Yayın öncesi silme testi kaynağı"[m
+         );[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -837,14 +477,6 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info([m
+                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-        ReportManager.info([m
+[31m-                "Veri seti yayın öncesinde siliniyor: " + dataSetName[m
+[31m-        );[m
+[31m-        publishFlow().deleteBeforePublication(dataSetName);[m
+[31m-=======[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+         ctx.publishPage().clickPublishTab();[m
+         ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");[m
+[36m@@ -853,17 +485,12 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ctx.publishFlow().deleteBeforePublication(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Silme işlemi sonrası veri setinin listede olmadığı kontrol ediliyor."[m
+         );[m
+         Assert.assertFalse([m
+[31m-<<<<<<< HEAD[m
+[31m-                publishPage().isDataSetDisplayed(dataSetName),[m
+[31m-=======[m
+                 ctx.publishPage().isDataSetDisplayed(dataSetName),[m
+[31m->>>>>>> origin/main[m
+                 "Veri seti yayın öncesinde silinemedi."[m
+         );[m
+ [m
+[36m@@ -885,22 +512,14 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Yayın sonrası silme testi kaynağı"[m
+         );[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -909,40 +528,19 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+                 "Yayın sonrası silme testi veri seti"[m
+         );[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-=======[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-        publishPage().waitForStatus(dataSetName, "KVKK Onayında");[m
+[31m-=======[m
+         ctx.publishPage().clickPublishTab();[m
+         ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.pass([m
+                 "Veri seti KVKK Onayında durumuna ulaştı: " + dataSetName[m
+         );[m
+ [m
+         ReportManager.info("KVKK onayı veriliyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().approveKvkk(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Veri seti yayınlanıyor.");[m
+[31m-        publishFlow().publishDataSet(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Yayınlanan veri seti arşivleniyor.");[m
+[31m-        publishFlow().archiveDataSet(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Arşivlenen veri seti siliniyor.");[m
+[31m-        publishFlow().deleteAfterPublication(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().approveKvkk(dataSetName);[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+ [m
+[36m@@ -956,17 +554,12 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+ [m
+         ReportManager.info("Arşivlenen veri seti siliniyor.");[m
+         ctx.publishFlow().deleteAfterPublication(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Silme işlemi sonrası veri setinin listede olmadığı doğrulanıyor."[m
+         );[m
+         Assert.assertFalse([m
+[31m-<<<<<<< HEAD[m
+[31m-                publishPage().isDataSetDisplayed(dataSetName),[m
+[31m-=======[m
+                 ctx.publishPage().isDataSetDisplayed(dataSetName),[m
+[31m->>>>>>> origin/main[m
+                 "Arşivlenen veri seti silinemedi."[m
+         );[m
+ [m
+[36m@@ -988,22 +581,14 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Test kaynağı oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Veri seti görüntüleme testi kaynağı"[m
+         );[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -1012,17 +597,10 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+                 "Veri seti görüntüleme testi"[m
+         );[m
+ [m
+[31m-<<<<<<< HEAD[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-        ReportManager.info("Veri seti görüntüleme işlemi başlatılıyor.");[m
+[31m-        publishFlow().viewDataSet(dataSetName);[m
+[31m-=======[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+ [m
+         ReportManager.info("Veri seti görüntüleme işlemi başlatılıyor.");[m
+         ctx.publishFlow().viewDataSet(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.pass([m
+                 "Veri seti görüntüleme akışı tamamlandı: " + dataSetName[m
+[36m@@ -1042,11 +620,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Veri seti arama testi kaynağı"[m
+[36m@@ -1054,11 +628,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -1071,41 +641,24 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info([m
+                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."[m
+         );[m
+[31m-        page().waitForTimeout(3000);[m
+[32m+[m[32m        PlaywrightManager.getPage().waitForTimeout(3000);[m
+ [m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-=======[m
+         ctx.publishPage().clickPublishTab();[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Arama alanına veri seti adı yazılıyor: " + dataSetName[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().searchDataSet(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().searchDataSet(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Arama sonuçlarının güncellenmesi için 3 saniye bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        page().waitForTimeout(3000);[m
+[31m-[m
+[31m-=======[m
+[31m->>>>>>> origin/main[m
+         ReportManager.info([m
+                 "Aranan veri setinin listede bulunduğu doğrulanıyor."[m
+         );[m
+         Assert.assertTrue([m
+[31m-<<<<<<< HEAD[m
+[31m-                publishPage().isDataSetNameMatching(dataSetName),[m
+[31m-=======[m
+                 ctx.publishPage().isDataSetNameMatching(dataSetName),[m
+[31m->>>>>>> origin/main[m
+                 "Aranan veri seti listede bulunamadı. Veri seti: " + dataSetName[m
+         );[m
+ [m
+[36m@@ -1127,11 +680,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Manuel güncelleme testi kaynağı"[m
+[36m@@ -1139,11 +688,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -1156,23 +701,15 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info([m
+                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."[m
+         );[m
+[31m-        page().waitForTimeout(3000);[m
+[32m+[m[32m        PlaywrightManager.getPage().waitForTimeout(3000);[m
+ [m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-=======[m
+         ctx.publishPage().clickPublishTab();[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "KVKK Onayında"[m
+         );[m
+[36m@@ -1181,20 +718,12 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Veri seti için KVKK onayı veriliyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().approveKvkk(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().approveKvkk(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Veri setinin Yayın Onayında durumuna geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Yayın Onayında"[m
+         );[m
+[36m@@ -1203,38 +732,22 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Veri seti yayınlanıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().publishDataSet(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Güncelleme öncesi veri seti versiyonu alınıyor.");[m
+[31m-        int oldVersion = Integer.parseInt([m
+[31m-                publishPage().getCurrentVersion(dataSetName).replace("v", "")[m
+[31m-=======[m
+         ctx.publishFlow().publishDataSet(dataSetName);[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+         ReportManager.info("Güncelleme öncesi veri seti versiyonu alınıyor.");[m
+         int oldVersion = Integer.parseInt([m
+                 ctx.publishPage().getCurrentVersion(dataSetName).replace("v", "")[m
+[31m->>>>>>> origin/main[m
+         );[m
+ [m
+         ReportManager.info("Güncelleme öncesi versiyon: v" + oldVersion);[m
+ [m
+         ReportManager.info("Veri seti manuel olarak güncelleniyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().manuallyUpdateDataSet(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().manuallyUpdateDataSet(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Manuel güncelleme sonrası portal aktarım durumu bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().waitForPortalStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForPortalStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Aktarıldı"[m
+         );[m
+[36m@@ -1245,18 +758,14 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info([m
+                 "Güncelleme işleminin tamamlanması için sayfa yenileniyor."[m
+         );[m
+[31m-        page().reload();[m
+[32m+[m[32m        PlaywrightManager.getPage().reload();[m
+ [m
+         ReportManager.info([m
+                 "Sayfa yenilendi. Veri setinin güncel versiyonu okunuyor."[m
+         );[m
+ [m
+         int newVersion = Integer.parseInt([m
+[31m-<<<<<<< HEAD[m
+[31m-                publishPage().getCurrentVersion(dataSetName).replace("v", "")[m
+[31m-=======[m
+                 ctx.publishPage().getCurrentVersion(dataSetName).replace("v", "")[m
+[31m->>>>>>> origin/main[m
+         );[m
+ [m
+         ReportManager.info("Güncelleme sonrası versiyon: v" + newVersion);[m
+[36m@@ -1287,11 +796,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Kaynak oluşturuluyor: " + kaynakAdi);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createSource([m
+[31m-=======[m
+         ctx.createFlow().createSource([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 "arac_bakim_is_yeri_sayisi",[m
+                 "Veri seti arşivleme testi kaynağı"[m
+[36m@@ -1299,11 +804,7 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info("Kaynak oluşturma metodu tamamlandı.");[m
+ [m
+         ReportManager.info("Veri seti oluşturuluyor: " + dataSetName);[m
+[31m-<<<<<<< HEAD[m
+[31m-        openDataCreateFlow().createDataSetForApproval([m
+[31m-=======[m
+         ctx.createFlow().createDataSetForApproval([m
+[31m->>>>>>> origin/main[m
+                 kaynakAdi,[m
+                 dataSetName,[m
+                 "İşletme Dairesi Başkanlığı",[m
+[36m@@ -1316,23 +817,15 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         ReportManager.info([m
+                 "Veri setinin kaydedilmesi için 3 saniye bekleniyor."[m
+         );[m
+[31m-        page().waitForTimeout(3000);[m
+[32m+[m[32m        PlaywrightManager.getPage().waitForTimeout(3000);[m
+ [m
+         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().clickPublishTab();[m
+[31m-=======[m
+         ctx.publishPage().clickPublishTab();[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Veri setinin KVKK Onayında durumuna geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "KVKK Onayında"[m
+         );[m
+[36m@@ -1341,20 +834,12 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Veri seti için KVKK onayı veriliyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().approveKvkk(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().approveKvkk(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Veri setinin Yayın Onayında durumuna geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Yayın Onayında"[m
+         );[m
+[36m@@ -1363,12 +848,6 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         );[m
+ [m
+         ReportManager.info("Veri seti yayınlanıyor.");[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishFlow().publishDataSet(dataSetName);[m
+[31m-[m
+[31m-        ReportManager.info("Veri seti arşivleniyor.");[m
+[31m-        publishFlow().archiveDataSet(dataSetName);[m
+[31m-=======[m
+         ctx.publishFlow().publishDataSet(dataSetName);[m
+         ctx.publishPage().waitForStatus([m
+                 dataSetName,[m
+[36m@@ -1381,35 +860,17 @@[m [mpublic class OpenDataPublishTest extends AvpBaseTest {[m
+         PlaywrightManager.getPage().waitForTimeout(3000);[m
+         ReportManager.info("Veri seti arşivleniyor.");[m
+         ctx.publishFlow().archiveDataSet(dataSetName);[m
+[31m->>>>>>> origin/main[m
+ [m
+         ReportManager.info([m
+                 "Veri setinin Arşivlendi durumuna geçmesi bekleniyor."[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-        publishPage().waitForStatus([m
+[31m-=======[m
+         ctx.publishPage().waitForStatus([m
+[31m->>>>>>> origin/main[m
+                 dataSetName,[m
+                 "Arşivlendi"[m
+         );[m
+         ReportManager.pass([m
+                 "Veri seti Arşivlendi durumuna ulaştı: " + dataSetName[m
+         );[m
+[31m-<<<<<<< HEAD[m
+[31m-[m
+[31m-        publishPage().waitForPortalStatus([m
+[31m-                dataSetName,[m
+[31m-                "Aktarılmadı"[m
+[31m-        );[m
+[31m-        ReportManager.pass([m
+[31m-                "Arşivlenen veri setinin portal aktarım durumu Aktarılmadı: "[m
+[31m-                        + dataSetName[m
+[31m-        );[m
+[31m-[m
+[31m-=======[m
+[31m->>>>>>> origin/main[m
+         ReportManager.pass([m
+                 "Veri seti arşivleme testi başarıyla tamamlandı."[m
+         );[m

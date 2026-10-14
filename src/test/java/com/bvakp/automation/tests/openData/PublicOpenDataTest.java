@@ -47,7 +47,6 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
         avpOturumuHazirlama();
 
-<<<<<<< HEAD
         Page aktifPage =
                 page();
 
@@ -63,21 +62,12 @@ public class PublicOpenDataTest extends AvpBaseTest {
                 new OpenDataPublishPage(
                         aktifPage
                 );
-=======
-        openDataPage = new OpenDataPage(page());
-        openDataPage.clickAcikVeriPortali();
-
-        publishPage = new OpenDataPublishPage(page());
-
-        publishPage = new OpenDataPublishPage(page());
->>>>>>> origin/main
 
         OpenDataPublishFlow publishFlow =
                 new OpenDataPublishFlow(
                         publishPage
                 );
 
-<<<<<<< HEAD
         OpenDataCreateFlow openDataCreateFlow =
                 new OpenDataCreateFlow(
                         aktifPage
@@ -105,14 +95,6 @@ public class PublicOpenDataTest extends AvpBaseTest {
                         dataStoreApi
                 )
         );
-=======
-        publicOpenDataPage = new PublicOpenDataPage(page());
-        dataStoreApi = new DataStoreApi(
-                PlaywrightManager.getApiRequestContext()
-        );
-        openDataCreateFlow =
-                new OpenDataCreateFlow(page());
->>>>>>> origin/main
     }
 
 
@@ -224,14 +206,10 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
 
         PublicDataSetPage publicDataSetPage =
-<<<<<<< HEAD
                 new PublicDataSetPage(
                         context.page()
                 );
 
-=======
-                new PublicDataSetPage(page());
->>>>>>> origin/main
 
         publicDataSetPage.clickApi();
 

@@ -14,13 +14,11 @@
 
         <classes>
 
-            <!--   <class name="com.bvakp.automation.tests.LoginTest"/>
-
-              <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
-
-             <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/> -->
-
+         <!--   <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/> -->
+            <class name="com.bvakp.automation.tests.LoginTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
             <class name="com.bvakp.automation.tests.openData.OpenDataDashboardTest"/>
+
         </classes>
 
     </test>
