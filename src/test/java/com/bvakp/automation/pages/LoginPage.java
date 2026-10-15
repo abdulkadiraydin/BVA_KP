@@ -28,25 +28,11 @@ public class LoginPage extends BasePage {
 
         super(page);
 
-        this.kullaniciAdiAlani =
-                page.getByPlaceholder(
-                        "name.surname@tcddtasimacilik."
-                );
+        this.kullaniciAdiAlani = page.locator("#username");
+        this.sifreAlani = page.locator("#password");
 
-        this.sifreAlani =
-                page.getByLabel(
-                        "Password",
-                        new Page.GetByLabelOptions()
-                                .setExact(true)
-                );
-
-        this.girisButonu =
-                page.getByRole(
-                        AriaRole.BUTTON,
-                        new Page.GetByRoleOptions()
-                                .setName("Sign in")
-                                .setExact(true)
-                );
+        this.girisButonu = page.locator("#kc-login")
+                .or(page.locator("form button[type='submit']"));
 
         // Yeni ekrandaki hata metni doğrulanana kadar korunur.
         this.girisHataMesaji =
