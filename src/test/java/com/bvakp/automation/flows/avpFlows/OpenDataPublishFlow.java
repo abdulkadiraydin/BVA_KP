@@ -1,4 +1,4 @@
-package com.bvakp.automation.flows;
+package com.bvakp.automation.flows.avpFlows;
 
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;

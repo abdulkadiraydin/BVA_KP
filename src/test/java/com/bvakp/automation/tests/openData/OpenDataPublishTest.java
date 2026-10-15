@@ -2,8 +2,8 @@ package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
-import com.bvakp.automation.flows.OpenDataCreateFlow;
-import com.bvakp.automation.flows.OpenDataPublishFlow;
+import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
+import com.bvakp.automation.flows.avpFlows.OpenDataPublishFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
