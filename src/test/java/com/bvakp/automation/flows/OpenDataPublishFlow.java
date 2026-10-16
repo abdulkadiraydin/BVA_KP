@@ -69,7 +69,7 @@ public class OpenDataPublishFlow {
 
         ReportManager.info("Yayın reddi onaylanıyor.");
         publishPage.confirmYayinRed();
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        PlaywrightManager.getPage().waitForTimeout(2000);
         ReportManager.info(
                 "Veri setinin Düzenleme Bekliyor statüsüne geçmesi bekleniyor."
         );

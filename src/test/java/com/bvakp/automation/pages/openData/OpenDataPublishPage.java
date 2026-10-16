@@ -138,7 +138,7 @@ public class OpenDataPublishPage extends BasePage {
 
     public boolean isStatus(String dataSetName, String expectedStatus) {
         try {
-            PlaywrightManager.getPage().waitForTimeout(3000);
+            PlaywrightManager.getPage().waitForTimeout(2000);
             searchDataSet(dataSetName);
 
             Locator rows = page.locator("[role='row']");
@@ -205,7 +205,7 @@ public class OpenDataPublishPage extends BasePage {
         ReportManager.info(
                 "Portal aktarım statüsü kontrolü başlatılıyor: " + dataSetName
         );
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        PlaywrightManager.getPage().waitForTimeout(2000);
         try {
             ReportManager.info(
                     "Portal statüsü kontrolü öncesinde veri seti aranıyor: "
@@ -282,14 +282,14 @@ public class OpenDataPublishPage extends BasePage {
 
     public void waitForStatus(String dataSetName, String expectedStatus) {
         long startTime = System.currentTimeMillis();
-        int timeout = 60_000;
+        int timeout = 120_000;
         String actualStatus = "Veri seti bulunamadı";
 
         ReportManager.info(
                 "Veri seti aranarak statü bekleniyor: " + dataSetName
                         + " | Beklenen statü: " + expectedStatus
         );
-       PlaywrightManager.getPage().waitForTimeout(3000);
+       PlaywrightManager.getPage().waitForTimeout(2000);
         while (System.currentTimeMillis() - startTime < timeout) {
             page.reload();
             clickPublishTab();
@@ -346,7 +346,7 @@ public class OpenDataPublishPage extends BasePage {
                 actualStatus = "Veri seti listede bulunamadı";
             }
 
-            page.waitForTimeout(3000);
+            page.waitForTimeout(2000);
         }
 
         ReportManager.error(
@@ -366,7 +366,7 @@ public class OpenDataPublishPage extends BasePage {
     public void waitForPortalStatus(String dataSetName, String expectedPortalStatus) {
         long startTime = System.currentTimeMillis();
         String actualPortalStatus = "Veri seti bulunamadı";
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        PlaywrightManager.getPage().waitForTimeout(2000);
         ReportManager.info(
                 "Portal aktarım statüsü bekleniyor. Veri seti: "
                         + dataSetName
@@ -443,7 +443,7 @@ public class OpenDataPublishPage extends BasePage {
         throw new AssertionError(
                 "Veri seti '" + dataSetName
                         + "' için portal durumu '" + expectedPortalStatus
-                        + "' " + PORTAL_TRANSFER_TIMEOUT / 1000
+                        + "' " + PORTAL_TRANSFER_TIMEOUT / 2000
                         + " saniye içinde oluşmadı. Son durum: "
                         + actualPortalStatus
         );
@@ -532,7 +532,7 @@ public class OpenDataPublishPage extends BasePage {
     }
     public boolean isDataSetDisplayed(String dataSetName) {
         Locator row = getDataSetRow(dataSetName);
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        PlaywrightManager.getPage().waitForTimeout(2000);
         try {
             row.waitFor(
                     new Locator.WaitForOptions()
@@ -697,7 +697,7 @@ public class OpenDataPublishPage extends BasePage {
         ReportManager.info(
                 "Arama sonuçlarının güncellenmesi için 3 saniye bekleniyor."
         );
-        page.waitForTimeout(3000);
+        page.waitForTimeout(2000);
 
         Locator row = getDataSetRow(dataSetName);
 
@@ -755,7 +755,7 @@ public class OpenDataPublishPage extends BasePage {
     public boolean isDataSetNameMatching(String dataSetName) {
 
         Locator searchInput = page.getByPlaceholder("Veri seti ara");
-        PlaywrightManager.getPage().waitForTimeout(3000);
+        PlaywrightManager.getPage().waitForTimeout(2000);
         String searchValue = searchInput.inputValue().trim();
 
         if (!dataSetName.equals(searchValue)) {
