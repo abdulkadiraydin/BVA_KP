@@ -1,6 +1,4 @@
 package com.bvakp.automation.companents;
-
-import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -313,11 +311,10 @@ public class KaynakEkleModal {
             String sorgu) {
 
         Locator sorguAlani =
-                page.getByPlaceholder(
-                        "SELECT a.*, b.ad\n"
-                                + "FROM tablo_a a\n"
-                                + "JOIN tablo_b b ON a.id = b.a_id"
-                );
+                page.getByPlaceholder("""
+                SELECT a.*, b.ad
+                FROM tablo_a a
+                JOIN tablo_b b ON a.id = b.a_id""");
 
         sorguAlani.fill(
                 sorgu

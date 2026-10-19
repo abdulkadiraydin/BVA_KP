@@ -307,6 +307,11 @@ public class TestListener
                 atlanan
         );
 
+        // main branch'indeki suite sonu raporlama çağrısını korur.
+        // Birleştirilmiş AllureRunOrganizer işlemi JVM kapanışına erteler;
+        // böylece Allure attachment dosyaları eksiksiz arşivlenir.
+        AllureRunOrganizer.organizeResults();
+
         System.out.println(
                 "Test özeti oluşturuldu -> "
                         + "Toplam: " + toplam

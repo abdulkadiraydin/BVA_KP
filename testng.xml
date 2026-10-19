@@ -1,24 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 
-<suite name="BVA Automation Suite"
-       verbose="1">
-
-    <listeners>
-        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
-        <listener class-name="com.bvakp.automation.reporting.TestListener"/>
-    </listeners>
-
-    <test name="BVA Sequential Tests"
-          parallel="false">
+<suite name="BVA Suite"
+       verbose="1"
+       parallel="methods"
+       thread-count="3">
+    <test name="BVA Sequential Tests">
 
         <classes>
-
-         <!--   <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/> -->
-            <class name="com.bvakp.automation.tests.LoginTest"/>
-            <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
-            <class name="com.bvakp.automation.tests.openData.OpenDataDashboardTest"/>
-
+            <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/>
+            <!--            <class name="com.bvakp.automation.tests.openData.OpenDataUpdateCalendarTest"/>-->
         </classes>
 
     </test>

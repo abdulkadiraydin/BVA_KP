@@ -1,6 +1,4 @@
 package com.bvakp.automation.flows.avpFlows;
-
-import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
 
@@ -14,7 +12,7 @@ public class OpenDataPublishFlow {
 
     public void approveKvkk(String dataSetName) {
 
-        ReportManager.info("KVKK Onayla butonuna tıklanıyor.");
+        ReportManager.info("KVKK Onayla butonuna tıklanıyor: " + dataSetName);
         publishPage.clickKvkkOnayla(dataSetName);
 
         ReportManager.info("KVKK onay açıklaması giriliyor.");
@@ -24,11 +22,13 @@ public class OpenDataPublishFlow {
 
         ReportManager.info("KVKK onay işlemi onaylanıyor.");
         publishPage.confirmKvkkOnay();
+        publishPage.bildirimBekleme("Veri seti yayın onay kuyruğuna gönderildi");
+
     }
 
     public void rejectKvkk(String dataSetName) {
 
-        ReportManager.info("KVKK Reddet butonuna tıklanıyor.");
+        ReportManager.info("KVKK Reddet butonuna tıklanıyor: " + dataSetName);
         publishPage.clickKvkkReddet(dataSetName);
 
         ReportManager.info("KVKK ret açıklaması giriliyor.");
@@ -38,11 +38,12 @@ public class OpenDataPublishFlow {
 
         ReportManager.info("KVKK reddetme işlemi onaylanıyor.");
         publishPage.confirmKvkkRed();
+        publishPage.bildirimBekleme("Veri seti düzenlenmek üzere geri gönderildi");
     }
 
     public void publishDataSet(String dataSetName) {
 
-        ReportManager.info("Yayınla butonuna tıklanıyor.");
+        ReportManager.info("Yayınla butonuna tıklanıyor: " + dataSetName);
         publishPage.clickYayinla(dataSetName);
 
         ReportManager.info("Yayın açıklaması giriliyor.");
@@ -52,6 +53,7 @@ public class OpenDataPublishFlow {
 
         ReportManager.info("Yayınlama işlemi onaylanıyor.");
         publishPage.confirmYayinla();
+        publishPage.bildirimBekleme("Veri seti yayınlandı");
     }
 
     public void rejectPublication(String dataSetName) {
@@ -59,7 +61,7 @@ public class OpenDataPublishFlow {
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
         publishPage.clickPublishTab();
 
-        ReportManager.info("Yayın Reddet butonuna tıklanıyor.");
+        ReportManager.info("Yayını Reddet butonuna tıklanıyor: " + dataSetName);
         publishPage.clickYayinReddet(dataSetName);
 
         ReportManager.info("Yayın ret açıklaması giriliyor.");
@@ -69,15 +71,7 @@ public class OpenDataPublishFlow {
 
         ReportManager.info("Yayın reddi onaylanıyor.");
         publishPage.confirmYayinRed();
-        PlaywrightManager.getPage().waitForTimeout(3000);
-        ReportManager.info(
-                "Veri setinin Düzenleme Bekliyor statüsüne geçmesi bekleniyor."
-        );
-
-        publishPage.waitForStatus(
-                dataSetName,
-                "Düzenleme Bekliyor"
-        );
+        publishPage.bildirimBekleme("Veri seti düzenlenmek üzere geri gönderildi");
     }
 
     public void editKvkkPendingDataSet(String dataSetName) {
@@ -85,7 +79,7 @@ public class OpenDataPublishFlow {
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
         publishPage.clickPublishTab();
 
-        ReportManager.info("Veri seti düzenleme ekranı açılıyor.");
+        ReportManager.info("Düzenle butonuna tıklanıyor: " + dataSetName);
         publishPage.clickDuzenle(dataSetName);
 
         ReportManager.info(
@@ -111,6 +105,7 @@ public class OpenDataPublishFlow {
 
         ReportManager.info("Veri seti düzenleme işlemi kaydediliyor.");
         publishPage.clickDuzenlemeKaydet();
+        publishPage.bildirimBekleme("Veri seti güncellendi");
 
         ReportManager.info("Güncellenen alanlar doğrulanıyor.");
         publishPage.assertDuzenlemeAlanlari(
@@ -122,39 +117,16 @@ public class OpenDataPublishFlow {
         ReportManager.info("Değişiklikler onaya gönderiliyor.");
         publishPage.clickDegisiklikOnayaGonder();
 
-        ReportManager.info(
-                "Değişikliklerin onaya gönderilmesi onaylanıyor."
-        );
+        ReportManager.info("Değişikliklerin onaya gönderilmesi onaylanıyor.");
         publishPage.confirmDegisiklikOnayaGonder();
+        publishPage.bildirimBekleme("Veri seti onay kuyruğuna gönderildi.");
 
         ReportManager.info("Önceki ekrana geri dönülüyor.");
         publishPage.clickGeriDon();
-
-        ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
-
-        ReportManager.info(
-                "Veri setinin KVKK Onayında statüsüne geçmesi bekleniyor."
-        );
-        publishPage.waitForStatus(
-                dataSetName,
-                "KVKK Onayında"
-        );
+        publishPage.waitForVeriSetiYonetimi();
     }
 
     public void editPublicationPendingDataSet(String dataSetName) {
-
-        ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
-
-        ReportManager.info(
-                "Veri setinin Düzenleme Bekliyor statüsünde olması bekleniyor."
-        );
-        publishPage.waitForStatus(
-                dataSetName,
-                "Düzenleme Bekliyor"
-        );
-
         ReportManager.info("Veri seti düzenleme ekranı açılıyor.");
         publishPage.clickDuzenle(dataSetName);
 
@@ -194,6 +166,7 @@ public class OpenDataPublishFlow {
                 "Değişikliklerin onaya gönderilmesi onaylanıyor."
         );
         publishPage.confirmDegisiklikOnayaGonder();
+        publishPage.bildirimBekleme("Veri seti güncellendi");
 
         ReportManager.info("Önceki ekrana geri dönülüyor.");
         publishPage.clickGeriDon();
@@ -210,38 +183,36 @@ public class OpenDataPublishFlow {
         );
     }
 
+    /**
+     * Yayınlanmadan önce veri setini siler.
+     * İleride yayın öncesine özel adımlar gerekirse buraya eklenir.
+     */
     public void deleteBeforePublication(String dataSetName) {
-
-        ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
-        publishPage.clickPublishTab();
-
-        ReportManager.info("Silinecek veri seti aranıyor: " + dataSetName);
-        publishPage.clickSil(dataSetName);
-
-        ReportManager.info("Veri seti silme işlemi onaylanıyor.");
-        publishPage.confirmSil();
-
-        ReportManager.info(
-                "Silme onayı verildi. Veri setinin listeden kaldırılması bekleniyor: "
-                        + dataSetName
-        );
+        veriSetiniSil(dataSetName);
     }
 
+    /**
+     * Yayınlandıktan sonra veri setini siler.
+     * İleride yayın sonrasına özel adımlar gerekirse buraya eklenir.
+     */
     public void deleteAfterPublication(String dataSetName) {
+        veriSetiniSil(dataSetName);
+    }
+
+    /** Her iki silme akışının ortak adımları. */
+    private void veriSetiniSil(String dataSetName) {
 
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
         publishPage.clickPublishTab();
 
-        ReportManager.info("Silinecek veri seti aranıyor: " + dataSetName);
+        ReportManager.info("Sil butonuna tıklanıyor: " + dataSetName);
         publishPage.clickSil(dataSetName);
 
         ReportManager.info("Veri seti silme işlemi onaylanıyor.");
         publishPage.confirmSil();
 
-        ReportManager.info(
-                "Silme onayı verildi. Veri setinin listeden kaldırılması bekleniyor: "
-                        + dataSetName
-        );
+        ReportManager.info("Silme bildirimi bekleniyor: " + dataSetName);
+        publishPage.bildirimBekleme("Veri seti silindi");
     }
 
     public void archiveDataSet(String dataSetName) {
@@ -249,13 +220,12 @@ public class OpenDataPublishFlow {
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
         publishPage.clickPublishTab();
 
-        ReportManager.info(
-                "Arşivlenecek veri seti aranıyor: " + dataSetName
-        );
+        ReportManager.info("Arşivle butonuna tıklanıyor: ");
         publishPage.clickArsivle(dataSetName);
 
         ReportManager.info("Arşivleme işlemi onaylanıyor.");
         publishPage.confirmArsivle();
+        publishPage.bildirimBekleme("Veri seti arşivlendi");
     }
 
     public void viewDataSet(String dataSetName) {
@@ -263,13 +233,8 @@ public class OpenDataPublishFlow {
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
         publishPage.clickPublishTab();
 
-        ReportManager.info(
-                "Görüntülenecek veri seti açılıyor: " + dataSetName
-        );
+        ReportManager.info("Görüntüle butonuna tıklanıyor: " + dataSetName);
         publishPage.clickGoruntule(dataSetName);
-
-        ReportManager.info("Veri seti görüntüleme ekranından geri dönülüyor.");
-        publishPage.clickGeriDon();
     }
 
     public void searchDataSet(String dataSetName) {
@@ -288,25 +253,14 @@ public class OpenDataPublishFlow {
         ReportManager.info("Veri Seti Yönetimi sekmesine geçiliyor.");
         publishPage.clickPublishTab();
 
-        ReportManager.info("Mevcut veri seti versiyonu okunuyor.");
-        String oldVersion = publishPage.getCurrentVersion(dataSetName);
+        ReportManager.info("Güncellenecek veri seti aranıyor: " + dataSetName);
+        publishPage.searchDataSet(dataSetName);
 
-        ReportManager.info("Mevcut versiyon: " + oldVersion);
-
-        ReportManager.info("Veri seti Güncelle butonuna tıklanıyor.");
+        ReportManager.info("Güncelle butonuna tıklanıyor: " + dataSetName);
         publishPage.clickGuncelle(dataSetName);
 
         ReportManager.info("Güncelleme işlemi onaylanıyor.");
         publishPage.confirmGuncelle();
-
-        ReportManager.info(
-                "Veri setinin yeni versiyonu okunuyor: " + dataSetName
-        );
-        String newVersion = publishPage.getCurrentVersion(dataSetName);
-
-        ReportManager.info(
-                "Güncelleme işlemi tamamlandı. Eski versiyon: "
-                        + oldVersion + " | Yeni versiyon: " + newVersion
-        );
+        publishPage.bildirimBekleme("Güncelleme başlatıldı");
     }
 }

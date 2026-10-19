@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 /**
- * Bir JVM/TestNG kosusunun HTML raporlarini ve Allure kanitlarini ayri arsivler.
+ * TestNG kosusunun Allure raporlarini ve test kanitlarini arsivler.
  * Kaynak dosyalari silmez; onceki kosularin dosyalarini yeni arsive katmaz.
  * Kalici arsiv varsayilan olarak reports/allure-runs altindadir: mvn clean
  * ile silinen target klasorunden ayri tutulur.
@@ -46,6 +46,8 @@ public final class AllureRunOrganizer {
 
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
     private static final AtomicBoolean RUN_FAILED = new AtomicBoolean(false);
+    private static final AtomicBoolean SHUTDOWN_STARTED = new AtomicBoolean(false);
+    private static final AtomicBoolean ORGANIZED = new AtomicBoolean(false);
 
     // JVM property: -Dreport.auto.generate=false ile otomatik rapor kapatilabilir.
     private static final boolean AUTO_GENERATE_REPORT = Boolean.parseBoolean(
@@ -81,10 +83,12 @@ public final class AllureRunOrganizer {
             }
         }
 
-        Runtime.getRuntime().addShutdownHook(new Thread(
-                AllureRunOrganizer::organizeResults,
-                "allure-run-organizer"
-        ));
+        // TestListener.onFinish daha once organizeResults() cagirabiliyordu.
+        // Allure JSON ve videolar tamamlansin diye asil islem JVM kapanisinda yapilir.
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            SHUTDOWN_STARTED.set(true);
+            organizeResults();
+        }, "allure-run-organizer"));
     }
 
     /** Bu kosuda test veya TestNG configuration hatasi oldugunu belirtir. */
@@ -92,8 +96,19 @@ public final class AllureRunOrganizer {
         RUN_FAILED.set(true);
     }
 
-    /** Testler ve AllureArtifactCollector islemleri tamamlandiktan sonra calisir. */
-    private static void organizeResults() {
+    /**
+     * Main branch'indeki TestListener.onFinish cagrisi icin public tutulur.
+     * Erken cagri rapor olusturmaz; arsivleme JVM kapanis hook'unda yapilir.
+     * Boylece Allure dosyalari tamamlanmadan rapor uretilmesi engellenir.
+     */
+    public static void organizeResults() {
+        if (!SHUTDOWN_STARTED.get()) {
+            System.out.println("Allure arsivleme JVM kapanisina ertelendi.");
+            return;
+        }
+        if (!ORGANIZED.compareAndSet(false, true)) {
+            return;
+        }
         List<String> classNames = HtmlReportManager.getExecutedClassNames();
         boolean hasNewResults = hasNewFiles(ALLURE_SOURCE);
         if (classNames.isEmpty() && !hasNewResults) {
@@ -153,9 +168,8 @@ public final class AllureRunOrganizer {
     }
 
     /**
-     * Koşu kanitlari arşivlendikten sonra Allure CLI raporunu oluşturur.
-     * Raporlama hatası TestNG sonucunu değiştirmez ve kanitlari silmez.
-     * Ayrı bir shutdown hook kullanılmaz; arşivleme ve raporlama sıralıdır.
+     * Arsiv tamamlandiktan sonra Allure CLI HTML ve History raporunu olusturur.
+     * Rapor hatasi ham kanitlari silmez veya TestNG sonucunu degistirmez.
      */
     private static void generateAllureReport(Path runDirectory) {
         if (!AUTO_GENERATE_REPORT) {
@@ -202,9 +216,8 @@ public final class AllureRunOrganizer {
                 Long.getLong("report.auto.timeout.seconds", 300L));
         Process process = null;
         try {
-            // -File, var olan kurumsal PowerShell calistirma politikalarina uyar.
-            // Yalnızca bu rapor oluşturma işlemi için PowerShell politikası belirlenir.
-// Sistemin genel ExecutionPolicy ayarları değiştirilmez.
+            // Kurum politikasi izin veriyorsa yalnizca alt islemde Bypass kullanilir.
+            // Windows'un kalici ExecutionPolicy ayari degistirilmez.
             ProcessBuilder builder = new ProcessBuilder(
                     "powershell.exe",
                     "-NoProfile",

@@ -65,7 +65,8 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
     /**
      * Ortak veri seti: oluştur, yayınla, bir kez manuel güncelle (v2).
-     * @BeforeMethod'dan önce çalıştığı için kendi Playwright oturumunu açıp kapatır.
+     * Sınıftaki testlerden önce bir kez çalışır. BaseTest'in her test öncesi
+     * oturumu bu aşamada henüz açılmadığı için kendi Playwright oturumunu açıp kapatır.
      */
     @BeforeClass
     public void ortakVeriSetiHazirlama() {

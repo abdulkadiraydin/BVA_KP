@@ -6,13 +6,12 @@ import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.LoginPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.OtomasyonKaynakTemizleyici;
-import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.WaitUntilState;
 import org.testng.annotations.AfterSuite;
 
-public class AvpBaseTest extends BaseTest {
+public abstract class AvpBaseTest extends BaseTest {
 
 
     /**
@@ -124,13 +123,9 @@ public class AvpBaseTest extends BaseTest {
                     "AVP authentication state kaydediliyor."
             );
 
-            PlaywrightManager.getContext()
-                    .storageState(
-                            new BrowserContext.StorageStateOptions()
-                                    .setPath(
-                                            AvpAuthStateManager.authStatePathAlma()
-                                    )
-                    );
+            AvpAuthStateManager.authStateKaydetme(
+                    PlaywrightManager.getContext()
+            );
 
 
             ReportManager.info(
@@ -244,29 +239,27 @@ public class AvpBaseTest extends BaseTest {
     @AfterSuite(alwaysRun = true)
     public void kosuSonuOtomasyonKaynaklariniTemizleme() {
 
-        ReportManager.info(
-                "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME BAŞLATILDI"
+        boolean temizlikAcik = Boolean.parseBoolean(
+                ConfigManager.getOrDefault("cleanup.enabled", "false")
         );
 
+        if (!temizlikAcik) {
+            ReportManager.info(
+                    "Koşu sonu temizliği kapalı (cleanup.enabled=false). Atlandı."
+            );
+            return;
+        }
+
+        ReportManager.info("KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME BAŞLATILDI");
 
         try {
-
-            OtomasyonKaynakTemizleyici
-                    .kosuSonuTemizliginiCalistir();
-
-
-            ReportManager.info(
-                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME TAMAMLANDI"
-            );
+            OtomasyonKaynakTemizleyici.kosuSonuTemizliginiCalistir();
+            ReportManager.info("KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME TAMAMLANDI");
 
         } catch (Exception e) {
-
             ReportManager.error(
-                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLENEMEDİ"
-                            + " | Hata: "
-                            + e.getMessage()
+                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLENEMEDİ | Hata: " + e.getMessage()
             );
-
             e.printStackTrace();
         }
     }

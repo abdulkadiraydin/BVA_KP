@@ -80,9 +80,6 @@ public class OpenDataPage extends BasePage {
         page.reload();
     }
 
-
-
-/**yeni**/
     /**
      * Sol menüden Açık Veri Portalı ekranına geçer.
      */
@@ -364,26 +361,7 @@ public class OpenDataPage extends BasePage {
         return kaynak.count() == 0
                 || !kaynak.isVisible();
     }
-    /**
-     * Kaynak Tablo / Sorgu listesinde görüntülenebilir
-     * herhangi bir kaynak bulunup bulunmadığını kontrol eder.
-     *
-     * @return görüntülenebilir kaynak varsa true
-     */
 
-
-    /**
-     * Kaynak listesindeki ilk görüntülenebilir
-     * kaydın Görüntüle butonuna tıklar.
-     */
-
-
-    /**
-     * Belirtilen kaynak satırındaki
-     * Görüntüle butonuna tıklar.
-     *
-     * @param kaynakAdi görüntülenecek kaynak adı
-     */
     public void kaynakGoruntulemeButonunaTiklama(
             String kaynakAdi) {
 
@@ -1156,9 +1134,8 @@ public class OpenDataPage extends BasePage {
              * Maskelenmiş değerlerde en az
              * dört yıldız bulunması beklenir.
              */
-            if (hucreMetni.matches(
-                    ".*\\*{4,}.*"
-            )) {
+            if (hucreMetni.contains("****")
+            ) {
 
                 ReportManager.info(
                         "Maskelenmiş veri bulundu"

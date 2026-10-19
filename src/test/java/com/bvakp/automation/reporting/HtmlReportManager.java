@@ -101,7 +101,9 @@ public final class HtmlReportManager {
 
         if (throwable != null) {
             test.errorMessage =
-                    throwable.getMessage();
+                    throwable.getMessage() != null
+                            ? throwable.getMessage()
+                            : throwable.toString();
         }
 
         CURRENT_TEST.remove();
@@ -718,12 +720,10 @@ public final class HtmlReportManager {
         private final List<String> steps =
                 new CopyOnWriteArrayList<>();
 
-        private String status =
-                "CALISIYOR";
-
-        private long duration;
-        private String errorMessage;
-        private Path screenshotPath;
+        private volatile String status = "CALISIYOR";
+        private volatile long duration;
+        private volatile String errorMessage;
+        private volatile Path screenshotPath;
 
         private TestResultData(
                 String className,

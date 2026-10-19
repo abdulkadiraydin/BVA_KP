@@ -6,12 +6,8 @@ import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.BoundingBox;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.nio.file.Paths;
-import java.util.Map;
 
 public class OpenDataDashboardTest extends AvpBaseTest {
 

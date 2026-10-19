@@ -1,6 +1,8 @@
 
 package com.bvakp.automation.utils;
 
+import com.bvakp.automation.core.config.ConfigManager;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -48,6 +50,10 @@ public final class TestFailureTracker {
             String className,
             String testName) {
 
+        if (!takipAcikMi()) {
+            return 0;
+        }
+
         Properties properties =
                 propertiesOku();
 
@@ -57,16 +63,17 @@ public final class TestFailureTracker {
                         testName
                 );
 
-        int mevcutHataSayisi =
-                Integer.parseInt(
-                        properties.getProperty(
-                                key + ".failureCount",
-                                "0"
-                        )
-                );
+        int mevcutHataSayisi;
 
-        int yeniHataSayisi =
-                mevcutHataSayisi + 1;
+        try {
+            mevcutHataSayisi = Integer.parseInt(
+                    properties.getProperty(key + ".failureCount", "0")
+            );
+        } catch (NumberFormatException e) {
+            mevcutHataSayisi = 0;
+        }
+
+        int yeniHataSayisi = mevcutHataSayisi + 1;
 
         properties.setProperty(
                 key + ".failureCount",
@@ -92,6 +99,10 @@ public final class TestFailureTracker {
     public static synchronized void basariliTestKaydet(
             String className,
             String testName) {
+
+        if (!takipAcikMi()) {
+            return;
+        }
 
         Properties properties =
                 propertiesOku();
@@ -127,7 +138,7 @@ public final class TestFailureTracker {
             String testName,
             int failureCount) {
 
-        if (failureCount < MAIL_THRESHOLD) {
+        if (!takipAcikMi() || failureCount < MAIL_THRESHOLD) {
             return false;
         }
 
@@ -263,5 +274,15 @@ public final class TestFailureTracker {
                     e
             );
         }
+    }
+    /**
+     * Hata takibi yalnızca CI gibi kurumsal ortamlarda açılır.
+     * Geliştirici bilgisayarında geliştirme denemeleri mail tetiklemesin.
+     */
+    private static boolean takipAcikMi() {
+
+        return Boolean.parseBoolean(
+                ConfigManager.getOrDefault("failure.tracking.enabled", "false")
+        );
     }
 }

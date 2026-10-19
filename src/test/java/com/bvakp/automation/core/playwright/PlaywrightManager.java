@@ -1,18 +1,15 @@
-
 package com.bvakp.automation.core.playwright;
 
 import com.bvakp.automation.core.auth.AvpAuthStateManager;
 import com.bvakp.automation.core.config.ConfigManager;
-import com.bvakp.automation.core.playwright.BrowserFactory;
-import com.bvakp.automation.core.playwright.BrowserName;
-import com.bvakp.automation.utils.VideoManager;
 import com.bvakp.automation.reporting.AllureArtifactCollector;
+import com.bvakp.automation.utils.VideoManager;
+import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Video;
-import com.microsoft.playwright.APIRequestContext;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,481 +20,248 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.UUID;
 
-public class PlaywrightManager {
+/**
+ * Her test thread'i için Playwright, Browser, BrowserContext ve Page yönetimi.
+ * Trace, video ve Allure kanıtlarını test kapanışında saklar.
+ */
+public final class PlaywrightManager {
 
-    private static final ThreadLocal<Playwright> playwrightThread =
-            new ThreadLocal<>();
+    private static final ThreadLocal<Playwright> playwrightThread = new ThreadLocal<>();
+    private static final ThreadLocal<Browser> browserThread = new ThreadLocal<>();
+    private static final ThreadLocal<BrowserContext> contextThread = new ThreadLocal<>();
+    private static final ThreadLocal<Page> pageThread = new ThreadLocal<>();
+    private static final ThreadLocal<APIRequestContext> apiRequestContextThread = new ThreadLocal<>();
 
-    private static final ThreadLocal<Browser> browserThread =
-            new ThreadLocal<>();
-
-    private static final ThreadLocal<BrowserContext> contextThread =
-            new ThreadLocal<>();
-
-    private static final ThreadLocal<Page> pageThread =
-            new ThreadLocal<>();
-
-    private static final ThreadLocal<APIRequestContext> apiRequestContextThread =
-            new ThreadLocal<>();
-
-    /**
-     * Utility class olduğu için nesne oluşturulmasını engeller.
-     */
+    private static final DateTimeFormatter ZAMAN_BICIMI =
+            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
     private PlaywrightManager() {
     }
 
-
-    /**
-     * Config dosyasındaki browser ve headless ayarlarını kullanarak
-     * auth state olmadan Playwright oturumu başlatır.
-     */
+    /** Kayıtlı oturum kullanılmadan, konfigürasyondaki tarayıcıyı başlatır. */
     public static void initialize() {
-
-        BrowserName browserName =
-                BrowserName.from(
-                        ConfigManager.get("browser")
-                );
-
-        boolean headless =
-                ConfigManager.getBoolean(
-                        "headless"
-                );
-
-        initialize(
-                browserName,
-                headless,
-                false
-        );
+        initialize(false);
     }
 
-
-    /**
-     * Config dosyasındaki browser ve headless ayarlarını kullanarak
-     * isteğe bağlı auth state ile Playwright oturumu başlatır.
-     *
-     * @param authStateKullan kayıtlı authentication state kullanılacaksa true
-     */
-    public static void initialize(
-            boolean authStateKullan) {
-
-        BrowserName browserName =
-                BrowserName.from(
-                        ConfigManager.get("browser")
-                );
-
-        boolean headless =
-                ConfigManager.getBoolean(
-                        "headless"
-                );
-
+    /** İstenirse kayıtlı authentication state kullanılarak tarayıcıyı başlatır. */
+    public static void initialize(boolean authStateKullan) {
         initialize(
-                browserName,
-                headless,
+                BrowserName.from(ConfigManager.get("browser")),
+                ConfigManager.getBoolean("headless"),
                 authStateKullan
         );
     }
 
-
-    /**
-     * Belirtilen browser ve headless ayarlarıyla
-     * auth state olmadan Playwright oturumu başlatır.
-     *
-     * @param browserName kullanılacak browser
-     * @param headless browser headless çalışacaksa true
-     */
-    public static void initialize(
-            BrowserName browserName,
-            boolean headless) {
-
-        initialize(
-                browserName,
-                headless,
-                false
-        );
+    /** Belirtilen tarayıcı ve headless ayarıyla, auth state olmadan başlatır. */
+    public static void initialize(BrowserName browserName, boolean headless) {
+        initialize(browserName, headless, false);
     }
 
-
     /**
-     * Browser, BrowserContext ve Page nesnelerini oluşturur.
-     * Her thread kendi Playwright nesnelerini kullandığı için
-     * paralel test çalıştırmaya uygundur.
-     *
-     * @param browserName kullanılacak browser
-     * @param headless browser headless çalışacaksa true
-     * @param authStateKullan kayıtlı auth state kullanılacaksa true
+     * Teste özel tarayıcı ve API oturumunu oluşturur.
+     * Nesneler oluşturuldukça ThreadLocal içine alınır; kapanışta temizlenebilir.
      */
     public static void initialize(
             BrowserName browserName,
             boolean headless,
             boolean authStateKullan) {
+
         Locale.setDefault(Locale.ENGLISH);
-        Playwright playwright =
-                Playwright.create();
 
-        Browser browser =
-                BrowserFactory.createBrowser(
-                        playwright,
-                        browserName,
-                        headless
-                );
+        int genislik = Integer.parseInt(
+                ConfigManager.getOrDefault("viewport.width", "1280"));
+        int yukseklik = Integer.parseInt(
+                ConfigManager.getOrDefault("viewport.height", "720"));
 
-        Browser.NewContextOptions contextOptions =
-                new Browser.NewContextOptions()
-                        .setRecordVideoDir(
-                                VideoManager.getVideoDirectory()
-                        )
-                        .setRecordVideoSize(
-                                1280,
-                                720
-                        );
+        try {
+            Playwright playwright = Playwright.create();
+            playwrightThread.set(playwright);
 
+            Browser browser = BrowserFactory.createBrowser(playwright, browserName, headless);
+            browserThread.set(browser);
 
-        /*
-         * AVP testinde kayıtlı auth state isteniyorsa
-         * mevcut storage state BrowserContext'e yüklenir.
-         */
-        if (authStateKullan
-                && AvpAuthStateManager.authStateVarMi()) {
+            Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
+                    .setViewportSize(genislik, yukseklik)
+                    .setRecordVideoDir(VideoManager.getVideoDirectory())
+                    .setRecordVideoSize(genislik, yukseklik);
 
-            contextOptions.setStorageStatePath(
-                    AvpAuthStateManager.authStatePathAlma()
-            );
+            if (authStateKullan && AvpAuthStateManager.authStateVarMi()) {
+                contextOptions.setStorageStatePath(AvpAuthStateManager.authStatePathAlma());
+            }
+
+            BrowserContext context = browser.newContext(contextOptions);
+            contextThread.set(context);
+
+            // TraceManager modu (off/on/retain-on-failure) tek yetkili mekanizmadır.
+            // Trace, ilk sayfa oluşturulmadan önce başlatılmalıdır.
+            TraceManager.start(context);
+
+            Page page = context.newPage();
+            pageThread.set(page);
+
+            APIRequestContext apiRequestContext = playwright.request().newContext();
+            apiRequestContextThread.set(apiRequestContext);
+        } catch (RuntimeException | Error e) {
+            // Kurulum yarıda kaldıysa açılan Playwright kaynaklarını güvenli temizle.
+            kaynaklariTemizle();
+            throw e;
         }
-
-
-        BrowserContext context =
-                browser.newContext(
-                        contextOptions
-                );
-
-        // Start trace before the first Page/action is created.
-        TraceManager.start(context);
-
-        Page page =
-                context.newPage();
-        APIRequestContext apiRequestContext =
-                playwright.request().newContext();
-
-        /*
-         * Her test thread'i kendi Playwright ve API nesnelerini tutar.
-         */
-        apiRequestContextThread.set(apiRequestContext);
-        playwrightThread.set(playwright);
-        browserThread.set(browser);
-        contextThread.set(context);
-        pageThread.set(page);
     }
 
-
-    /**
-     * Aktif thread'e ait Page nesnesini döndürür.
-     *
-     * @return aktif Playwright Page
-     */
+    /** Aktif thread'e ait Playwright sayfasını döndürür. */
     public static Page getPage() {
-
         return pageThread.get();
     }
 
-
-    /**
-     * Aktif thread'e ait BrowserContext nesnesini döndürür.
-     *
-     * @return aktif BrowserContext
-     */
+    /** Aktif thread'e ait browser context nesnesini döndürür. */
     public static BrowserContext getContext() {
-
         return contextThread.get();
     }
 
-
-    /**
-     * Aktif thread'e ait Browser nesnesini döndürür.
-     *
-     * @return aktif Browser
-     */
+    /** main branch'inin kullandığı Browser erişimini korur. */
     public static Browser getBrowser() {
-
         return browserThread.get();
     }
 
-
-    /**
-     * Aktif thread'e ait Playwright nesnesini döndürür.
-     *
-     * @return aktif Playwright
-     */
+    /** Aktif thread'e ait Playwright nesnesini döndürür. */
     public static Playwright getPlaywright() {
-
         return playwrightThread.get();
     }
 
-    /**
-     * Aktif thread'e ait APIRequestContext nesnesini döndürür.
-     *
-     * @return aktif APIRequestContext
-     */
+    /** Aktif thread'e ait API istek nesnesini döndürür. */
     public static APIRequestContext getApiRequestContext() {
         return apiRequestContextThread.get();
     }
 
-    /**
-     * Test bilgisi verilmediğinde varsayılan değerlerle
-     * Playwright oturumunu kapatır.
-     */
+    /** Test adı verilmediğinde varsayılan bilgilerle kapatır. */
     public static void close() {
-
-        close(
-                "test",
-                "BILINMIYOR"
-        );
+        close("test", "BILINMIYOR");
     }
 
-
     /**
-     * Aktif BrowserContext, Browser ve Playwright nesnelerini kapatır.
-     * Oluşturulan video dosyasını test adı ve durum bilgisiyle yeniden adlandırır.
-     *
-     * @param testName çalıştırılan test method adı
-     * @param status test sonucu
+     * Önce Trace'i kaydeder, ardından Context'i kapatıp videoyu arşivler.
+     * Her kapanış adımı bağımsızdır; tek bir hata diğer kaynakların kapanmasını engellemez.
      */
-    public static void close(
-            String testName,
-            String status) {
-
+    public static void close(String testName, String status) {
         try {
-
-            // Trace MUST be written before the BrowserContext is closed.
-            // A trace failure must never prevent normal browser cleanup.
-            BrowserContext activeContext = contextThread.get();
-            if (activeContext != null) {
-                Path tracePath = TraceManager.stop(activeContext, testName, status);
-                AllureArtifactCollector.registerTrace(tracePath);
-            }
-
             Video video = null;
-
-            Page page =
-                    pageThread.get();
-
-
-            /*
-             * Page üzerinde video kaydı bulunuyorsa
-             * Context kapanmadan önce referansı alınır.
-             */
+            Page page = pageThread.get();
             if (page != null) {
-
                 try {
-
-                    video =
-                            page.video();
-
+                    video = page.video();
                 } catch (Exception ignored) {
-
-                    /*
-                     * Video aktif değilse teardown işlemi
-                     * yine devam eder.
-                     */
+                    // Video etkin olmayabilir; diğer kanıtlar yine kaydedilir.
                 }
             }
-            if (apiRequestContextThread.get() != null) {
 
-                apiRequestContextThread.get().dispose();
+            BrowserContext context = contextThread.get();
+            if (context != null) {
+                try {
+                    Path tracePath = TraceManager.stop(context, testName, status);
+                    if (tracePath != null) {
+                        AllureArtifactCollector.registerTrace(tracePath);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Trace kaydedilemedi: " + e.getMessage());
+                }
+            }
+
+            APIRequestContext apiRequestContext = apiRequestContextThread.get();
+            if (apiRequestContext != null) {
+                guvenliKapat("APIRequestContext", apiRequestContext::dispose);
                 apiRequestContextThread.remove();
             }
 
-
-            /*
-             * BrowserContext kapatılır.
-             * Video dosyasının diske yazılması burada tamamlanır.
-             */
-            BrowserContext context =
-                    contextThread.get();
-
+            // Context kapanışı videonun dosyaya tamamlanmasını sağlar.
             if (context != null) {
-
-                try {
-
-                    context.close();
-
-                } finally {
-
-                    contextThread.remove();
-                }
+                guvenliKapat("BrowserContext", context::close);
+                contextThread.remove();
             }
 
-
-            /*
-             * Oluşan video dosyası anlamlı bir isimle yeniden adlandırılır.
-             */
             if (video != null) {
-
                 try {
-
-                    Path generatedVideoPath =
-                            video.path();
-
-                    Path videoPath = renameVideo(
-                            generatedVideoPath,
-                            testName,
-                            status
-                    );
-                    AllureArtifactCollector.registerVideo(videoPath);
-
+                    Path videoPath = renameVideo(video.path(), testName, status);
+                    if (videoPath != null) {
+                        AllureArtifactCollector.registerVideo(videoPath);
+                    }
                 } catch (Exception e) {
-
-                    System.err.println(
-                            "Video yeniden adlandırılamadı: "
-                                    + e.getMessage()
-                    );
+                    System.err.println("Video arşivlenemedi: " + e.getMessage());
                 }
             }
-
-
-            /*
-             * Browser kapatılır.
-             */
-            Browser browser =
-                    browserThread.get();
-
-            if (browser != null) {
-
-                try {
-
-                    browser.close();
-
-                } finally {
-
-                    browserThread.remove();
-                }
-            }
-
-
-            /*
-             * Playwright instance kapatılır.
-             */
-            Playwright playwright =
-                    playwrightThread.get();
-
-            if (playwright != null) {
-
-                try {
-
-                    playwright.close();
-
-                } finally {
-
-                    playwrightThread.remove();
-                }
-            }
-
-
-            /*
-             * Thread üzerinde kalan Page referansı temizlenir.
-             */
-            pageThread.remove();
         } finally {
-            // TestNG thread havuzunda eski test UUID'sinin kalmasını engeller.
+            // Beklenmedik bir hata oluşsa bile kaynaklar ve ThreadLocal'lar temizlenir.
+            kaynaklariTemizle();
             AllureArtifactCollector.clearCurrentTest();
         }
     }
 
+    /** Oluşturulmuş kaynakları ters sırayla güvenli biçimde kapatır. */
+    private static void kaynaklariTemizle() {
+        APIRequestContext apiRequestContext = apiRequestContextThread.get();
+        if (apiRequestContext != null) {
+            guvenliKapat("APIRequestContext", apiRequestContext::dispose);
+            apiRequestContextThread.remove();
+        }
 
-    /**
-     * Playwright tarafından oluşturulan video dosyasını
-     * test adı, tarih ve test sonucu ile yeniden adlandırır.
-     *
-     * @param generatedVideoPath Playwright video dosyası
-     * @param testName test method adı
-     * @param status test sonucu
-     * @return yeniden adlandırılan video yolu; video oluşturulmadıysa null
-     * @throws IOException dosya taşıma işlemi başarısız olursa
-     */
+        BrowserContext context = contextThread.get();
+        if (context != null) {
+            guvenliKapat("BrowserContext", context::close);
+            contextThread.remove();
+        }
+
+        Browser browser = browserThread.get();
+        if (browser != null) {
+            guvenliKapat("Browser", browser::close);
+            browserThread.remove();
+        }
+
+        Playwright playwright = playwrightThread.get();
+        if (playwright != null) {
+            guvenliKapat("Playwright", playwright::close);
+            playwrightThread.remove();
+        }
+
+        pageThread.remove();
+    }
+
+    /** Kaydedilen videoyu test adı ve benzersiz kimlikle yeniden adlandırır. */
     private static Path renameVideo(
             Path generatedVideoPath,
             String testName,
-            String status)
-            throws IOException {
+            String status) throws IOException {
 
-        if (generatedVideoPath == null
-                || !Files.exists(
-                generatedVideoPath
-        )) {
-
+        if (generatedVideoPath == null || !Files.exists(generatedVideoPath)) {
             return null;
         }
 
+        String dateTime = LocalDateTime.now().format(ZAMAN_BICIMI);
+        String fileName = sanitizeFileName(testName)
+                + "_" + dateTime
+                + "_" + sanitizeFileName(status)
+                + "_" + UUID.randomUUID().toString().substring(0, 8)
+                + ".webm";
 
-        String dateTime =
-                LocalDateTime.now()
-                        .format(
-                                DateTimeFormatter.ofPattern(
-                                        "yyyyMMdd_HHmmss_SSS"
-                                )
-                        );
-
-
-        String fileName =
-                sanitizeFileName(
-                        testName
-                )
-                        + "_"
-                        + dateTime
-                        + "_"
-                        + sanitizeFileName(
-                        status
-                )
-                        + "_"
-                        + UUID.randomUUID().toString().substring(0, 8)
-                        + ".webm";
-
-
-        Path targetDirectory =
-                VideoManager.getVideoDirectory();
-
-
-        Files.createDirectories(
-                targetDirectory
-        );
-
-
-        Path targetVideoPath =
-                targetDirectory.resolve(
-                        fileName
-                );
-
-
-        Files.move(
-                generatedVideoPath,
-                targetVideoPath,
-                StandardCopyOption.REPLACE_EXISTING
-        );
-
+        Path targetDirectory = VideoManager.getVideoDirectory();
+        Files.createDirectories(targetDirectory);
+        Path targetVideoPath = targetDirectory.resolve(fileName);
+        Files.move(generatedVideoPath, targetVideoPath, StandardCopyOption.REPLACE_EXISTING);
         return targetVideoPath;
     }
 
-
-    /**
-     * Dosya isminde kullanılması sorun oluşturabilecek
-     * karakterleri alt çizgi ile değiştirir.
-     *
-     * @param value temizlenecek değer
-     * @return dosya adına uygun değer
-     */
-    private static String sanitizeFileName(
-            String value) {
-
-        if (value == null
-                || value.isBlank()) {
-
+    /** Dosya adında kullanılamayan karakterleri temizler. */
+    private static String sanitizeFileName(String value) {
+        if (value == null || value.isBlank()) {
             return "test";
         }
+        return value.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
 
-
-        return value.replaceAll(
-                "[^a-zA-Z0-9._-]",
-                "_"
-        );
+    /** Bir kaynağın kapanma hatası diğer kaynakların kapanmasını engellemez. */
+    private static void guvenliKapat(String ad, Runnable is) {
+        try {
+            is.run();
+        } catch (Exception e) {
+            System.err.println(ad + " kapatılırken hata: " + e.getMessage());
+        }
     }
 }
