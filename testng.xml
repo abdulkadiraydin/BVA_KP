@@ -5,18 +5,11 @@
        verbose="1"
        parallel="methods"
        thread-count="3">
-
-    <listeners>
-        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
-        <listener class-name="com.bvakp.automation.reporting.TestListener"/>
-    </listeners>
-
     <test name="BVA Sequential Tests">
 
         <classes>
             <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/>
-<!--            <class name="com.bvakp.automation.tests.openData.OpenDataUpdateCalendarTest"/>-->
-
+            <!--            <class name="com.bvakp.automation.tests.openData.OpenDataUpdateCalendarTest"/>-->
         </classes>
 
     </test>

@@ -9,8 +9,6 @@ import java.util.regex.Pattern;
 
 public class OpenDataDashboardPage {
 
-    private final Page page;
-
     private final Locator portalDashboardSekmesi;
 
     private final Locator portalIstatistikleriBasligi;
@@ -24,7 +22,6 @@ public class OpenDataDashboardPage {
     private final Locator csvLegend;
     private final Locator tsvLegend;
     private final Locator xlsxLegend;
-    private final Locator indirmeApiTrendiBasligi;
     private final Locator indirmeApiTrendiAlani;
 
     private final Locator gunlukButonu;
@@ -41,9 +38,6 @@ public class OpenDataDashboardPage {
      * yönetmek ve doğrulamak için kullanılır.
      */
     public OpenDataDashboardPage(Page page) {
-
-        this.page = page;
-
         portalDashboardSekmesi =
                 page.getByRole(
                         AriaRole.TAB,
@@ -125,13 +119,6 @@ public class OpenDataDashboardPage {
                         new Page.GetByTextOptions()
                                 .setExact(false)
                 );
-        indirmeApiTrendiBasligi =
-                page.getByText(
-                        "İndirme ve API Erişim Trendi",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
         indirmeApiTrendiAlani =
                 page.getByText(
                         "İndirme ve API Erişim TrendiAylık indirme ve API çağrısı sayıları",

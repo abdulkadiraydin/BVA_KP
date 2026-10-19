@@ -20,6 +20,9 @@ import java.util.stream.Stream;
  *
  * Ana koşu klasörünün altında her test class'ına ait
  * ayrı HTML rapor klasörü bulunur.
+ *
+ * Raporlar, TestListener.onFinish içinde organizeResults() çağrılarak
+ * koşu biter bitmez üretilir.
  */
 public final class AllureRunOrganizer {
 
@@ -27,39 +30,19 @@ public final class AllureRunOrganizer {
             Paths.get(
                     System.getProperty(
                             "allure.results.directory",
-                            Paths.get(
-                                    "target",
-                                    "allure-results"
-                            ).toString()
+                            Paths.get("target", "allure-results").toString()
                     )
             );
 
     private static final Path ALLURE_RUNS =
-            Paths.get(
-                    "target",
-                    "allure-runs"
-            );
+            Paths.get("target", "allure-runs");
 
     /*
      * Teknik Allure JSON ve attachment dosyaları
      * class bazlı HTML raporlardan ayrı tutulur.
      */
     private static final Path ALLURE_RAW_ARCHIVE =
-            Paths.get(
-                    "target",
-                    "allure-results-archive"
-            );
-
-    /*
-     * Tamamlanan test koşularının arşivleneceği klasör.
-     */
-
-
-    /*
-     * Organizer'ın birden fazla kez initialize edilmesini engeller.
-     */
-    private static final AtomicBoolean INITIALIZED =
-            new AtomicBoolean(false);
+            Paths.get("target", "allure-results-archive");
 
     /*
      * Koşuda herhangi bir hata oluşup oluşmadığını tutar.
@@ -70,40 +53,23 @@ public final class AllureRunOrganizer {
     /*
      * Aynı TestNG koşusundaki bütün raporlar
      * aynı tarih/saat bilgisini kullanır.
+     * Sınıf yüklendiğinde atanır (initialize() çağrısıyla koşu başında).
      */
     private static final String RUN_DATE_TIME =
             LocalDateTime.now()
-                    .format(
-                            DateTimeFormatter.ofPattern(
-                                    "yyyyMMdd_HHmmss"
-                            )
-                    );
+                    .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
 
     private AllureRunOrganizer() {
     }
 
     /**
-     * Rapor düzenleme mekanizmasını yalnızca bir kez başlatır.
+     * Koşunun başladığını işaretler.
      *
-     * JVM kapanırken mevcut koşuya ait raporların
-     * düzenlenmesini sağlayan shutdown hook oluşturulur.
+     * Bu çağrı sınıfı yükler, böylece RUN_DATE_TIME
+     * koşunun başlangıç zamanını taşır.
      */
     public static void initialize() {
-
-        if (!INITIALIZED.compareAndSet(
-                false,
-                true
-        )) {
-            return;
-        }
-
-        Runtime.getRuntime()
-                .addShutdownHook(
-                        new Thread(
-                                AllureRunOrganizer::organizeResults,
-                                "allure-run-organizer"
-                        )
-                );
+        // Sınıf yüklenince RUN_DATE_TIME sabiti atanır, başka iş yok.
     }
 
     /**
@@ -118,10 +84,10 @@ public final class AllureRunOrganizer {
     }
 
     /**
-     * JVM kapanırken HTML raporlarını oluşturur
+     * Test koşusu bittiğinde HTML raporlarını oluşturur
      * ve teknik Allure dosyalarını arşivler.
      */
-    private static void organizeResults() {
+    public static void organizeResults() {
 
         try {
 
@@ -149,16 +115,12 @@ public final class AllureRunOrganizer {
      * Ardından her test class'ı için bu klasör altında
      * ayrı rapor klasörü ve ozet.html dosyası oluşturulur.
      */
-    private static void generateClassReports()
-            throws IOException {
+    private static void generateClassReports() throws IOException {
 
-        Files.createDirectories(
-                ALLURE_RUNS
-        );
+        Files.createDirectories(ALLURE_RUNS);
 
         List<String> classNames =
-                HtmlReportManager
-                        .getExecutedClassNames();
+                HtmlReportManager.getExecutedClassNames();
 
         if (classNames.isEmpty()) {
 
@@ -177,30 +139,19 @@ public final class AllureRunOrganizer {
          */
         boolean herhangiBirClassHatali =
                 classNames.stream()
-                        .anyMatch(
-                                HtmlReportManager::classFailed
-                        );
+                        .anyMatch(HtmlReportManager::classFailed);
 
         String runStatus =
-                RUN_FAILED.get()
-                        || herhangiBirClassHatali
+                RUN_FAILED.get() || herhangiBirClassHatali
                         ? "HATALI"
                         : "BASARILI";
 
-        String runFolderName =
-                "Kosu_"
-                        + RUN_DATE_TIME
-                        + "_"
-                        + runStatus;
-
         Path runDirectory =
                 ALLURE_RUNS.resolve(
-                        runFolderName
+                        "Kosu_" + RUN_DATE_TIME + "_" + runStatus
                 );
 
-        Files.createDirectories(
-                runDirectory
-        );
+        Files.createDirectories(runDirectory);
 
         /*
          * Her test class'ı ana koşu klasörü altında
@@ -209,21 +160,17 @@ public final class AllureRunOrganizer {
         for (String className : classNames) {
 
             String classStatus =
-                    HtmlReportManager
-                            .classFailed(className)
+                    HtmlReportManager.classFailed(className)
                             ? "HATALI"
                             : "BASARILI";
 
-            String classFolderName =
-                    sanitizeFileName(className)
-                            + "_"
-                            + RUN_DATE_TIME
-                            + "_"
-                            + classStatus;
-
             Path classRunDirectory =
                     runDirectory.resolve(
-                            classFolderName
+                            sanitizeFileName(className)
+                                    + "_"
+                                    + RUN_DATE_TIME
+                                    + "_"
+                                    + classStatus
                     );
 
             HtmlReportManager.generateReport(
@@ -240,89 +187,42 @@ public final class AllureRunOrganizer {
 
     /**
      * Allure tarafından oluşturulan ham JSON ve attachment
-     * dosyalarını ayrı bir teknik arşiv klasörüne taşır.
+     * dosyalarını ayrı bir teknik arşiv klasörüne kopyalar.
      *
      * Böylece aynı teknik dosyaların her class raporuna
      * tekrar tekrar kopyalanması engellenir.
      */
-    private static void archiveAllureTechnicalResults()
-            throws IOException {
+    private static void archiveAllureTechnicalResults() throws IOException {
 
-        if (!Files.exists(
-                ALLURE_SOURCE
-        )) {
+        if (!Files.exists(ALLURE_SOURCE)) {
             return;
         }
 
-        try (Stream<Path> stream =
-                     Files.list(
-                             ALLURE_SOURCE
-                     )) {
+        try (Stream<Path> stream = Files.list(ALLURE_SOURCE)) {
 
             List<Path> files =
-                    stream
-                            .filter(
-                                    Files::isRegularFile
-                            )
-                            .toList();
+                    stream.filter(Files::isRegularFile).toList();
 
             if (files.isEmpty()) {
                 return;
             }
 
             String status =
-                    RUN_FAILED.get()
-                            ? "HATALI"
-                            : "BASARILI";
+                    RUN_FAILED.get() ? "HATALI" : "BASARILI";
 
             Path archiveDirectory =
                     ALLURE_RAW_ARCHIVE.resolve(
-                            "AllureResults_"
-                                    + RUN_DATE_TIME
-                                    + "_"
-                                    + status
+                            "AllureResults_" + RUN_DATE_TIME + "_" + status
                     );
 
-            Files.createDirectories(
-                    archiveDirectory
-            );
+            Files.createDirectories(archiveDirectory);
 
             for (Path file : files) {
 
                 Files.copy(
                         file,
-                        archiveDirectory.resolve(
-                                file.getFileName()
-                        ),
+                        archiveDirectory.resolve(file.getFileName()),
                         StandardCopyOption.REPLACE_EXISTING
-                );
-            }
-        }
-    }
-
-    /**
-     * allure-results klasörü içerisinde dosya kalmadıysa
-     * boş kaynak klasörünü siler.
-     */
-    private static void deleteSourceDirectoryIfEmpty()
-            throws IOException {
-
-        if (!Files.exists(
-                ALLURE_SOURCE
-        )) {
-            return;
-        }
-
-        try (Stream<Path> stream =
-                     Files.list(
-                             ALLURE_SOURCE
-                     )) {
-
-            if (stream.findAny()
-                    .isEmpty()) {
-
-                Files.deleteIfExists(
-                        ALLURE_SOURCE
                 );
             }
         }
@@ -335,18 +235,13 @@ public final class AllureRunOrganizer {
      * @param value düzenlenecek dosya veya klasör adı
      * @return dosya sisteminde güvenli hale getirilmiş değer
      */
-    private static String sanitizeFileName(
-            String value) {
+    private static String sanitizeFileName(String value) {
 
-        if (value == null
-                || value.isBlank()) {
+        if (value == null || value.isBlank()) {
 
             return "TestClass";
         }
 
-        return value.replaceAll(
-                "[^a-zA-Z0-9._-]",
-                "_"
-        );
+        return value.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 }

@@ -1,8 +1,10 @@
 package com.bvakp.automation.pages;
 
 import com.bvakp.automation.core.config.ConfigManager;
+import com.bvakp.automation.reporting.ReportManager;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.WaitUntilState;
+import com.microsoft.playwright.options.WaitForSelectorState;
 
 public abstract class BasePage {
 
@@ -24,5 +26,23 @@ public abstract class BasePage {
 
     public String getTitle() {
         return page.title();
+    }
+    /**
+     * Ekranda çıkan bildirimin (toast) görünmesini bekler.
+     * Bildirim, ilgili işlemin tamamlandığını gösterir.
+     *
+     * @param bildirimMetni bildirimde geçen metin (tamamı gerekmez)
+     */
+    public void bildirimBekleme(String bildirimMetni) {
+
+        page.getByText(bildirimMetni)
+                .first()
+                .waitFor(
+                        new Locator.WaitForOptions()
+                                .setState(WaitForSelectorState.VISIBLE)
+                                .setTimeout(15_000)
+                );
+
+        ReportManager.info("Bildirim görüldü: " + bildirimMetni);
     }
 }

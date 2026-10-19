@@ -151,8 +151,11 @@ public class OpenDataUpdateCalendarPage extends BasePage {
         return label == null ? "" : label;
     }
 
+    private static final Pattern BASARILI_SAYISI =
+            Pattern.compile("(\\d{1,9}) başarılı");
+
     public int takvimGunuBasariliSayisi(int gun) {
-        Matcher m = Pattern.compile("(\\d+) başarılı").matcher(takvimGunuOzetiAlma(gun));
+        Matcher m = BASARILI_SAYISI.matcher(takvimGunuOzetiAlma(gun));
         return m.find() ? Integer.parseInt(m.group(1)) : 0;
     }
 

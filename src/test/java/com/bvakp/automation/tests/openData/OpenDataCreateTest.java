@@ -18,7 +18,6 @@ import java.nio.file.Path;
 /**
  * Açık Veri Portalı kaynak yönetimi, hazır sorgu
  * ve veri seti oluşturma testlerini içerir.
- *
  * Her test kendi Playwright Page ve Page Object
  * nesnelerini kullanacak şekilde paralel çalışmaya uygundur.
  */
@@ -31,7 +30,6 @@ public class OpenDataCreateTest extends AvpBaseTest {
     /**
      * Tek bir test metodunun kullanacağı Page ve
      * Page Object nesnelerini birlikte tutar.
-     *
      * Her test kendi TestContext nesnesini kullandığı için
      * paralel testler birbirinin Page Object referanslarını değiştiremez.
      */
@@ -133,9 +131,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + tabloAdi
         );
 
-        kaynakEkleModal.kaynakTablosuSecme(
-                tabloAdi
-        );
+        kaynakEkleModal.kaynakTablosuSecme(tabloAdi);
 
 
         ReportManager.step(
@@ -964,18 +960,17 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + kaynakAdi;
 
 
-        String sorgu =
-                "SELECT\n"
-                        + "    a.yil AS yil_yillik_hat_km,\n"
-                        + "    a.bolge_kodu AS bolge_kodu_yillik_hat_km,\n"
-                        + "    a.bolge_adi AS bolge_adi_yillik_hat_km,\n"
-                        + "    b.hat_kodu AS hat_kodu_yillik_hat_kapasitesi,\n"
-                        + "    b.hat_adi AS hat_adi_yillik_hat_kapasitesi\n"
-                        + "FROM yillik_hat_km a\n"
-                        + "LEFT JOIN yillik_hat_kapasitesi b\n"
-                        + "    ON a.bolge_kodu = b.bolge_kodu\n"
-                        + "    AND a.yil = b.yil;";
-
+        String sorgu = """
+        SELECT
+            a.yil AS yil_yillik_hat_km,
+            a.bolge_kodu AS bolge_kodu_yillik_hat_km,
+            a.bolge_adi AS bolge_adi_yillik_hat_km,
+            b.hat_kodu AS hat_kodu_yillik_hat_kapasitesi,
+            b.hat_adi AS hat_adi_yillik_hat_kapasitesi
+        FROM yillik_hat_km a
+        LEFT JOIN yillik_hat_kapasitesi b
+            ON a.bolge_kodu = b.bolge_kodu
+            AND a.yil = b.yil;""";
 
         ReportManager.info(
                 "HAZIR SORGU KAYNAK TEST VERİSİ | Kaynak: "
@@ -1114,17 +1109,13 @@ public class OpenDataCreateTest extends AvpBaseTest {
                         + kaynakAdi;
 
 
-        String sorgu =
-                "UPDATE yillik_hat_km\n"
-                        + "SET yil = yil\n"
-                        + "WHERE 1 = 0;";
+        String sorgu = """
+        UPDATE yillik_hat_km
+        SET yil = yil
+        WHERE 1 = 0;""";
 
 
-        ReportManager.info(
-                "HAZIR SORGU UPDATE NEGATİF TESTİ | Kaynak: "
-                        + kaynakAdi
-        );
-
+        ReportManager.info("HAZIR SORGU UPDATE NEGATİF TESTİ | Kaynak: " + kaynakAdi);
 
         ReportManager.step(
                 "Kaynak Ekle formu açılıyor."

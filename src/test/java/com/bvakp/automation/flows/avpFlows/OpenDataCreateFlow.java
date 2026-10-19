@@ -91,5 +91,6 @@ public class OpenDataCreateFlow {
         openDataPage.veriSetiOnizleme();
         openDataPage.veriSetiOnayaGonderme();
         openDataPage.veriSetiOnayaGondermeyiOnaylama();
+        openDataPage.bildirimBekleme("Veri seti oluşturuldu ve KVKK onay kuyruğuna gönderildi");
     }
 }

@@ -88,4 +88,14 @@ public final class ConfigManager {
     public static boolean getBoolean(String key) {
         return Boolean.parseBoolean(get(key));
     }
+    public static String getOrDefault(String key, String defaultValue) {
+
+        String value = properties.getProperty(key);
+
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+
+        return value.trim();
+    }
 }

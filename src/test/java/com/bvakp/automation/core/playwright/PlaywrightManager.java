@@ -3,25 +3,19 @@ package com.bvakp.automation.core.playwright;
 
 import com.bvakp.automation.core.auth.AvpAuthStateManager;
 import com.bvakp.automation.core.config.ConfigManager;
-import com.bvakp.automation.core.playwright.BrowserFactory;
-import com.bvakp.automation.core.playwright.BrowserName;
 import com.bvakp.automation.utils.VideoManager;
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
-import com.microsoft.playwright.Video;
-import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-public class PlaywrightManager {
+public final class PlaywrightManager {
 
     private static final ThreadLocal<Playwright> playwrightThread =
             new ThreadLocal<>();
@@ -37,151 +31,76 @@ public class PlaywrightManager {
 
     private static final ThreadLocal<APIRequestContext> apiRequestContextThread =
             new ThreadLocal<>();
+    private static final DateTimeFormatter ZAMAN_BICIMI =
+            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
-    /**
-     * Utility class olduğu için nesne oluşturulmasını engeller.
-     */
-
-    private PlaywrightManager() {
+    private PlaywrightManager()
+    {
     }
-
-
-    /**
-     * Config dosyasındaki browser ve headless ayarlarını kullanarak
-     * auth state olmadan Playwright oturumu başlatır.
-     */
-    public static void initialize() {
-
-        BrowserName browserName =
-                BrowserName.from(
-                        ConfigManager.get("browser")
-                );
-
-        boolean headless =
-                ConfigManager.getBoolean(
-                        "headless"
-                );
-
-        initialize(
-                browserName,
-                headless,
-                false
-        );
-    }
-
-
     /**
      * Config dosyasındaki browser ve headless ayarlarını kullanarak
      * isteğe bağlı auth state ile Playwright oturumu başlatır.
      *
      * @param authStateKullan kayıtlı authentication state kullanılacaksa true
      */
-    public static void initialize(
-            boolean authStateKullan) {
-
-        BrowserName browserName =
-                BrowserName.from(
-                        ConfigManager.get("browser")
-                );
-
-        boolean headless =
-                ConfigManager.getBoolean(
-                        "headless"
-                );
+    public static void initialize(boolean authStateKullan) {
 
         initialize(
-                browserName,
-                headless,
+                BrowserName.from(ConfigManager.get("browser")),
+                ConfigManager.getBoolean("headless"),
                 authStateKullan
         );
     }
 
-
-    /**
-     * Belirtilen browser ve headless ayarlarıyla
-     * auth state olmadan Playwright oturumu başlatır.
-     *
-     * @param browserName kullanılacak browser
-     * @param headless browser headless çalışacaksa true
-     */
-    public static void initialize(
-            BrowserName browserName,
-            boolean headless) {
-
-        initialize(
-                browserName,
-                headless,
-                false
-        );
-    }
-
-
-    /**
-     * Browser, BrowserContext ve Page nesnelerini oluşturur.
-     * Her thread kendi Playwright nesnelerini kullandığı için
-     * paralel test çalıştırmaya uygundur.
-     *
-     * @param browserName kullanılacak browser
-     * @param headless browser headless çalışacaksa true
-     * @param authStateKullan kayıtlı auth state kullanılacaksa true
-     */
     public static void initialize(
             BrowserName browserName,
             boolean headless,
             boolean authStateKullan) {
-        Locale.setDefault(Locale.ENGLISH);
-        Playwright playwright =
-                Playwright.create();
 
-        Browser browser =
-                BrowserFactory.createBrowser(
-                        playwright,
-                        browserName,
-                        headless
-                );
+        Locale.setDefault(Locale.ENGLISH);
+
+        int genislik = Integer.parseInt(
+                ConfigManager.getOrDefault("viewport.width", "1280"));
+        int yukseklik = Integer.parseInt(
+                ConfigManager.getOrDefault("viewport.height", "720"));
+
+        // Her nesne oluşturulur oluşturulmaz kaydedilir:
+        // sonraki adım hata verirse close() elindekini temizleyebilsin.
+        Playwright playwright = Playwright.create();
+        playwrightThread.set(playwright);
+
+        Browser browser = BrowserFactory.createBrowser(
+                playwright, browserName, headless);
+        browserThread.set(browser);
 
         Browser.NewContextOptions contextOptions =
                 new Browser.NewContextOptions()
-                        .setRecordVideoDir(
-                                VideoManager.getVideoDirectory()
-                        )
-                        .setRecordVideoSize(
-                                1280,
-                                720
-                        );
-
+                        .setViewportSize(genislik, yukseklik)
+                        .setRecordVideoDir(VideoManager.getVideoDirectory())
+                        .setRecordVideoSize(genislik, yukseklik);
 
         /*
          * AVP testinde kayıtlı auth state isteniyorsa
          * mevcut storage state BrowserContext'e yüklenir.
          */
-        if (authStateKullan
-                && AvpAuthStateManager.authStateVarMi()) {
-
+        if (authStateKullan && AvpAuthStateManager.authStateVarMi()) {
             contextOptions.setStorageStatePath(
-                    AvpAuthStateManager.authStatePathAlma()
-            );
+                    AvpAuthStateManager.authStatePathAlma());
         }
 
-
-        BrowserContext context =
-                browser.newContext(
-                        contextOptions
-                );
-
-        Page page =
-                context.newPage();
-        APIRequestContext apiRequestContext =
-                playwright.request().newContext();
-
-        /*
-         * Her test thread'i kendi Playwright ve API nesnelerini tutar.
-         */
-        apiRequestContextThread.set(apiRequestContext);
-        playwrightThread.set(playwright);
-        browserThread.set(browser);
+        BrowserContext context = browser.newContext(contextOptions);
         contextThread.set(context);
-        pageThread.set(page);
+
+        if (traceAcikMi()) {
+            context.tracing().start(
+                    new Tracing.StartOptions()
+                            .setScreenshots(true)
+                            .setSnapshots(true)
+                            .setSources(true));
+        }
+
+        pageThread.set(context.newPage());
+        apiRequestContextThread.set(playwright.request().newContext());
     }
 
 
@@ -191,7 +110,6 @@ public class PlaywrightManager {
      * @return aktif Playwright Page
      */
     public static Page getPage() {
-
         return pageThread.get();
     }
 
@@ -202,22 +120,8 @@ public class PlaywrightManager {
      * @return aktif BrowserContext
      */
     public static BrowserContext getContext() {
-
         return contextThread.get();
     }
-
-
-    /**
-     * Aktif thread'e ait Browser nesnesini döndürür.
-     *
-     * @return aktif Browser
-     */
-    public static Browser getBrowser() {
-
-        return browserThread.get();
-    }
-
-
     /**
      * Aktif thread'e ait Playwright nesnesini döndürür.
      *
@@ -236,20 +140,6 @@ public class PlaywrightManager {
     public static APIRequestContext getApiRequestContext() {
         return apiRequestContextThread.get();
     }
-
-    /**
-     * Test bilgisi verilmediğinde varsayılan değerlerle
-     * Playwright oturumunu kapatır.
-     */
-    public static void close() {
-
-        close(
-                "test",
-                "BILINMIYOR"
-        );
-    }
-
-
     /**
      * Aktif BrowserContext, Browser ve Playwright nesnelerini kapatır.
      * Oluşturulan video dosyasını test adı ve durum bilgisiyle yeniden adlandırır.
@@ -263,21 +153,14 @@ public class PlaywrightManager {
 
         Video video = null;
 
-        Page page =
-                pageThread.get();
-
-
+        Page page = pageThread.get();
         /*
          * Page üzerinde video kaydı bulunuyorsa
          * Context kapanmadan önce referansı alınır.
          */
         if (page != null) {
-
             try {
-
-                video =
-                        page.video();
-
+                video = page.video();
             } catch (Exception ignored) {
 
                 /*
@@ -286,43 +169,49 @@ public class PlaywrightManager {
                  */
             }
         }
-        if (apiRequestContextThread.get() != null) {
+        APIRequestContext apiRequestContext = apiRequestContextThread.get();
+        if (apiRequestContext != null) {
 
-            apiRequestContextThread.get().dispose();
+            guvenliKapat("APIRequestContext", apiRequestContext::dispose);
             apiRequestContextThread.remove();
         }
-
-
+        BrowserContext context = contextThread.get();
+        /*
+         * Trace durdurulur. Test hatalıysa zip olarak kaydedilir,
+         * değilse kaydedilmeden atılır. Context kapanmadan önce yapılmalıdır.
+         */
+        if (context != null && traceAcikMi()) {
+            try {
+                if ("HATALI".equals(status)) {
+                    Path traceDosyasi = Paths.get("target", "traces",
+                            sanitizeFileName(testName) + "_"
+                                    + LocalDateTime.now().format(ZAMAN_BICIMI)
+                                    + ".zip");
+                    Files.createDirectories(traceDosyasi.getParent());
+                    context.tracing().stop(
+                            new Tracing.StopOptions().setPath(traceDosyasi));
+                } else {
+                    context.tracing().stop(); // kaydetmeden at
+                }
+            } catch (Exception e) {
+                System.err.println("Trace kaydedilemedi: " + e.getMessage());
+            }
+        }
         /*
          * BrowserContext kapatılır.
          * Video dosyasının diske yazılması burada tamamlanır.
          */
-        BrowserContext context =
-                contextThread.get();
-
         if (context != null) {
-
-            try {
-
-                context.close();
-
-            } finally {
-
-                contextThread.remove();
-            }
+            guvenliKapat("BrowserContext", context::close);
+            contextThread.remove();
         }
-
-
         /*
          * Oluşan video dosyası anlamlı bir isimle yeniden adlandırılır.
          */
         if (video != null) {
-
             try {
-
                 Path generatedVideoPath =
                         video.path();
-
                 renameVideo(
                         generatedVideoPath,
                         testName,
@@ -330,7 +219,6 @@ public class PlaywrightManager {
                 );
 
             } catch (Exception e) {
-
                 System.err.println(
                         "Video yeniden adlandırılamadı: "
                                 + e.getMessage()
@@ -339,41 +227,21 @@ public class PlaywrightManager {
         }
 
 
-        /*
-         * Browser kapatılır.
-         */
-        Browser browser =
-                browserThread.get();
+        Browser browser = browserThread.get();
 
         if (browser != null) {
 
-            try {
-
-                browser.close();
-
-            } finally {
-
-                browserThread.remove();
-            }
+            guvenliKapat("Browser", browser::close);
+            browserThread.remove();
         }
 
 
-        /*
-         * Playwright instance kapatılır.
-         */
-        Playwright playwright =
-                playwrightThread.get();
+        Playwright playwright = playwrightThread.get();
 
         if (playwright != null) {
 
-            try {
-
-                playwright.close();
-
-            } finally {
-
-                playwrightThread.remove();
-            }
+            guvenliKapat("Playwright", playwright::close);
+            playwrightThread.remove();
         }
 
 
@@ -406,16 +274,7 @@ public class PlaywrightManager {
 
             return;
         }
-
-
-        String dateTime =
-                LocalDateTime.now()
-                        .format(
-                                DateTimeFormatter.ofPattern(
-                                        "yyyyMMdd_HHmmss_SSS"
-                                )
-                        );
-
+        String dateTime = LocalDateTime.now().format(ZAMAN_BICIMI);
 
         String fileName =
                 sanitizeFileName(
@@ -430,21 +289,9 @@ public class PlaywrightManager {
                         + ".webm";
 
 
-        Path targetDirectory =
-                VideoManager.getVideoDirectory();
-
-
-        Files.createDirectories(
-                targetDirectory
-        );
-
-
-        Path targetVideoPath =
-                targetDirectory.resolve(
-                        fileName
-                );
-
-
+        Path targetDirectory = VideoManager.getVideoDirectory();
+        Files.createDirectories(targetDirectory);
+        Path targetVideoPath = targetDirectory.resolve(fileName);
         Files.move(
                 generatedVideoPath,
                 targetVideoPath,
@@ -462,17 +309,29 @@ public class PlaywrightManager {
      */
     private static String sanitizeFileName(
             String value) {
-
         if (value == null
                 || value.isBlank()) {
-
             return "test";
         }
-
-
         return value.replaceAll(
                 "[^a-zA-Z0-9._-]",
                 "_"
         );
+    }
+    private static boolean traceAcikMi() {
+        return Boolean.parseBoolean(
+                ConfigManager.getOrDefault("trace.enabled", "true"));
+    }
+    private static void guvenliKapat(String ad, Runnable is) {
+
+        try {
+            is.run();
+
+        } catch (Exception e) {
+
+            System.err.println(
+                    ad + " kapatılırken hata: " + e.getMessage()
+            );
+        }
     }
 }

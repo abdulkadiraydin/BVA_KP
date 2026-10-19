@@ -10,7 +10,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 
 @Listeners(TestListener.class)
-public class BaseTest {
+public abstract class BaseTest {
 
     static {
         java.util.Locale.setDefault(java.util.Locale.ENGLISH);

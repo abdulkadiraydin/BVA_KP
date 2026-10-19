@@ -21,6 +21,11 @@
 
     <properties>
 
+        <sonar.projectKey>bva-kp-automation</sonar.projectKey>
+        <sonar.projectName>BVA_KP Test Otomasyon</sonar.projectName>
+        <sonar.sources>src/test/java</sonar.sources>
+        <sonar.java.source>21</sonar.java.source>
+
         <!-- Java -->
         <maven.compiler.release>21</maven.compiler.release>
 

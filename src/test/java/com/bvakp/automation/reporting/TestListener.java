@@ -1,5 +1,6 @@
 package com.bvakp.automation.reporting;
 
+import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.mail.TestFailureAlertMailService;
 import com.bvakp.automation.utils.ScreenshotUtil;
@@ -15,74 +16,68 @@ import org.testng.ITestResult;
 
 import java.nio.file.Path;
 
+/**
+ * Test yaşam döngüsünü dinler: rapor, screenshot, hata takibi ve özet.
+ */
 public class TestListener
         implements ITestListener,
         IConfigurationListener,
         ISuiteListener {
 
+    // ------------------------------------------------------------------
+    // Test başladı
+    // ------------------------------------------------------------------
+
     @Override
     public void onTestStart(ITestResult result) {
 
-        /*
-         * Listener artık testng.xml üzerinden suite seviyesinde
-         * çalıştığı için bütün test class'ları rapora dahil edilir.
-         */
-        AllureRunOrganizer.initialize();
+        String testName = getTestName(result);
+        String className = getClassName(result);
 
-        String testName =
-                getTestName(result);
-
-        String className =
-                getClassName(result);
-
-        HtmlReportManager.startTest(
-                className,
-                testName
-        );
+        HtmlReportManager.startTest(className, testName);
 
         ReportManager.info(
-                "TEST BAŞLADI | "
-                        + className
-                        + "."
-                        + testName
+                "TEST BAŞLADI | " + className + "." + testName
         );
     }
+
+    // ------------------------------------------------------------------
+    // Test başarılı
+    // ------------------------------------------------------------------
 
     @Override
     public void onTestSuccess(ITestResult result) {
 
-        long duration =
-                getDuration(result);
-
-        String testName =
-                getTestName(result);
-
-        Path screenshotPath =
-                ScreenshotUtil.takeScreenshot(
-                        PlaywrightManager.getPage(),
-                        testName + "_basarili"
-                );
-
-        if (screenshotPath != null) {
-
-            ReportManager.info(
-                    "Başarılı test screenshot oluşturuldu | "
-                            + screenshotPath.toAbsolutePath()
-            );
-
-            ReportManager.attachScreenshot(
-                    "Success Screenshot",
-                    screenshotPath
-            );
-        }
-        
+        long duration = getDuration(result);
+        String testName = getTestName(result);
 
         /*
-         * Screenshot kaydedildikten sonra testi başarılı kapat.
+         * Başarılı testte screenshot varsayılan olarak kapalıdır.
+         * Açmak için config.properties: screenshot.on.success=true
          */
-        HtmlReportManager.markPassed(
-                duration
-        );
+        if (basariliTestteScreenshotAlinsinMi()) {
+
+            Path screenshotPath =
+                    ScreenshotUtil.takeScreenshot(
+                            PlaywrightManager.getPage(),
+                            testName + "_basarili"
+                    );
+
+            if (screenshotPath != null) {
+
+                ReportManager.info(
+                        "Başarılı test screenshot oluşturuldu | "
+                                + screenshotPath.toAbsolutePath()
+                );
+
+                ReportManager.attachScreenshot(
+                        "Success Screenshot",
+                        screenshotPath
+                );
+            }
+        }
+
+        HtmlReportManager.markPassed(duration);
 
         ReportManager.info(
                 "TEST BAŞARILI | "
@@ -91,41 +86,39 @@ public class TestListener
                         + duration
                         + " ms"
         );
-        TestFailureTracker
-                .basariliTestKaydet(
-                        getClassName(result),
-                        testName
-                );
+
+        TestFailureTracker.basariliTestKaydet(
+                getClassName(result),
+                testName
+        );
     }
+
+    // ------------------------------------------------------------------
+    // Test başarısız
+    // ------------------------------------------------------------------
 
     @Override
     public void onTestFailure(ITestResult result) {
 
         AllureRunOrganizer.markFailed();
 
-        String testName =
-                getTestName(result);
+        String testName = getTestName(result);
+        String className = getClassName(result);
+        long duration = getDuration(result);
 
-        long duration =
-                getDuration(result);
-
-        ReportManager.error(
-                "TEST BAŞARISIZ | "
-                        + testName
-        );
+        ReportManager.error("TEST BAŞARISIZ | " + testName);
 
         if (result.getThrowable() != null) {
 
             ReportManager.error(
-                    "Hata detayı: "
-                            + result.getThrowable()
-                            .getMessage(),
+                    "Hata detayı: " + result.getThrowable().getMessage(),
                     result.getThrowable()
             );
         }
 
         /*
-         * Önce screenshot alınır.
+         * Screenshot yalnızca ek bilgidir. Alınamazsa (null) hata takibi
+         * ve mail yine de çalışır.
          */
         Path screenshotPath =
                 ScreenshotUtil.takeScreenshot(
@@ -137,73 +130,46 @@ public class TestListener
 
             ReportManager.info(
                     "Screenshot oluşturuldu | "
-                            + screenshotPath
-                            .toAbsolutePath()
+                            + screenshotPath.toAbsolutePath()
             );
 
-            /*
-             * Hem Allure'a hem HTML raporuna bağlanır.
-             */
+            /* Hem Allure'a hem HTML raporuna bağlanır. */
             ReportManager.attachScreenshot(
                     "Failure Screenshot",
                     screenshotPath
             );
 
-            String className =
-                    getClassName(result);
+        } else {
 
-            int failureCount =
-                    TestFailureTracker.hataKaydet(
-                            className,
-                            testName
-                    );
+            ReportManager.warn("Screenshot alınamadı | " + testName);
+        }
 
-            ReportManager.info(
-                    "Ardışık hata sayısı | "
-                            + testName
-                            + " = "
-                            + failureCount
-            );
+        /*
+         * Hata sayacı ve mail, screenshot'a bağlı değildir.
+         */
+        int failureCount =
+                TestFailureTracker.hataKaydet(className, testName);
 
-            if (TestFailureTracker.mailGonderilmeliMi(
+        ReportManager.info(
+                "Ardışık hata sayısı | "
+                        + testName
+                        + " = "
+                        + failureCount
+        );
+
+        if (TestFailureTracker.mailGonderilmeliMi(
+                className,
+                testName,
+                failureCount
+        )) {
+
+            hataMailiGonder(
                     className,
                     testName,
-                    failureCount
-            )) {
-
-                try {
-
-                    TestFailureAlertMailService
-                            .hataBilgilendirmeMailiGonder(
-                                    className,
-                                    testName,
-                                    failureCount,
-                                    result.getThrowable(),
-                                    screenshotPath
-                            );
-
-                    /*
-                     * Mail gerçekten başarılı gönderildikten sonra
-                     * günlük gönderim tarihi kaydedilir.
-                     */
-                    TestFailureTracker
-                            .mailGonderildiKaydet(
-                                    className,
-                                    testName
-                            );
-
-                } catch (Exception e) {
-
-                    /*
-                     * Mail hatası test sonucunu değiştirmesin.
-                     */
-                    ReportManager.error(
-                            "Test hata bilgilendirme maili gönderilemedi: "
-                                    + e.getMessage(),
-                            e
-                    );
-                }
-            }
+                    failureCount,
+                    result.getThrowable(),
+                    screenshotPath
+            );
         }
 
         HtmlReportManager.markFailed(
@@ -212,31 +178,31 @@ public class TestListener
         );
     }
 
+    // ------------------------------------------------------------------
+    // Test atlandı
+    // ------------------------------------------------------------------
+
     @Override
     public void onTestSkipped(ITestResult result) {
 
-        long duration =
-                getDuration(result);
-
-        HtmlReportManager.markSkipped(
-                duration
-        );
+        HtmlReportManager.markSkipped(getDuration(result));
 
         ReportManager.warn(
-                "TEST ATLANDI | "
-                        + getTestName(result)
+                "TEST ATLANDI | " + getTestName(result)
         );
     }
 
+    // ------------------------------------------------------------------
+    // Configuration (@BeforeMethod, @AfterMethod vb.) hatası
+    // ------------------------------------------------------------------
+
     @Override
-    public void onConfigurationFailure(
-            ITestResult result) {
+    public void onConfigurationFailure(ITestResult result) {
 
         AllureRunOrganizer.markFailed();
 
         ReportManager.error(
-                "CONFIGURATION HATASI | "
-                        + result.getName()
+                "CONFIGURATION HATASI | " + result.getName()
         );
 
         if (result.getThrowable() != null) {
@@ -249,36 +215,14 @@ public class TestListener
         }
     }
 
-    private String getTestName(
-            ITestResult result) {
-
-        return result
-                .getMethod()
-                .getMethodName();
-    }
-
-    private String getClassName(
-            ITestResult result) {
-
-        return result
-                .getTestClass()
-                .getRealClass()
-                .getSimpleName();
-    }
-
-    private long getDuration(
-            ITestResult result) {
-
-        return result.getEndMillis()
-                - result.getStartMillis();
-    }
+    // ------------------------------------------------------------------
+    // Suite bitti: sonuç özeti
+    // ------------------------------------------------------------------
 
     /**
-     * TestNG suite çalışması tamamen tamamlandığında
-     * başarılı, başarısız ve atlanan test sayılarını hesaplar.
-     *
-     * Hesaplanan sonuçlar mail raporunda kullanılmak üzere
-     * target/test-summary.properties dosyasına yazılır.
+     * Başarılı, başarısız ve atlanan test sayılarını hesaplar ve
+     * mail raporunda kullanılmak üzere target/test-summary.properties
+     * dosyasına yazar.
      */
     @Override
     public void onFinish(ISuite suite) {
@@ -288,42 +232,27 @@ public class TestListener
         int atlanan = 0;
 
         /*
-         * Suite içerisinde birden fazla <test> bloğu bulunabileceği için
-         * bütün TestNG test context sonuçları birlikte hesaplanır.
+         * Suite içinde birden fazla <test> bloğu olabileceği için
+         * bütün test context sonuçları birlikte hesaplanır.
          */
-        for (ISuiteResult suiteResult
-                : suite.getResults().values()) {
+        for (ISuiteResult suiteResult : suite.getResults().values()) {
 
-            basarili +=
-                    suiteResult
-                            .getTestContext()
-                            .getPassedTests()
-                            .size();
+            basarili += suiteResult.getTestContext()
+                    .getPassedTests().size();
 
-            basarisiz +=
-                    suiteResult
-                            .getTestContext()
-                            .getFailedTests()
-                            .size();
+            basarisiz += suiteResult.getTestContext()
+                    .getFailedTests().size();
 
-            atlanan +=
-                    suiteResult
-                            .getTestContext()
-                            .getSkippedTests()
-                            .size();
+            atlanan += suiteResult.getTestContext()
+                    .getSkippedTests().size();
         }
 
-        int toplam =
-                basarili
-                        + basarisiz
-                        + atlanan;
+        int toplam = basarili + basarisiz + atlanan;
 
-        TestSummaryWriter.yaz(
-                toplam,
-                basarili,
-                basarisiz,
-                atlanan
-        );
+        /* Raporlar koşu biter bitmez burada üretilir. */
+        AllureRunOrganizer.organizeResults();
+
+        TestSummaryWriter.yaz(toplam, basarili, basarisiz, atlanan);
 
         System.out.println(
                 "Test özeti oluşturuldu -> "
@@ -332,5 +261,68 @@ public class TestListener
                         + ", Başarısız: " + basarisiz
                         + ", Atlanan: " + atlanan
         );
+    }
+
+    // ------------------------------------------------------------------
+    // Yardımcı metotlar
+    // ------------------------------------------------------------------
+
+    private boolean basariliTestteScreenshotAlinsinMi() {
+
+        return Boolean.parseBoolean(
+                ConfigManager.getOrDefault("screenshot.on.success", "false")
+        );
+    }
+
+    /**
+     * Mail hatası test sonucunu değiştirmesin diye
+     * exception burada yakalanır.
+     */
+    private void hataMailiGonder(
+            String className,
+            String testName,
+            int failureCount,
+            Throwable hata,
+            Path screenshotPath) {
+
+        try {
+
+            TestFailureAlertMailService.hataBilgilendirmeMailiGonder(
+                    className,
+                    testName,
+                    failureCount,
+                    hata,
+                    screenshotPath
+            );
+
+            /*
+             * Mail gerçekten gönderildikten sonra
+             * günlük gönderim tarihi kaydedilir.
+             */
+            TestFailureTracker.mailGonderildiKaydet(className, testName);
+
+        } catch (Exception e) {
+
+            ReportManager.error(
+                    "Test hata bilgilendirme maili gönderilemedi: "
+                            + e.getMessage(),
+                    e
+            );
+        }
+    }
+
+    private String getTestName(ITestResult result) {
+
+        return result.getMethod().getMethodName();
+    }
+
+    private String getClassName(ITestResult result) {
+
+        return result.getTestClass().getRealClass().getSimpleName();
+    }
+
+    private long getDuration(ITestResult result) {
+
+        return result.getEndMillis() - result.getStartMillis();
     }
 }

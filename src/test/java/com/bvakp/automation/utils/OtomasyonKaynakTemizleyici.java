@@ -116,8 +116,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
         );
 
 
-        openDataPage
-                .acikVeriPortalinaGitme();
+        openDataPage.acikVeriPortalinaGitme();
 
 
         /*

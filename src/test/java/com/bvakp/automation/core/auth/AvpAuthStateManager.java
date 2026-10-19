@@ -3,9 +3,7 @@ package com.bvakp.automation.core.auth;
 import com.microsoft.playwright.BrowserContext;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 
 public final class AvpAuthStateManager {
 
@@ -36,20 +34,50 @@ public final class AvpAuthStateManager {
      */
     public static void authStateKaydetme(BrowserContext context) {
 
-        try {
+        Path gecici = null;
 
+        try {
             Files.createDirectories(AUTH_STATE_PATH.getParent());
 
-            context.storageState(
-                    new BrowserContext.StorageStateOptions()
-                            .setPath(AUTH_STATE_PATH)
+            // Aynı klasörde benzersiz geçici dosya: başka thread yarım dosyayı görmesin
+            gecici = Files.createTempFile(
+                    AUTH_STATE_PATH.getParent(), "avp-auth-", ".tmp"
             );
+
+            context.storageState(
+                    new BrowserContext.StorageStateOptions().setPath(gecici)
+            );
+
+            try {
+                Files.move(
+                        gecici,
+                        AUTH_STATE_PATH,
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE
+                );
+            } catch (AtomicMoveNotSupportedException e) {
+                // Dosya sistemi atomik taşımayı desteklemiyor: normal taşımaya düş
+                Files.move(
+                        gecici,
+                        AUTH_STATE_PATH,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+            }
 
         } catch (IOException e) {
 
+            try {
+                if (gecici != null) {
+                    Files.deleteIfExists(gecici);
+                }
+            } catch (IOException silmeHatasi) {
+                // Asıl hata aşağıda fırlatılır. Geçici dosya silme hatası
+                // onu gölgelemesin diye ekleme bilgisi olarak saklanır.
+                e.addSuppressed(silmeHatasi);
+            }
+
             throw new RuntimeException(
-                    "AVP authentication storage state dosyası oluşturulamadı.",
-                    e
+                    "AVP authentication storage state dosyası oluşturulamadı.", e
             );
         }
     }
