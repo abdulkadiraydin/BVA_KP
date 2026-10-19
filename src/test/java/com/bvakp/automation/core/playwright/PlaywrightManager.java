@@ -6,6 +6,7 @@ import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.BrowserFactory;
 import com.bvakp.automation.core.playwright.BrowserName;
 import com.bvakp.automation.utils.VideoManager;
+import com.bvakp.automation.reporting.AllureArtifactCollector;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
@@ -20,6 +21,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.UUID;
 
 public class PlaywrightManager {
 
@@ -169,6 +171,9 @@ public class PlaywrightManager {
                         contextOptions
                 );
 
+        // Start trace before the first Page/action is created.
+        TraceManager.start(context);
+
         Page page =
                 context.newPage();
         APIRequestContext apiRequestContext =
@@ -261,126 +266,141 @@ public class PlaywrightManager {
             String testName,
             String status) {
 
-        Video video = null;
+        try {
 
-        Page page =
-                pageThread.get();
-
-
-        /*
-         * Page üzerinde video kaydı bulunuyorsa
-         * Context kapanmadan önce referansı alınır.
-         */
-        if (page != null) {
-
-            try {
-
-                video =
-                        page.video();
-
-            } catch (Exception ignored) {
-
-                /*
-                 * Video aktif değilse teardown işlemi
-                 * yine devam eder.
-                 */
+            // Trace MUST be written before the BrowserContext is closed.
+            // A trace failure must never prevent normal browser cleanup.
+            BrowserContext activeContext = contextThread.get();
+            if (activeContext != null) {
+                Path tracePath = TraceManager.stop(activeContext, testName, status);
+                AllureArtifactCollector.registerTrace(tracePath);
             }
-        }
-        if (apiRequestContextThread.get() != null) {
 
-            apiRequestContextThread.get().dispose();
-            apiRequestContextThread.remove();
-        }
+            Video video = null;
+
+            Page page =
+                    pageThread.get();
 
 
-        /*
-         * BrowserContext kapatılır.
-         * Video dosyasının diske yazılması burada tamamlanır.
-         */
-        BrowserContext context =
-                contextThread.get();
+            /*
+             * Page üzerinde video kaydı bulunuyorsa
+             * Context kapanmadan önce referansı alınır.
+             */
+            if (page != null) {
 
-        if (context != null) {
+                try {
 
-            try {
+                    video =
+                            page.video();
 
-                context.close();
+                } catch (Exception ignored) {
 
-            } finally {
-
-                contextThread.remove();
+                    /*
+                     * Video aktif değilse teardown işlemi
+                     * yine devam eder.
+                     */
+                }
             }
-        }
+            if (apiRequestContextThread.get() != null) {
 
-
-        /*
-         * Oluşan video dosyası anlamlı bir isimle yeniden adlandırılır.
-         */
-        if (video != null) {
-
-            try {
-
-                Path generatedVideoPath =
-                        video.path();
-
-                renameVideo(
-                        generatedVideoPath,
-                        testName,
-                        status
-                );
-
-            } catch (Exception e) {
-
-                System.err.println(
-                        "Video yeniden adlandırılamadı: "
-                                + e.getMessage()
-                );
+                apiRequestContextThread.get().dispose();
+                apiRequestContextThread.remove();
             }
-        }
 
 
-        /*
-         * Browser kapatılır.
-         */
-        Browser browser =
-                browserThread.get();
+            /*
+             * BrowserContext kapatılır.
+             * Video dosyasının diske yazılması burada tamamlanır.
+             */
+            BrowserContext context =
+                    contextThread.get();
 
-        if (browser != null) {
+            if (context != null) {
 
-            try {
+                try {
 
-                browser.close();
+                    context.close();
 
-            } finally {
+                } finally {
 
-                browserThread.remove();
+                    contextThread.remove();
+                }
             }
-        }
 
 
-        /*
-         * Playwright instance kapatılır.
-         */
-        Playwright playwright =
-                playwrightThread.get();
+            /*
+             * Oluşan video dosyası anlamlı bir isimle yeniden adlandırılır.
+             */
+            if (video != null) {
 
-        if (playwright != null) {
+                try {
 
-            try {
+                    Path generatedVideoPath =
+                            video.path();
 
-                playwright.close();
+                    Path videoPath = renameVideo(
+                            generatedVideoPath,
+                            testName,
+                            status
+                    );
+                    AllureArtifactCollector.registerVideo(videoPath);
 
-            } finally {
+                } catch (Exception e) {
 
-                playwrightThread.remove();
+                    System.err.println(
+                            "Video yeniden adlandırılamadı: "
+                                    + e.getMessage()
+                    );
+                }
             }
+
+
+            /*
+             * Browser kapatılır.
+             */
+            Browser browser =
+                    browserThread.get();
+
+            if (browser != null) {
+
+                try {
+
+                    browser.close();
+
+                } finally {
+
+                    browserThread.remove();
+                }
+            }
+
+
+            /*
+             * Playwright instance kapatılır.
+             */
+            Playwright playwright =
+                    playwrightThread.get();
+
+            if (playwright != null) {
+
+                try {
+
+                    playwright.close();
+
+                } finally {
+
+                    playwrightThread.remove();
+                }
+            }
+
+
+            /*
+             * Thread üzerinde kalan Page referansı temizlenir.
+             */
+            pageThread.remove();
+        } finally {
+            // TestNG thread havuzunda eski test UUID'sinin kalmasını engeller.
+            AllureArtifactCollector.clearCurrentTest();
         }
-
-
-        /*
-         * Thread üzerinde kalan Page referansı temizlenir.
-         */
-        pageThread.remove();
     }
 
 
@@ -391,9 +411,10 @@ public class PlaywrightManager {
      * @param generatedVideoPath Playwright video dosyası
      * @param testName test method adı
      * @param status test sonucu
+     * @return yeniden adlandırılan video yolu; video oluşturulmadıysa null
      * @throws IOException dosya taşıma işlemi başarısız olursa
      */
-    private static void renameVideo(
+    private static Path renameVideo(
             Path generatedVideoPath,
             String testName,
             String status)
@@ -404,7 +425,7 @@ public class PlaywrightManager {
                 generatedVideoPath
         )) {
 
-            return;
+            return null;
         }
 
 
@@ -427,6 +448,8 @@ public class PlaywrightManager {
                         + sanitizeFileName(
                         status
                 )
+                        + "_"
+                        + UUID.randomUUID().toString().substring(0, 8)
                         + ".webm";
 
 
@@ -450,6 +473,8 @@ public class PlaywrightManager {
                 targetVideoPath,
                 StandardCopyOption.REPLACE_EXISTING
         );
+
+        return targetVideoPath;
     }
 
 
