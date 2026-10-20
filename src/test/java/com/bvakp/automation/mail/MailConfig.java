@@ -5,129 +5,80 @@ import io.github.cdimascio.dotenv.Dotenv;
 /**
  * Mail gönderiminde kullanılacak SMTP ayarlarını yönetir.
  *
- * Değerler öncelikle sistem Environment Variable üzerinden,
- * bulunamazsa proje kökündeki .env.mail dosyasından okunur.
+ * <p>Değerler önce işletim sistemi ortam değişkeninden, bulunamazsa proje
+ * kökündeki .env.mail dosyasından okunur. Şifre içerdiği için bu ayarlar
+ * config.properties'e yazılmaz; .env.mail Git'e eklenmemelidir.
  */
 public final class MailConfig {
 
-    private static final Dotenv DOTENV =
-            Dotenv.configure()
-                    .filename(".env.mail")
-                    .ignoreIfMissing()
-                    .load();
+    private static final Dotenv DOTENV = Dotenv.configure()
+            .filename(".env.mail")
+            .ignoreIfMissing()
+            .load();
 
     private MailConfig() {
     }
 
     public static String host() {
-        return getRequiredValue(
-                "MAIL_HOST"
-        );
+        return getRequiredValue("MAIL_HOST");
     }
 
     public static int port() {
-
-        return Integer.parseInt(
-                getRequiredValue(
-                        "MAIL_PORT"
-                )
-        );
+        String value = getRequiredValue("MAIL_PORT");
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Geçersiz MAIL_PORT değeri: " + value, e);
+        }
     }
 
     public static String username() {
-        return getRequiredValue(
-                "MAIL_USERNAME"
-        );
+        return getRequiredValue("MAIL_USERNAME");
     }
 
     public static String password() {
-        return getRequiredValue(
-                "MAIL_PASSWORD"
-        );
+        return getRequiredValue("MAIL_PASSWORD");
     }
 
     public static String from() {
-        return getRequiredValue(
-                "MAIL_FROM"
-        );
+        return getRequiredValue("MAIL_FROM");
     }
 
+    /** Virgülle ayrılmış bir veya birden fazla alıcı. */
     public static String to() {
-        return getRequiredValue(
-                "MAIL_TO"
-        );
+        return getRequiredValue("MAIL_TO");
     }
 
+    /** Tanımlı değilse true (çoğu kurumsal SMTP sunucusu STARTTLS ister). */
     public static boolean startTlsEnabled() {
-
-        String value =
-                getValue(
-                        "MAIL_STARTTLS"
-                );
-
-        if (value == null
-                || value.isBlank()) {
-
-            return true;
-        }
-
-        return Boolean.parseBoolean(
-                value
-        );
+        String value = getValue("MAIL_STARTTLS");
+        return value == null || Boolean.parseBoolean(value);
     }
 
-    /**
-     * Değeri önce işletim sistemi environment variable
-     * alanından, ardından .env.mail dosyasından arar.
-     */
-    private static String getValue(
-            String variableName) {
+    /** Önce ortam değişkeninde, sonra .env.mail dosyasında arar; bulamazsa null döner. */
+    private static String getValue(String variableName) {
 
-        String systemValue =
-                System.getenv(
-                        variableName
-                );
-
-        if (systemValue != null
-                && !systemValue.isBlank()) {
-
+        String systemValue = System.getenv(variableName);
+        if (systemValue != null && !systemValue.isBlank()) {
             return systemValue.trim();
         }
 
-        String dotenvValue =
-                DOTENV.get(
-                        variableName
-                );
-
-        if (dotenvValue != null
-                && !dotenvValue.isBlank()) {
-
+        String dotenvValue = DOTENV.get(variableName);
+        if (dotenvValue != null && !dotenvValue.isBlank()) {
             return dotenvValue.trim();
         }
 
         return null;
     }
 
-    /**
-     * Zorunlu mail ayarını döndürür.
-     *
-     * Değer environment variable veya .env.mail
-     * içerisinde bulunamazsa hata oluşturur.
-     */
-    private static String getRequiredValue(
-            String variableName) {
+    private static String getRequiredValue(String variableName) {
 
-        String value =
-                getValue(
-                        variableName
-                );
+        String value = getValue(variableName);
 
         if (value == null) {
-
             throw new IllegalStateException(
-                    "Mail ayarı bulunamadı: "
-                            + variableName
-            );
+                    "Mail ayarı bulunamadı: " + variableName
+                            + " (ortam değişkeni veya .env.mail)");
         }
 
         return value;

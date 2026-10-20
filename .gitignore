@@ -57,3 +57,9 @@ logs/
 # SonarQube / SonarLint
 .scannerwork/
 .sonarlint/
+
+# Yerel ayar (kişiye özel)
+config.local.properties
+
+# Mail ayarları (şifre içerir)
+.env.mail

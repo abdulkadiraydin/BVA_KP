@@ -10,103 +10,52 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 /**
- * Son otomasyon test çalıştırmasına ait raporların mail gönderim sürecini yönetir.
+ * Son test koşusunun rapor mailini hazırlar ve gönderir.
  *
- * Son test koşusuna ait raporları ZIP haline getirir, TestNG sonuçlarından
- * test özet bilgilerini alır ve HTML formatında mail içeriği oluşturur.
- *
- * Test sonucuna göre genel durumu BASARILI veya HATALI olarak belirleyerek
- * hazırlanan raporu MailService aracılığıyla tanımlı alıcılara gönderir.
+ * <p>Son koşunun arşivinden ZIP oluşturur, test özetini okur ve HTML mail
+ * içeriğini hazırlayıp MailService ile gönderir. Test JVM'i kapandıktan
+ * (arşiv oluştuktan) sonra, ayrı bir süreçte çalıştırılmalıdır.
  */
-
-
 public final class TestReportMailService {
 
+    // ReportZipUtil'in ürettiği ad: BVA_KP_Test_Raporu_20261020_230900_123.zip
     private static final Pattern RAPOR_TARIH_DESENI =
-            Pattern.compile(
-                    "BVA_KP_Test_Raporu_(\\d{8}_\\d{6})\\.zip"
-            );
+            Pattern.compile("BVA_KP_Test_Raporu_(\\d{8}_\\d{6}_\\d{3})\\.zip");
 
     private static final DateTimeFormatter DOSYA_TARIH_FORMATI =
-            DateTimeFormatter.ofPattern(
-                    "yyyyMMdd_HHmmss"
-            );
+            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
     private static final DateTimeFormatter MAIL_TARIH_FORMATI =
-            DateTimeFormatter.ofPattern(
-                    "dd.MM.yyyy HH:mm:ss"
-            );
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+
+    private static final String BASARILI_RENGI = "#2E7D32";
+    private static final String HATALI_RENGI = "#C62828";
 
     private TestReportMailService() {
     }
 
     public static void sonRaporuMailGonder() {
 
-        System.out.println(
-                "Son otomasyon test raporu hazırlanıyor..."
-        );
+        System.out.println("Son otomasyon test raporu hazırlanıyor...");
 
-        Path raporZip =
-                ReportZipUtil
-                        .sonKosuyuZipOlustur();
+        Path raporZip = ReportZipUtil.sonKosuyuZipOlustur();
+        TestSummary testSummary = TestResultSummaryUtil.sonTestSonucunuAl();
 
-        TestSummary testSummary =
-                TestResultSummaryUtil
-                        .sonTestSonucunuAl();
+        String kosuTarihi = raporTarihiniAl(raporZip);
+        String durum = testSummary.durum();
+        String durumRengi = "BASARILI".equals(durum) ? BASARILI_RENGI : HATALI_RENGI;
 
-        String kosuTarihi =
-                raporTarihiniAl(
-                        raporZip
-                );
+        String konu = "BVA KP Otomasyon Test Raporu - " + durum + " - " + kosuTarihi;
+        String htmlMesaj = htmlMesajOlustur(testSummary, durum, durumRengi, kosuTarihi, raporZip);
 
-        String durum =
-                testSummary.durum();
+        System.out.println("Rapor ZIP oluşturuldu: " + raporZip.toAbsolutePath());
+        System.out.println("Test durumu: " + durum);
+        System.out.println("Mail gönderiliyor...");
 
-        String durumRengi =
-                "BASARILI".equals(durum)
-                        ? "#2E7D32"
-                        : "#C62828";
+        MailService.mailGonder(konu, htmlMesaj, raporZip);
 
-        String konu =
-                "BVA KP Otomasyon Test Raporu - "
-                        + durum
-                        + " - "
-                        + kosuTarihi;
-
-        String htmlMesaj =
-                htmlMesajOlustur(
-                        testSummary,
-                        durum,
-                        durumRengi,
-                        kosuTarihi,
-                        raporZip
-                );
-
-        System.out.println(
-                "Rapor ZIP oluşturuldu: "
-                        + raporZip.toAbsolutePath()
-        );
-
-        System.out.println(
-                "Test durumu: "
-                        + durum
-        );
-
-        System.out.println(
-                "Mail gönderiliyor..."
-        );
-
-        MailService.mailGonder(
-                konu,
-                htmlMesaj,
-                raporZip
-        );
-
-        System.out.println(
-                "Test raporu mail gönderimi tamamlandı."
-        );
+        System.out.println("Test raporu mail gönderimi tamamlandı.");
     }
 
     private static String htmlMesajOlustur(
@@ -118,12 +67,7 @@ public final class TestReportMailService {
 
         return """
                 <html>
-                <body style="
-                    font-family: Arial, sans-serif;
-                    font-size: 14px;
-                    color: #333333;
-                    background-color: #ffffff;
-                ">
+                <body style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; background-color: #ffffff;">
 
                     <p>Merhaba,</p>
 
@@ -132,155 +76,48 @@ public final class TestReportMailService {
                         Test sonuçlarının özeti aşağıda yer almaktadır.
                     </p>
 
-                    <table style="
-                        border-collapse: collapse;
-                        width: 520px;
-                        margin-top: 20px;
-                        margin-bottom: 20px;
-                    ">
-
+                    <table style="border-collapse: collapse; width: 520px; margin-top: 20px; margin-bottom: 20px;">
                         <tr>
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                                font-weight: bold;
-                            ">
-                                Test Durumu
-                            </td>
-
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                                font-weight: bold;
-                                color: %s;
-                            ">
-                                %s
-                            </td>
+                            <td style="padding: 10px; border: 1px solid #dddddd; font-weight: bold;">Test Durumu</td>
+                            <td style="padding: 10px; border: 1px solid #dddddd; font-weight: bold; color: %s;">%s</td>
                         </tr>
-
                         <tr>
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                Toplam Test
-                            </td>
-
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                %d
-                            </td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">Toplam Test</td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">%d</td>
                         </tr>
-
                         <tr>
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                Başarılı
-                            </td>
-
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                                color: #2E7D32;
-                                font-weight: bold;
-                            ">
-                                %d
-                            </td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">Başarılı</td>
+                            <td style="padding: 10px; border: 1px solid #dddddd; color: #2E7D32; font-weight: bold;">%d</td>
                         </tr>
-
                         <tr>
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                Başarısız
-                            </td>
-
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                                color: #C62828;
-                                font-weight: bold;
-                            ">
-                                %d
-                            </td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">Başarısız</td>
+                            <td style="padding: 10px; border: 1px solid #dddddd; color: #C62828; font-weight: bold;">%d</td>
                         </tr>
-
                         <tr>
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                Atlanan
-                            </td>
-
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                %d
-                            </td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">Atlanan</td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">%d</td>
                         </tr>
-
                         <tr>
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                Koşu Tarihi
-                            </td>
-
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                %s
-                            </td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">Koşu Tarihi</td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">%s</td>
                         </tr>
-
                         <tr>
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                Rapor Dosyası
-                            </td>
-
-                            <td style="
-                                padding: 10px;
-                                border: 1px solid #dddddd;
-                            ">
-                                %s
-                            </td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">Rapor Dosyası</td>
+                            <td style="padding: 10px; border: 1px solid #dddddd;">%s</td>
                         </tr>
-
                     </table>
 
                     <p>
-                        Detaylı test sonuçları, test adımları ve ekran görüntüleri
-                        ekte bulunan ZIP dosyasında yer almaktadır.
+                        Test adımları ve ekran görüntüleri ekteki ZIP dosyasında yer almaktadır.
+                        Video ve trace kayıtları otomasyon sunucusundaki rapor arşivinde saklanmaktadır.
                     </p>
 
-                    <p>
-                        İyi çalışmalar.
-                    </p>
+                    <p>İyi çalışmalar.</p>
 
-                    <hr style="
-                        border: 0;
-                        border-top: 1px solid #eeeeee;
-                        margin-top: 25px;
-                    ">
+                    <hr style="border: 0; border-top: 1px solid #eeeeee; margin-top: 25px;">
 
-                    <p style="
-                        font-size: 11px;
-                        color: #888888;
-                    ">
-                        Bu e-posta BVA KP Test Otomasyon sistemi tarafından
-                        otomatik olarak oluşturulmuştur.
+                    <p style="font-size: 11px; color: #888888;">
+                        Bu e-posta BVA KP Test Otomasyon sistemi tarafından otomatik olarak oluşturulmuştur.
                     </p>
 
                 </body>
@@ -293,38 +130,19 @@ public final class TestReportMailService {
                 summary.basarisiz(),
                 summary.atlanan(),
                 kosuTarihi,
-                raporZip
-                        .getFileName()
-                        .toString()
+                raporZip.getFileName().toString()
         );
     }
 
-    private static String raporTarihiniAl(
-            Path raporZip) {
+    /** ZIP adındaki tarihi mailde gösterilecek formata çevirir. */
+    private static String raporTarihiniAl(Path raporZip) {
 
-        String dosyaAdi =
-                raporZip
-                        .getFileName()
-                        .toString();
-
-        Matcher matcher =
-                RAPOR_TARIH_DESENI.matcher(
-                        dosyaAdi
-                );
+        Matcher matcher = RAPOR_TARIH_DESENI.matcher(raporZip.getFileName().toString());
 
         if (!matcher.matches()) {
-
             return "Bilinmiyor";
         }
 
-        LocalDateTime tarih =
-                LocalDateTime.parse(
-                        matcher.group(1),
-                        DOSYA_TARIH_FORMATI
-                );
-
-        return tarih.format(
-                MAIL_TARIH_FORMATI
-        );
+        return LocalDateTime.parse(matcher.group(1), DOSYA_TARIH_FORMATI).format(MAIL_TARIH_FORMATI);
     }
 }

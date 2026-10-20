@@ -3,7 +3,7 @@ Allure Report 2 icin tek bir arsivlenmis test kosusunun HTML raporunu uretir.
 Son raporun history bilgisini sonraki kosuya aktarir.
 Kullanim (proje kok klasorunde):
   .\scripts\Generate-AllureReport.ps1
-  .\scripts\Generate-AllureReport.ps1 -RunDirectory '.\target\allure-runs\Kosu_...'
+    .\scripts\Generate-AllureReport.ps1 -RunDirectory '.\reports\allure-runs\Kosu_...'
 Gereksinim: Allure CLI 2.x, PATH'te `allure` komutu.
 #>
 param(
