@@ -38,11 +38,6 @@ public final class PlaywrightManager {
     private PlaywrightManager() {
     }
 
-    /** Kayıtlı oturum kullanılmadan, konfigürasyondaki tarayıcıyı başlatır. */
-    public static void initialize() {
-        initialize(false);
-    }
-
     /** İstenirse kayıtlı authentication state kullanılarak tarayıcıyı başlatır. */
     public static void initialize(boolean authStateKullan) {
         initialize(
@@ -51,12 +46,6 @@ public final class PlaywrightManager {
                 authStateKullan
         );
     }
-
-    /** Belirtilen tarayıcı ve headless ayarıyla, auth state olmadan başlatır. */
-    public static void initialize(BrowserName browserName, boolean headless) {
-        initialize(browserName, headless, false);
-    }
-
     /**
      * Teste özel tarayıcı ve API oturumunu oluşturur.
      * Nesneler oluşturuldukça ThreadLocal içine alınır; kapanışta temizlenebilir.

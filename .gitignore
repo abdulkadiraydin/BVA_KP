@@ -42,6 +42,7 @@ build/
 
 # Test / Reports
 test-output/
+reports/
 
 # Otomasyon çalışma durumu (auth state, ardışık hata sayacı vb.)
 .automation-state/
