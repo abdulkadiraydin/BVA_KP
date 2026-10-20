@@ -1,6 +1,7 @@
 package com.bvakp.automation.utils;
 
 import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
@@ -9,567 +10,247 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.WaitForSelectorState;
 
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+/**
+ * Testlerin Açık Veri Portalında oluşturduğu kaynakları siler.
+ *
+ * <p>Yalnızca adı tam olarak cleanup.name.prefix (varsayılan "otomasyon_") ile
+ * başlayan kayıtlar silinir. Büyük/küçük harf duyarlıdır; açıklaması "Otomasyon ..."
+ * olan gerçek bir kayıt eşleşmez.
+ *
+ * <p>Güvenlik: base.url'in host'u cleanup.allowed.hosts listesinde değilse
+ * hiçbir şey silinmez. Bu, temizliğin yanlışlıkla canlı ortamda çalışmasını önler.
+ *
+ * <p>Ayarlar: cleanup.enabled, cleanup.allowed.hosts, cleanup.name.prefix, cleanup.max.delete
+ */
 public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
+    private static final String VARSAYILAN_ON_EK = "otomasyon_";
+    private static final int VARSAYILAN_MAKSIMUM_SILME = 200;
 
-    /**
-     * Utility sınıfını manuel olarak çalıştırır.
-     *
-     * Yalnızca adı "otomasyon" ile başlayan
-     * kaynak kayıtları silinir.
-     */
+    private static final String BOS_LISTE_MESAJI = "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.";
+
+    /** Manuel çalıştırma: cleanup.enabled'dan bağımsızdır, ortam kilidi yine geçerlidir. */
     public static void main(String[] args) {
-
         kosuSonuTemizliginiCalistir();
     }
 
-
     /**
-     * Otomasyon kaynak temizliğini bağımsız bir
-     * Playwright oturumu açarak çalıştırır.
-     *
-     * Testlerin kullandığı Page nesnesinden bağımsızdır.
-     * Temizlik tamamlandığında açılan Playwright
-     * oturumu kapatılır.
+     * Temizliği testlerden bağımsız, yeni bir Playwright oturumunda çalıştırır.
+     * Ortam izinli değilse tarayıcı açılmadan çıkar.
      */
     public static void kosuSonuTemizliginiCalistir() {
 
-        OtomasyonKaynakTemizleyici temizleyici =
-                new OtomasyonKaynakTemizleyici();
+        if (!ortamIzinliMi()) {
+            return;
+        }
 
+        OtomasyonKaynakTemizleyici temizleyici = new OtomasyonKaynakTemizleyici();
 
-        ReportManager.info(
-                "OTOMASYON KAYNAK TEMİZLİĞİ İÇİN "
-                        + "YENİ PLAYWRIGHT OTURUMU AÇILIYOR"
-        );
-
+        ReportManager.info("OTOMASYON KAYNAK TEMİZLİĞİ İÇİN YENİ PLAYWRIGHT OTURUMU AÇILIYOR");
 
         try {
-
-            /*
-             * Testlerde kullanılan Page daha önce
-             * kapatılmış olabileceği için temizliğe
-             * özel yeni Playwright oturumu oluşturulur.
-             */
+            // Testlerin Page'i kapanmış olabileceği için temizliğe özel oturum açılır.
             temizleyici.setUp();
-
-
-            /*
-             * Asıl kaynak temizleme işlemi çalıştırılır.
-             */
-            temizleyici
-                    .otomasyonKaynaklariniTemizleme();
-
-
+            temizleyici.otomasyonKaynaklariniTemizle();
         } finally {
-
-            /*
-             * Yalnızca temizleme işlemi için açılan
-             * Playwright oturumu kapatılır.
-             */
-            PlaywrightManager.close(
-                    "otomasyonKaynaklariniTemizleme",
-                    "TEMIZLIK"
-            );
-
-
-            ReportManager.info(
-                    "OTOMASYON KAYNAK TEMİZLİĞİ "
-                            + "PLAYWRIGHT OTURUMU KAPATILDI"
-            );
+            PlaywrightManager.close("otomasyonKaynaklariniTemizleme", "TEMIZLIK");
+            ReportManager.info("OTOMASYON KAYNAK TEMİZLİĞİ PLAYWRIGHT OTURUMU KAPATILDI");
         }
     }
 
-
     /**
-     * Açık Veri Portalındaki adı "otomasyon"
-     * ile başlayan bütün kaynakları siler.
+     * base.url'in host'u cleanup.allowed.hosts listesinde mi kontrol eder.
+     * Liste boşsa hiçbir ortamda silme yapılmaz.
      */
-    private void otomasyonKaynaklariniTemizleme() {
+    private static boolean ortamIzinliMi() {
 
-        ReportManager.info(
-                "OTOMASYON KAYNAK TEMİZLİĞİ BAŞLADI"
-        );
+        String baseUrl = ConfigManager.get("base.url");
+        String host = URI.create(baseUrl).getHost();
 
+        Set<String> izinliHostlar = Arrays.stream(
+                        ConfigManager.getOrDefault("cleanup.allowed.hosts", "").split(","))
+                .map(String::trim)
+                .filter(deger -> !deger.isEmpty())
+                .map(deger -> deger.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
 
-        /*
-         * AVP oturumu hazırlanır.
-         */
+        if (host == null || !izinliHostlar.contains(host.toLowerCase(Locale.ROOT))) {
+            ReportManager.warn("Temizlik ATLANDI: '" + host + "' cleanup.allowed.hosts listesinde değil. "
+                    + "Silme yalnızca izin verilen test ortamlarında yapılır.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void otomasyonKaynaklariniTemizle() {
+
+        String onEk = ConfigManager.getOrDefault("cleanup.name.prefix", VARSAYILAN_ON_EK);
+        int maksimumSilme = maksimumSilmeSayisi();
+
+        ReportManager.info("OTOMASYON KAYNAK TEMİZLİĞİ BAŞLADI | Ön ek: '" + onEk
+                + "' | Üst sınır: " + maksimumSilme);
+
         avpOturumuHazirlama();
 
-        Page aktifPage =
-                page();
+        Page aktifPage = page();
+        OpenDataPage openDataPage = new OpenDataPage(aktifPage);
 
-        OpenDataPage openDataPage =
-                new OpenDataPage(
-                        aktifPage
-                );
-
-
-        /*
-         * Açık Veri Portalına geçilir.
-         */
-        ReportManager.info(
-                "Açık Veri Portalına geçiliyor."
-        );
-
-
+        ReportManager.info("Açık Veri Portalına geçiliyor.");
         openDataPage.acikVeriPortalinaGitme();
 
+        ReportManager.info("'" + onEk + "' kriteri ile kaynaklar filtreleniyor.");
+        openDataPage.kaynakArama(onEk);
 
-        /*
-         * Kaynaklar "otomasyon" kriteriyle filtrelenir.
-         */
-        ReportManager.info(
-                "'otomasyon' kriteri ile kaynaklar filtreleniyor."
-        );
+        aramaSonuclariniBekle(aktifPage, onEk);
 
+        int silinenKayitSayisi = 0;
 
-        openDataPage
-                .kaynakArama(
-                        "otomasyon"
-                );
+        while (silinenKayitSayisi < maksimumSilme) {
 
+            SilinecekKayit kayit = silinecekIlkKaydiBul(aktifPage, onEk);
 
-        /*
-         * Arama sonrasında tablo asenkron olarak
-         * güncellendiği için sonuçların yüklenmesi beklenir.
-         */
-        ReportManager.info(
-                "Otomasyon kaynaklarının yüklenmesi bekleniyor."
-        );
-
-
-        otomasyonKayitlarininYuklenmesiniBekleme(
-                aktifPage
-        );
-
-
-        int silinenKayitSayisi =
-                0;
-
-
-        /*
-         * Silinebilecek otomasyon kaydı kalmayana
-         * kadar işlem devam eder.
-         */
-        while (true) {
-
-            /*
-             * Her silme işleminden sonra tablo yeniden
-             * render edildiği için locator her döngüde
-             * yeniden oluşturulur.
-             */
-            Locator otomasyonSatirlari =
-                    aktifPage.getByRole(
-                            AriaRole.ROW
-                    ).filter(
-                            new Locator.FilterOptions()
-                                    .setHasText(
-                                            "otomasyon"
-                                    )
-                    );
-
-
-            int satirSayisi =
-                    otomasyonSatirlari.count();
-
-
-            ReportManager.info(
-                    "Filtre sonrası bulunan otomasyon satırı sayısı: "
-                            + satirSayisi
-            );
-
-
-            Locator silinecekSatir =
-                    null;
-
-            String silinecekKaynakAdi =
-                    null;
-
-
-            /*
-             * Adı gerçekten "otomasyon" ile başlayan
-             * ilk görünür kaynak kaydı bulunur.
-             */
-            for (int i = 0;
-                 i < satirSayisi;
-                 i++) {
-
-                Locator satir =
-                        otomasyonSatirlari.nth(i);
-
-
-                /*
-                 * Görünür olmayan satırlar dikkate alınmaz.
-                 */
-                if (!satir.isVisible()) {
-
-                    continue;
-                }
-
-
-                Locator hucreler =
-                        satir.getByRole(
-                                AriaRole.GRIDCELL
-                        );
-
-
-                String bulunanKaynakAdi =
-                        null;
-
-
-                /*
-                 * Kaynak adının belirli bir kolon indexinde
-                 * olduğu varsayılmaz.
-                 *
-                 * Satırdaki bütün hücreler kontrol edilerek
-                 * "otomasyon" ile başlayan kaynak adı bulunur.
-                 */
-                for (int hucreIndex = 0;
-                     hucreIndex < hucreler.count();
-                     hucreIndex++) {
-
-                    Locator hucre =
-                            hucreler.nth(
-                                    hucreIndex
-                            );
-
-
-                    if (!hucre.isVisible()) {
-
-                        continue;
-                    }
-
-
-                    String hucreMetni =
-                            hucre
-                                    .innerText()
-                                    .trim();
-
-
-                    if (hucreMetni
-                            .toLowerCase(
-                                    Locale.ROOT
-                            )
-                            .startsWith(
-                                    "otomasyon"
-                            )) {
-
-                        bulunanKaynakAdi =
-                                hucreMetni;
-
-                        break;
-                    }
-                }
-
-
-                /*
-                 * Satır içerisinde otomasyon ile başlayan
-                 * kaynak adı bulunamamışsa sonraki satıra geçilir.
-                 */
-                if (bulunanKaynakAdi == null) {
-
-                    continue;
-                }
-
-
-                /*
-                 * Silinecek kayıt belirlenir.
-                 */
-                silinecekSatir =
-                        satir;
-
-                silinecekKaynakAdi =
-                        bulunanKaynakAdi;
-
-
-                ReportManager.info(
-                        "Silinecek otomasyon kaynağı bulundu"
-                                + " | "
-                                + silinecekKaynakAdi
-                );
-
-
+            if (kayit == null) {
+                ReportManager.info("Silinebilecek otomasyon kaynağı kalmadı.");
                 break;
             }
 
-
-            /*
-             * Silinebilecek otomasyon kaydı
-             * kalmadıysa döngü tamamlanır.
-             */
-            if (silinecekSatir == null) {
-
-                ReportManager.info(
-                        "Silinebilecek otomasyon kaynağı kalmadı."
-                );
-
-                break;
-            }
-
-
-            /*
-             * Silme öncesinde aynı isimde kaç adet
-             * görünür kayıt olduğu alınır.
-             *
-             * Bu kontrol aynı isimde birden fazla
-             * kayıt bulunması durumunu da destekler.
-             */
-            int silmeOncesiKayitSayisi =
-                    gorunurKaynakSayisi(
-                            aktifPage,
-                            silinecekKaynakAdi
-                    );
-
-
-            ReportManager.info(
-                    "Kaynak silme işlemi başlatılıyor"
-                            + " | Kaynak: "
-                            + silinecekKaynakAdi
-                            + " | Aynı isimde görünür kayıt: "
-                            + silmeOncesiKayitSayisi
-            );
-
-
-            /*
-             * İlgili satırdaki Sil butonuna tıklanır.
-             */
-            silinecekSatir
-                    .getByRole(
-                            AriaRole.BUTTON,
-                            new Locator.GetByRoleOptions()
-                                    .setName(
-                                            "Sil"
-                                    )
-                                    .setExact(
-                                            true
-                                    )
-                    )
-                    .click();
-
-
-            /*
-             * Silme onay dialogunun açılması beklenir.
-             */
-            Locator dialog =
-                    aktifPage.getByRole(
-                            AriaRole.DIALOG
-                    );
-
-
-            dialog.waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(
-                                    WaitForSelectorState.VISIBLE
-                            )
-                            .setTimeout(
-                                    10000
-                            )
-            );
-
-
-            ReportManager.info(
-                    "Kaynak silme onay dialogu açıldı"
-                            + " | Kaynak: "
-                            + silinecekKaynakAdi
-            );
-
-
-            /*
-             * Dialog içerisindeki Sil butonuna
-             * tıklanarak işlem onaylanır.
-             */
-            dialog.getByRole(
-                    AriaRole.BUTTON,
-                    new Locator.GetByRoleOptions()
-                            .setName(
-                                    "Sil"
-                            )
-                            .setExact(
-                                    true
-                            )
-            ).click();
-
-
-            /*
-             * Dialog tamamen kapanmadan
-             * tablo kontrolüne geçilmez.
-             */
-            dialog.waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(
-                                    WaitForSelectorState.HIDDEN
-                            )
-                            .setTimeout(
-                                    15000
-                            )
-            );
-
-
-            /*
-             * Lambda içerisinde kullanılacak değerler
-             * final / effectively final değişkenlere alınır.
-             */
-            String kaynakAdiBeklenen =
-                    silinecekKaynakAdi;
-
-            int oncekiKayitSayisi =
-                    silmeOncesiKayitSayisi;
-
-
-            /*
-             * Dialogun kapanması kaydın tablodan gerçekten
-             * silindiğini garanti etmez.
-             *
-             * Aynı isimdeki görünür kayıt sayısının
-             * azalması beklenir.
-             */
-            aktifPage.waitForCondition(
-                    () ->
-                            gorunurKaynakSayisi(
-                                    aktifPage,
-                                    kaynakAdiBeklenen
-                            )
-                                    < oncekiKayitSayisi,
-                    new Page.WaitForConditionOptions()
-                            .setTimeout(
-                                    15000
-                            )
-            );
-
-
+            kaydiSil(aktifPage, kayit);
             silinenKayitSayisi++;
 
-
-            ReportManager.info(
-                    "Kaynak başarıyla silindi"
-                            + " | Kaynak: "
-                            + silinecekKaynakAdi
-                            + " | Toplam silinen: "
-                            + silinenKayitSayisi
-            );
+            ReportManager.info("Kaynak başarıyla silindi | Kaynak: " + kayit.ad()
+                    + " | Toplam silinen: " + silinenKayitSayisi);
         }
 
+        if (silinenKayitSayisi >= maksimumSilme) {
+            ReportManager.warn("Silme üst sınırına ulaşıldı (" + maksimumSilme
+                    + "). Kalan kayıtlar bir sonraki temizlikte silinecek.");
+        }
 
-        ReportManager.info(
-                "OTOMASYON KAYNAK TEMİZLİĞİ TAMAMLANDI"
-                        + " | Toplam silinen kayıt: "
-                        + silinenKayitSayisi
-        );
+        ReportManager.info("OTOMASYON KAYNAK TEMİZLİĞİ TAMAMLANDI | Toplam silinen kayıt: " + silinenKayitSayisi);
     }
 
+    private record SilinecekKayit(Locator satir, String ad) { }
 
     /**
-     * Belirtilen kaynak adına ait görünür
-     * kayıt sayısını döndürür.
-     *
-     * Silme işleminden sonra tablonun gerçekten
-     * güncellendiğini doğrulamak için kullanılır.
-     *
-     * @param kaynakAdi kontrol edilecek kaynak adı
-     * @return görünür kaynak sayısı
+     * Adı ön ekle (büyük/küçük harf duyarlı) başlayan ilk görünür satırı bulur.
+     * Kaynak adının sütun sırası varsayılmaz; satırdaki hücreler tek tek kontrol edilir.
      */
-    private int gorunurKaynakSayisi(
-            Page aktifPage,
-            String kaynakAdi) {
+    private SilinecekKayit silinecekIlkKaydiBul(Page aktifPage, String onEk) {
 
-        Locator kaynakAdiLocator =
-                aktifPage.getByText(
-                        kaynakAdi,
-                        new Page.GetByTextOptions()
-                                .setExact(
-                                        true
-                                )
-                );
+        // Tablo her silmede yeniden çizildiği için locator her seferinde yeniden oluşturulur.
+        Locator adaySatirlar = aktifPage.getByRole(AriaRole.ROW)
+                .filter(new Locator.FilterOptions().setHasText(onEk));
 
+        int satirSayisi = adaySatirlar.count();
 
-        Locator kaynakSatirlari =
-                aktifPage.getByRole(
-                        AriaRole.ROW
-                ).filter(
-                        new Locator.FilterOptions()
-                                .setHas(
-                                        kaynakAdiLocator
-                                )
-                );
+        for (int i = 0; i < satirSayisi; i++) {
 
+            Locator satir = adaySatirlar.nth(i);
+            if (!satir.isVisible()) {
+                continue;
+            }
 
-        int gorunurKayitSayisi =
-                0;
+            Locator hucreler = satir.getByRole(AriaRole.GRIDCELL);
+            int hucreSayisi = hucreler.count();
 
+            for (int h = 0; h < hucreSayisi; h++) {
 
-        int kaynakSatirSayisi =
-                kaynakSatirlari.count();
+                Locator hucre = hucreler.nth(h);
+                if (!hucre.isVisible()) {
+                    continue;
+                }
 
+                String hucreMetni = hucre.innerText().trim();
 
-        for (int i = 0;
-             i < kaynakSatirSayisi;
-             i++) {
-
-            Locator kaynakSatiri =
-                    kaynakSatirlari.nth(
-                            i
-                    );
-
-
-            if (kaynakSatiri.isVisible()) {
-
-                gorunurKayitSayisi++;
+                if (hucreMetni.startsWith(onEk)) {
+                    ReportManager.info("Silinecek otomasyon kaynağı bulundu | " + hucreMetni);
+                    return new SilinecekKayit(satir, hucreMetni);
+                }
             }
         }
 
-
-        return gorunurKayitSayisi;
+        return null;
     }
 
+    private void kaydiSil(Page aktifPage, SilinecekKayit kayit) {
 
-    /**
-     * Otomasyon araması sonrasında tablonun
-     * sonuç üretmesini bekler.
-     *
-     * En az bir otomasyon kaydı veya
-     * boş sonuç bilgisi oluşana kadar beklenir.
-     */
-    private void otomasyonKayitlarininYuklenmesiniBekleme(
-            Page aktifPage) {
+        // Aynı isimde birden fazla kayıt olabilir; silme, sayının azalmasıyla doğrulanır.
+        int silmeOncesiSayi = gorunurKaynakSayisi(aktifPage, kayit.ad());
 
-        Locator otomasyonSatiri =
-                aktifPage.getByRole(
-                        AriaRole.ROW
-                ).filter(
-                        new Locator.FilterOptions()
-                                .setHasText(
-                                        "otomasyon"
-                                )
-                ).first();
+        ReportManager.info("Kaynak silme işlemi başlatılıyor | Kaynak: " + kayit.ad()
+                + " | Aynı isimde görünür kayıt: " + silmeOncesiSayi);
 
+        kayit.satir().getByRole(AriaRole.BUTTON, silButonu()).click();
 
-        Locator bosListeMesaji =
-                aktifPage.getByText(
-                        "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.",
-                        new Page.GetByTextOptions()
-                                .setExact(
-                                        true
-                                )
-                );
+        Locator dialog = aktifPage.getByRole(AriaRole.DIALOG);
+        dialog.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.VISIBLE)
+                .setTimeout(10_000));
 
+        dialog.getByRole(AriaRole.BUTTON, silButonu()).click();
+
+        dialog.waitFor(new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.HIDDEN)
+                .setTimeout(15_000));
+
+        // Dialogun kapanması kaydın silindiğini garanti etmez; tablonun güncellenmesi beklenir.
+        aktifPage.waitForCondition(
+                () -> gorunurKaynakSayisi(aktifPage, kayit.ad()) < silmeOncesiSayi,
+                new Page.WaitForConditionOptions().setTimeout(15_000));
+    }
+
+    private static Locator.GetByRoleOptions silButonu() {
+        return new Locator.GetByRoleOptions().setName("Sil").setExact(true);
+    }
+
+    private int gorunurKaynakSayisi(Page aktifPage, String kaynakAdi) {
+
+        Locator kaynakAdiLocator = aktifPage.getByText(kaynakAdi, new Page.GetByTextOptions().setExact(true));
+        Locator kaynakSatirlari = aktifPage.getByRole(AriaRole.ROW)
+                .filter(new Locator.FilterOptions().setHas(kaynakAdiLocator));
+
+        int gorunurSayi = 0;
+        int satirSayisi = kaynakSatirlari.count();
+
+        for (int i = 0; i < satirSayisi; i++) {
+            if (kaynakSatirlari.nth(i).isVisible()) {
+                gorunurSayi++;
+            }
+        }
+
+        return gorunurSayi;
+    }
+
+    /** Arama sonrası en az bir eşleşen satır veya boş liste mesajı görünene kadar bekler. */
+    private void aramaSonuclariniBekle(Page aktifPage, String onEk) {
+
+        Locator eslesenSatir = aktifPage.getByRole(AriaRole.ROW)
+                .filter(new Locator.FilterOptions().setHasText(onEk))
+                .first();
+
+        Locator bosListeMesaji = aktifPage.getByText(BOS_LISTE_MESAJI, new Page.GetByTextOptions().setExact(true));
 
         aktifPage.waitForCondition(
-                () ->
-                        otomasyonSatiri.isVisible()
-                                || bosListeMesaji.isVisible(),
-                new Page.WaitForConditionOptions()
-                        .setTimeout(
-                                15000
-                        )
-        );
+                () -> eslesenSatir.isVisible() || bosListeMesaji.isVisible(),
+                new Page.WaitForConditionOptions().setTimeout(15_000));
 
+        ReportManager.info("Otomasyon kaynak arama sonuçları yüklendi.");
+    }
 
-        ReportManager.info(
-                "Otomasyon kaynak arama sonuçları yüklendi."
-        );
+    private static int maksimumSilmeSayisi() {
+        String value = ConfigManager.getOrDefault("cleanup.max.delete", String.valueOf(VARSAYILAN_MAKSIMUM_SILME));
+        try {
+            int sayi = Integer.parseInt(value);
+            return sayi >= 1 ? sayi : VARSAYILAN_MAKSIMUM_SILME;
+        } catch (NumberFormatException e) {
+            return VARSAYILAN_MAKSIMUM_SILME;
+        }
     }
 }
