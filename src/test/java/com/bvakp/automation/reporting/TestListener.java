@@ -1,6 +1,5 @@
 package com.bvakp.automation.reporting;
 
-import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.mail.TestFailureAlertMailService;
 import com.bvakp.automation.utils.ScreenshotUtil;
@@ -8,6 +7,8 @@ import com.bvakp.automation.utils.TestFailureTracker;
 import com.bvakp.automation.utils.TestSummaryWriter;
 
 import org.testng.IConfigurationListener;
+import org.testng.IInvokedMethod;
+import org.testng.IInvokedMethodListener;
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
 import org.testng.ISuiteResult;
@@ -16,68 +17,74 @@ import org.testng.ITestResult;
 
 import java.nio.file.Path;
 
-/**
- * Test yaşam döngüsünü dinler: rapor, screenshot, hata takibi ve özet.
- */
 public class TestListener
         implements ITestListener,
+        IInvokedMethodListener,
         IConfigurationListener,
         ISuiteListener {
 
-    // ------------------------------------------------------------------
-    // Test başladı
-    // ------------------------------------------------------------------
+    private static final String SCREENSHOT_ATTRIBUTE =
+            "test.screenshot.path";
 
     @Override
     public void onTestStart(ITestResult result) {
 
-        String testName = getTestName(result);
-        String className = getClassName(result);
+        /*
+         * Listener artık testng.xml üzerinden suite seviyesinde
+         * çalıştığı için bütün test class'ları rapora dahil edilir.
+         */
+        AllureRunOrganizer.initialize();
 
-        HtmlReportManager.startTest(className, testName);
+        String testName =
+                getTestName(result);
+
+        String className =
+                getClassName(result);
+
+        HtmlReportManager.startTest(
+                className,
+                testName
+        );
 
         ReportManager.info(
-                "TEST BAŞLADI | " + className + "." + testName
+                "TEST BAŞLADI | "
+                        + className
+                        + "."
+                        + testName
         );
     }
-
-    // ------------------------------------------------------------------
-    // Test başarılı
-    // ------------------------------------------------------------------
 
     @Override
     public void onTestSuccess(ITestResult result) {
 
-        long duration = getDuration(result);
-        String testName = getTestName(result);
+        long duration =
+                getDuration(result);
 
-        /*
-         * Başarılı testte screenshot varsayılan olarak kapalıdır.
-         * Açmak için config.properties: screenshot.on.success=true
-         */
-        if (basariliTestteScreenshotAlinsinMi()) {
+        String testName =
+                getTestName(result);
 
-            Path screenshotPath =
-                    ScreenshotUtil.takeScreenshot(
-                            PlaywrightManager.getPage(),
-                            testName + "_basarili"
-                    );
+        // afterInvocation sırasında alınan aynı ekran görüntüsü kullanılır.
+        Path screenshotPath =
+                (Path) result.getAttribute(SCREENSHOT_ATTRIBUTE);
 
-            if (screenshotPath != null) {
-
-                ReportManager.info(
-                        "Başarılı test screenshot oluşturuldu | "
-                                + screenshotPath.toAbsolutePath()
-                );
-
-                ReportManager.attachScreenshot(
-                        "Success Screenshot",
-                        screenshotPath
-                );
-            }
+        if (screenshotPath != null) {
+            ReportManager.info(
+                    "Başarılı test screenshot oluşturuldu | "
+                            + screenshotPath.toAbsolutePath()
+            );
+        } else {
+            ReportManager.warn(
+                    "Başarılı test için screenshot bulunamadı | "
+                            + testName
+            );
         }
 
-        HtmlReportManager.markPassed(duration);
+        /*
+         * Screenshot kaydedildikten sonra testi başarılı kapat.
+         */
+        HtmlReportManager.markPassed(
+                duration
+        );
 
         ReportManager.info(
                 "TEST BAŞARILI | "
@@ -86,16 +93,13 @@ public class TestListener
                         + duration
                         + " ms"
         );
-
-        TestFailureTracker.basariliTestKaydet(
-                getClassName(result),
-                testName
-        );
+        TestFailureTracker
+                .basariliTestKaydet(
+                        getClassName(result),
+                        testName
+                );
     }
 
-    // ------------------------------------------------------------------
-    // Test başarısız
-    // ------------------------------------------------------------------
 
     @Override
     public void onTestFailure(ITestResult result) {
@@ -106,49 +110,41 @@ public class TestListener
         String className = getClassName(result);
         long duration = getDuration(result);
 
-        ReportManager.error("TEST BAŞARISIZ | " + testName);
+        // Test hatasını raporlamak için kullanılır.
+        ReportManager.error(
+                "TEST BAŞARISIZ | " + testName
+        );
 
         if (result.getThrowable() != null) {
-
             ReportManager.error(
-                    "Hata detayı: " + result.getThrowable().getMessage(),
+                    "Hata detayı: "
+                            + result.getThrowable().getMessage(),
                     result.getThrowable()
             );
         }
 
-        /*
-         * Screenshot yalnızca ek bilgidir. Alınamazsa (null) hata takibi
-         * ve mail yine de çalışır.
-         */
+        // Screenshot daha önce afterInvocation içinde alınmıştır.
+        // TestListener burada ikinci bir screenshot oluşturmaz.
         Path screenshotPath =
-                ScreenshotUtil.takeScreenshot(
-                        PlaywrightManager.getPage(),
-                        testName
-                );
+                (Path) result.getAttribute(SCREENSHOT_ATTRIBUTE);
 
         if (screenshotPath != null) {
-
             ReportManager.info(
-                    "Screenshot oluşturuldu | "
+                    "Başarısız test screenshot oluşturuldu | "
                             + screenshotPath.toAbsolutePath()
             );
-
-            /* Hem Allure'a hem HTML raporuna bağlanır. */
-            ReportManager.attachScreenshot(
-                    "Failure Screenshot",
-                    screenshotPath
-            );
-
         } else {
-
-            ReportManager.warn("Screenshot alınamadı | " + testName);
+            ReportManager.warn(
+                    "Başarısız test için screenshot bulunamadı | "
+                            + testName
+            );
         }
 
-        /*
-         * Hata sayacı ve mail, screenshot'a bağlı değildir.
-         */
-        int failureCount =
-                TestFailureTracker.hataKaydet(className, testName);
+        // Screenshot sonucundan bağımsız hata sayısını günceller.
+        int failureCount = TestFailureTracker.hataKaydet(
+                className,
+                testName
+        );
 
         ReportManager.info(
                 "Ardışık hata sayısı | "
@@ -157,52 +153,68 @@ public class TestListener
                         + failureCount
         );
 
+        // Hata eşiği aşıldığında bilgilendirme maili gönderir.
         if (TestFailureTracker.mailGonderilmeliMi(
                 className,
                 testName,
                 failureCount
         )) {
+            try {
+                TestFailureAlertMailService
+                        .hataBilgilendirmeMailiGonder(
+                                className,
+                                testName,
+                                failureCount,
+                                result.getThrowable(),
+                                screenshotPath
+                        );
 
-            hataMailiGonder(
-                    className,
-                    testName,
-                    failureCount,
-                    result.getThrowable(),
-                    screenshotPath
-            );
+                TestFailureTracker.mailGonderildiKaydet(
+                        className,
+                        testName
+                );
+
+            } catch (Exception e) {
+                ReportManager.error(
+                        "Test hata bilgilendirme maili gönderilemedi: "
+                                + e.getMessage(),
+                        e
+                );
+            }
         }
 
+        // Başarısız test sonucunu HTML raporuna kaydeder.
         HtmlReportManager.markFailed(
                 duration,
                 result.getThrowable()
         );
     }
 
-    // ------------------------------------------------------------------
-    // Test atlandı
-    // ------------------------------------------------------------------
-
     @Override
     public void onTestSkipped(ITestResult result) {
 
-        HtmlReportManager.markSkipped(getDuration(result));
+        long duration =
+                getDuration(result);
+
+        HtmlReportManager.markSkipped(
+                duration
+        );
 
         ReportManager.warn(
-                "TEST ATLANDI | " + getTestName(result)
+                "TEST ATLANDI | "
+                        + getTestName(result)
         );
     }
 
-    // ------------------------------------------------------------------
-    // Configuration (@BeforeMethod, @AfterMethod vb.) hatası
-    // ------------------------------------------------------------------
-
     @Override
-    public void onConfigurationFailure(ITestResult result) {
+    public void onConfigurationFailure(
+            ITestResult result) {
 
         AllureRunOrganizer.markFailed();
 
         ReportManager.error(
-                "CONFIGURATION HATASI | " + result.getName()
+                "CONFIGURATION HATASI | "
+                        + result.getName()
         );
 
         if (result.getThrowable() != null) {
@@ -215,44 +227,90 @@ public class TestListener
         }
     }
 
-    // ------------------------------------------------------------------
-    // Suite bitti: sonuç özeti
-    // ------------------------------------------------------------------
+    private String getTestName(
+            ITestResult result) {
+
+        return result
+                .getMethod()
+                .getMethodName();
+    }
+
+    private String getClassName(
+            ITestResult result) {
+
+        return result
+                .getTestClass()
+                .getRealClass()
+                .getSimpleName();
+    }
+
+    private long getDuration(
+            ITestResult result) {
+
+        return result.getEndMillis()
+                - result.getStartMillis();
+    }
 
     /**
-     * Başarılı, başarısız ve atlanan test sayılarını hesaplar ve
-     * mail raporunda kullanılmak üzere target/test-summary.properties
-     * dosyasına yazar.
+     * TestNG suite çalışması tamamen tamamlandığında
+     * başarılı, başarısız ve atlanan test sayılarını hesaplar.
+     *
+     * Hesaplanan sonuçlar mail raporunda kullanılmak üzere
+     * target/test-summary.properties dosyasına yazılır.
      */
     @Override
     public void onFinish(ISuite suite) {
+
+        // Video/trace dosyaları @AfterMethod'da tamamlandıktan sonra
+        // ait oldukları testin Allure result.json dosyasına eklenir.
+        AllureArtifactCollector.publishPendingArtifacts();
 
         int basarili = 0;
         int basarisiz = 0;
         int atlanan = 0;
 
         /*
-         * Suite içinde birden fazla <test> bloğu olabileceği için
-         * bütün test context sonuçları birlikte hesaplanır.
+         * Suite içerisinde birden fazla <test> bloğu bulunabileceği için
+         * bütün TestNG test context sonuçları birlikte hesaplanır.
          */
-        for (ISuiteResult suiteResult : suite.getResults().values()) {
+        for (ISuiteResult suiteResult
+                : suite.getResults().values()) {
 
-            basarili += suiteResult.getTestContext()
-                    .getPassedTests().size();
+            basarili +=
+                    suiteResult
+                            .getTestContext()
+                            .getPassedTests()
+                            .size();
 
-            basarisiz += suiteResult.getTestContext()
-                    .getFailedTests().size();
+            basarisiz +=
+                    suiteResult
+                            .getTestContext()
+                            .getFailedTests()
+                            .size();
 
-            atlanan += suiteResult.getTestContext()
-                    .getSkippedTests().size();
+            atlanan +=
+                    suiteResult
+                            .getTestContext()
+                            .getSkippedTests()
+                            .size();
         }
 
-        int toplam = basarili + basarisiz + atlanan;
+        int toplam =
+                basarili
+                        + basarisiz
+                        + atlanan;
 
-        /* Raporlar koşu biter bitmez burada üretilir. */
+        TestSummaryWriter.yaz(
+                toplam,
+                basarili,
+                basarisiz,
+                atlanan
+        );
+
+        // main branch'indeki suite sonu raporlama çağrısını korur.
+        // Birleştirilmiş AllureRunOrganizer işlemi JVM kapanışına erteler;
+        // böylece Allure attachment dosyaları eksiksiz arşivlenir.
         AllureRunOrganizer.organizeResults();
-
-        TestSummaryWriter.yaz(toplam, basarili, basarisiz, atlanan);
 
         System.out.println(
                 "Test özeti oluşturuldu -> "
@@ -263,66 +321,77 @@ public class TestListener
         );
     }
 
-    // ------------------------------------------------------------------
-    // Yardımcı metotlar
-    // ------------------------------------------------------------------
-
-    private boolean basariliTestteScreenshotAlinsinMi() {
-
-        return Boolean.parseBoolean(
-                ConfigManager.getOrDefault("screenshot.on.success", "false")
-        );
-    }
 
     /**
-     * Mail hatası test sonucunu değiştirmesin diye
-     * exception burada yakalanır.
+     * Test metodu biter bitmez, sonuç callback'lerinden önce
+     * tek ekran görüntüsü almak ve Allure/HTML raporlarına
+     * eklemek için kullanılır.
      */
-    private void hataMailiGonder(
-            String className,
-            String testName,
-            int failureCount,
-            Throwable hata,
-            Path screenshotPath) {
+    @Override
+    public void afterInvocation(
+            IInvokedMethod method,
+            ITestResult result) {
+
+        if (!method.isTestMethod()) {
+            return;
+        }
+
+        // Testin Allure UUID'sini ekran görüntüsü ve teardown öncesinde saklar.
+        AllureArtifactCollector.bindCurrentTest(getClassName(result));
+
+        if (result.getAttribute(SCREENSHOT_ATTRIBUTE) != null) {
+            return;
+        }
 
         try {
+            var page = PlaywrightManager.getPage();
 
-            TestFailureAlertMailService.hataBilgilendirmeMailiGonder(
-                    className,
-                    testName,
-                    failureCount,
-                    hata,
+            if (page == null || page.isClosed()) {
+                ReportManager.warn(
+                        "Screenshot alınamadı: Aktif Page bulunamadı | "
+                                + getTestName(result)
+                );
+                return;
+            }
+
+            String testName = getTestName(result);
+            boolean basarisiz = result.getStatus() == ITestResult.FAILURE
+                    || result.getThrowable() != null;
+
+            String suffix = basarisiz ? "_hatali" : "_basarili";
+            Path screenshotPath = ScreenshotUtil.takeScreenshot(
+                    page,
+                    testName + suffix
+            );
+
+            if (screenshotPath == null) {
+                ReportManager.warn(
+                        "Screenshot oluşturulamadı | " + testName
+                );
+                return;
+            }
+
+            // Screenshot'un fiziksel arsivde dogru class'a kopyalanmasini saglar.
+            AllureArtifactCollector.registerScreenshot(screenshotPath);
+
+            // Test sonucu callback'leri ve hata maili aynı dosyayı kullanır.
+            result.setAttribute(
+                    SCREENSHOT_ATTRIBUTE,
                     screenshotPath
             );
 
-            /*
-             * Mail gerçekten gönderildikten sonra
-             * günlük gönderim tarihi kaydedilir.
-             */
-            TestFailureTracker.mailGonderildiKaydet(className, testName);
+            ReportManager.attachScreenshot(
+                    basarisiz ? "Failure Screenshot" : "Success Screenshot",
+                    screenshotPath
+            );
 
         } catch (Exception e) {
-
-            ReportManager.error(
-                    "Test hata bilgilendirme maili gönderilemedi: "
-                            + e.getMessage(),
-                    e
+            // Raporlama hatası testin asıl sonucunu değiştirmez.
+            ReportManager.warn(
+                    "Screenshot işlemi başarısız | "
+                            + getTestName(result) + " | " + e.getMessage()
             );
         }
     }
 
-    private String getTestName(ITestResult result) {
-
-        return result.getMethod().getMethodName();
-    }
-
-    private String getClassName(ITestResult result) {
-
-        return result.getTestClass().getRealClass().getSimpleName();
-    }
-
-    private long getDuration(ITestResult result) {
-
-        return result.getEndMillis() - result.getStartMillis();
-    }
 }
