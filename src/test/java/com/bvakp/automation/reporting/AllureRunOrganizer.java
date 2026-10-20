@@ -1,5 +1,7 @@
 package com.bvakp.automation.reporting;
 
+import com.bvakp.automation.core.config.ConfigManager;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,8 +12,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -20,12 +23,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 /**
- * TestNG kosusunun Allure raporlarini ve test kanitlarini arsivler.
- * Kaynak dosyalari silmez; onceki kosularin dosyalarini yeni arsive katmaz.
- * Kalici arsiv varsayilan olarak reports/allure-runs altindadir: mvn clean
- * ile silinen target klasorunden ayri tutulur.
- * Allure 2 HTML raporu ve history, arsivleme sonrasi otomatik olarak
- * scripts/Generate-AllureReport.ps1 kullanilarak uretilir.
+ * TestNG koşusunun Allure raporlarını ve test kanıtlarını arşivler.
+ *
+ * <p>Kaynak dosyaları silmez; önceki koşuların dosyalarını yeni arşive katmaz.
+ * Kalıcı arşiv varsayılan olarak reports/allure-runs altındadır ve mvn clean ile
+ * silinen target klasöründen ayrı tutulur. Allure 2 HTML raporu ve history,
+ * arşivleme sonrası scripts/Generate-AllureReport.ps1 ile otomatik üretilir.
+ *
+ * <p>Ayarlar (-D veya config.properties):
+ * allure.report.auto.generate (varsayılan true), allure.report.timeout.seconds (varsayılan 300).
+ *
+ * <p>Arşivleme JVM kapanışında çalıştığı için bu sınıf, logger kapanmış olabileceğinden
+ * bilinçli olarak System.out/err kullanır.
  */
 public final class AllureRunOrganizer {
 
@@ -37,35 +46,30 @@ public final class AllureRunOrganizer {
             System.getProperty("report.archive.directory", "reports/allure-runs")
     ).toAbsolutePath().normalize();
 
-    private static final Path SCREENSHOTS = Paths.get("target", "screenshots")
-            .toAbsolutePath().normalize();
-    private static final Path VIDEOS = Paths.get("target", "videos")
-            .toAbsolutePath().normalize();
-    private static final Path TRACES = Paths.get("target", "traces")
-            .toAbsolutePath().normalize();
+    private static final Path SCREENSHOTS = Paths.get("target", "screenshots").toAbsolutePath().normalize();
+    private static final Path VIDEOS = Paths.get("target", "videos").toAbsolutePath().normalize();
+    private static final Path TRACES = Paths.get("target", "traces").toAbsolutePath().normalize();
 
     private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
     private static final AtomicBoolean RUN_FAILED = new AtomicBoolean(false);
     private static final AtomicBoolean SHUTDOWN_STARTED = new AtomicBoolean(false);
     private static final AtomicBoolean ORGANIZED = new AtomicBoolean(false);
 
-    // JVM property: -Dreport.auto.generate=false ile otomatik rapor kapatilabilir.
-    private static final boolean AUTO_GENERATE_REPORT = Boolean.parseBoolean(
-            System.getProperty("report.auto.generate", "true")
-    );
+    private static final long VARSAYILAN_RAPOR_ZAMAN_ASIMI = 300L;
+    private static final long MINIMUM_RAPOR_ZAMAN_ASIMI = 30L;
 
     private static final String RUN_ID = LocalDateTime.now()
             .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))
             + "_" + UUID.randomUUID().toString().substring(0, 8);
 
-    // Snapshot, testler baslamadan once alinir. Boylesi eski Allure dosyalarini
-    // silmeden yeni kosunun teknik ciktilarini ayirmamizi saglar.
+    // Testler başlamadan alınan envanter; eski dosyaları silmeden
+    // yeni koşunun çıktılarını ayırmayı sağlar.
     private static final Map<Path, Set<Path>> INITIAL_FILES = new HashMap<>();
 
     private AllureRunOrganizer() {
     }
 
-    /** Testler baslamadan, mevcut BaseTest/TestListener tarafindan cagirilir. */
+    /** Testler başlamadan BaseTest/TestListener tarafından çağrılır; yalnızca ilk çağrıda çalışır. */
     public static void initialize() {
         if (!INITIALIZED.compareAndSet(false, true)) {
             return;
@@ -75,44 +79,43 @@ public final class AllureRunOrganizer {
             try {
                 INITIAL_FILES.put(directory, snapshot(directory));
             } catch (IOException e) {
-                // Hata alinan dizini bos kabul etmek eski dosyalari yenisine
-                // karistiracagi icin arsivlemeyi bu dizin icin devre disi birakir.
+                // Boş kabul etmek eski dosyaları yeni koşuya karıştıracağı için
+                // bu dizin arşivlemeden çıkarılır.
                 INITIAL_FILES.put(directory, null);
-                System.err.println("Arsiv baslangic envanteri alinamadi: "
+                System.err.println("Arşiv başlangıç envanteri alınamadı: "
                         + directory + " | " + e.getMessage());
             }
         }
 
-        // TestListener.onFinish daha once organizeResults() cagirabiliyordu.
-        // Allure JSON ve videolar tamamlansin diye asil islem JVM kapanisinda yapilir.
+        // Allure JSON ve videolar tamamlansın diye asıl işlem JVM kapanışında yapılır.
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             SHUTDOWN_STARTED.set(true);
             organizeResults();
         }, "allure-run-organizer"));
     }
 
-    /** Bu kosuda test veya TestNG configuration hatasi oldugunu belirtir. */
+    /** Bu koşuda test veya TestNG configuration hatası olduğunu belirtir. */
     public static void markFailed() {
         RUN_FAILED.set(true);
     }
 
     /**
-     * Main branch'indeki TestListener.onFinish cagrisi icin public tutulur.
-     * Erken cagri rapor olusturmaz; arsivleme JVM kapanis hook'unda yapilir.
-     * Boylece Allure dosyalari tamamlanmadan rapor uretilmesi engellenir.
+     * Main branch'indeki TestListener.onFinish çağrısı için public tutulur.
+     * Erken çağrı rapor oluşturmaz; arşivleme JVM kapanış hook'unda yapılır.
      */
     public static void organizeResults() {
         if (!SHUTDOWN_STARTED.get()) {
-            System.out.println("Allure arsivleme JVM kapanisina ertelendi.");
+            System.out.println("Allure arşivleme JVM kapanışına ertelendi.");
             return;
         }
         if (!ORGANIZED.compareAndSet(false, true)) {
             return;
         }
+
         List<String> classNames = HtmlReportManager.getExecutedClassNames();
         boolean hasNewResults = hasNewFiles(ALLURE_SOURCE);
         if (classNames.isEmpty() && !hasNewResults) {
-            System.out.println("Bu kosu icin arsivlenecek test sonucu bulunamadi.");
+            System.out.println("Bu koşu için arşivlenecek test sonucu bulunamadı.");
             return;
         }
 
@@ -123,31 +126,30 @@ public final class AllureRunOrganizer {
         try {
             Files.createDirectories(runDirectory);
         } catch (IOException e) {
-            System.err.println("Kosu arsivi olusturulamadi: " + e.getMessage());
+            System.err.println("Koşu arşivi oluşturulamadı: " + e.getMessage());
             return;
         }
 
-        // Class klasorlerinin tam yolunu saklayarak kanitlari dogru class'a
-        // ayiririz; ayni isimli test metotlari birbirine karismaz.
         Map<String, Path> classDirectories = new LinkedHashMap<>();
-        // Bir klasordeki kopyalama hatasi diger kanitlari kaybettirmemeli.
+
         for (String className : classNames) {
-            String classStatus = HtmlReportManager.classFailed(className)
-                    ? "HATALI" : "BASARILI";
-            Path classDirectory = runDirectory.resolve(
-                    safeName(className) + "_" + RUN_ID + "_" + classStatus
-            );
+            String classStatus = HtmlReportManager.classFailed(className) ? "HATALI" : "BASARILI";
+
+            // Koşu kimliği üst klasörde olduğu için class klasöründe tekrarlanmaz;
+            // böylece Windows'ta uzun yol sorunları önlenir.
+            Path classDirectory = runDirectory.resolve(safeName(className) + "_" + classStatus);
             classDirectories.put(className, classDirectory);
+
             try {
                 HtmlReportManager.generateReport(classDirectory, className);
             } catch (RuntimeException e) {
-                System.err.println("HTML class raporu olusturulamadi: "
+                System.err.println("HTML class raporu oluşturulamadı: "
                         + className + " | " + e.getMessage());
             }
         }
 
-        // Allure'un ham result.json ve attachment dosyalari tek yerde kalir.
-        // Medya kanitlari ise TestNG sinifina gore arsivlenir.
+        // Allure dosyaları tek klasörde kalır (result.json -> ek bağları dosya adına dayanır);
+        // medya kanıtları ise test class'ına göre ayrılır.
         copyNewFiles(ALLURE_SOURCE, runDirectory.resolve("allure-results"));
         copyClassArtifacts(SCREENSHOTS, "screenshots", runDirectory, classDirectories);
         copyClassArtifacts(VIDEOS, "videos", runDirectory, classDirectories);
@@ -160,79 +162,74 @@ public final class AllureRunOrganizer {
                             + "run.classes=" + classNames.size() + System.lineSeparator(),
                     StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.err.println("Kosu ozeti yazilamadi: " + e.getMessage());
+            System.err.println("Koşu özeti yazılamadı: " + e.getMessage());
         }
 
-        System.out.println("Test kosusu rapor klasoru olusturuldu: " + runDirectory);
+        System.out.println("Test koşusu rapor klasörü oluşturuldu: " + runDirectory);
         generateAllureReport(runDirectory);
     }
 
     /**
-     * Arsiv tamamlandiktan sonra Allure CLI HTML ve History raporunu olusturur.
-     * Rapor hatasi ham kanitlari silmez veya TestNG sonucunu degistirmez.
+     * Arşiv tamamlandıktan sonra Allure CLI ile HTML ve History raporunu oluşturur.
+     * Rapor hatası ham kanıtları silmez veya TestNG sonucunu değiştirmez.
      */
     private static void generateAllureReport(Path runDirectory) {
-        if (!AUTO_GENERATE_REPORT) {
-            System.out.println("Otomatik Allure raporu kapali (report.auto.generate=false).");
+        if (!otomatikRaporAcikMi()) {
+            System.out.println("Otomatik Allure raporu kapalı (allure.report.auto.generate=false).");
             return;
         }
 
         Path resultsDirectory = runDirectory.resolve("allure-results");
         try {
             if (!Files.isDirectory(resultsDirectory)) {
-                System.err.println("Allure raporu atlandi: arsivlenmis allure-results bulunamadi.");
+                System.err.println("Allure raporu atlandı: arşivlenmiş allure-results bulunamadı.");
                 return;
             }
             try (Stream<Path> results = Files.list(resultsDirectory)) {
                 if (results.noneMatch(path -> Files.isRegularFile(path)
                         && path.getFileName().toString().endsWith("-result.json"))) {
-                    System.err.println("Allure raporu atlandi: bu kosuda result.json bulunamadi.");
+                    System.err.println("Allure raporu atlandı: bu koşuda result.json bulunamadı.");
                     return;
                 }
             }
         } catch (IOException e) {
-            System.err.println("Allure sonuc kontrolu yapilamadi: " + e.getMessage());
+            System.err.println("Allure sonuç kontrolü yapılamadı: " + e.getMessage());
             return;
         }
 
-        // Kullanici Windows/IntelliJ PowerShell uzerinden calisiyor.
-        if (!System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT)
-                .contains("windows")) {
-            System.err.println("Otomatik Allure raporu bu surumde Windows gerektirir. "
-                    + "Script manuel calistirilabilir.");
+        if (!System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("windows")) {
+            System.err.println("Otomatik Allure raporu bu sürümde Windows gerektirir. "
+                    + "Script manuel çalıştırılabilir.");
             return;
         }
 
-        Path projectRoot = Paths.get(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
+        Path projectRoot = Paths.get(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
         Path script = projectRoot.resolve("scripts/Generate-AllureReport.ps1");
         if (!Files.isRegularFile(script)) {
-            System.err.println("Otomatik Allure script'i bulunamadi: " + script);
+            System.err.println("Otomatik Allure script'i bulunamadı: " + script);
             return;
         }
 
         Path reportLog = runDirectory.resolve("allure-generation.log");
-        long timeoutSeconds = Math.max(30L,
-                Long.getLong("report.auto.timeout.seconds", 300L));
+        long timeoutSeconds = raporZamanAsimi();
         Process process = null;
+
         try {
-            // Kurum politikasi izin veriyorsa yalnizca alt islemde Bypass kullanilir.
-            // Windows'un kalici ExecutionPolicy ayari degistirilmez.
+            // Bypass yalnızca bu alt süreç için geçerlidir;
+            // Windows'un kalıcı ExecutionPolicy ayarı değiştirilmez.
             ProcessBuilder builder = new ProcessBuilder(
                     "powershell.exe",
                     "-NoProfile",
                     "-NonInteractive",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-File",
-                    script.toString(),
-                    "-RunDirectory",
-                    runDirectory.toString()
+                    "-ExecutionPolicy", "Bypass",
+                    "-File", script.toString(),
+                    "-RunDirectory", runDirectory.toString()
             );
             builder.directory(projectRoot.toFile());
             builder.redirectErrorStream(true);
             builder.redirectOutput(ProcessBuilder.Redirect.appendTo(reportLog.toFile()));
-            System.out.println("Allure HTML raporu otomatik olusturuluyor: " + runDirectory);
+
+            System.out.println("Allure HTML raporu otomatik oluşturuluyor: " + runDirectory);
             process = builder.start();
 
             if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
@@ -240,38 +237,52 @@ public final class AllureRunOrganizer {
                 if (!process.waitFor(5, TimeUnit.SECONDS)) {
                     process.destroyForcibly();
                 }
-                System.err.println("Allure raporu zaman asimina ugradi: " + reportLog);
+                System.err.println("Allure raporu zaman aşımına uğradı: " + reportLog);
                 return;
             }
 
-            if (process.exitValue() == 0
-                    && Files.isRegularFile(runDirectory.resolve("allure-report/index.html"))) {
-                System.out.println("Allure HTML raporu hazir: "
-                        + runDirectory.resolve("allure-report/index.html"));
-                System.out.println("Allure History guncellendi: "
-                        + projectRoot.resolve("reports/allure-history"));
+            Path indexHtml = runDirectory.resolve("allure-report/index.html");
+            if (process.exitValue() == 0 && Files.isRegularFile(indexHtml)) {
+                System.out.println("Allure HTML raporu hazır: " + indexHtml);
+                System.out.println("Allure History güncellendi: " + projectRoot.resolve("reports/allure-history"));
             } else {
-                System.err.println("Allure raporu olusturulamadi (cikis kodu "
-                        + process.exitValue() + "). Ayrintilar: " + reportLog);
+                System.err.println("Allure raporu oluşturulamadı (çıkış kodu "
+                        + process.exitValue() + "). Ayrıntılar: " + reportLog);
             }
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             if (process != null) {
                 process.destroyForcibly();
             }
-            System.err.println("Allure rapor islemi kesildi: " + reportLog);
+            System.err.println("Allure rapor işlemi kesildi: " + reportLog);
         } catch (IOException | SecurityException e) {
-            System.err.println("Allure rapor script'i baslatilamadi: " + e.getMessage());
+            System.err.println("Allure rapor script'i başlatılamadı: " + e.getMessage());
             System.err.println("Manuel komut: .\\scripts\\Generate-AllureReport.ps1");
         }
     }
 
+    private static boolean otomatikRaporAcikMi() {
+        return Boolean.parseBoolean(ConfigManager.getOrDefault("allure.report.auto.generate", "true"));
+    }
+
+    /** Hatalı veya çok küçük değerde varsayılana/minimuma döner. */
+    private static long raporZamanAsimi() {
+        String value = ConfigManager.getOrDefault(
+                "allure.report.timeout.seconds", String.valueOf(VARSAYILAN_RAPOR_ZAMAN_ASIMI));
+        try {
+            return Math.max(MINIMUM_RAPOR_ZAMAN_ASIMI, Long.parseLong(value));
+        } catch (NumberFormatException e) {
+            System.err.println("Geçersiz allure.report.timeout.seconds '" + value
+                    + "'; " + VARSAYILAN_RAPOR_ZAMAN_ASIMI + " kullanılıyor.");
+            return VARSAYILAN_RAPOR_ZAMAN_ASIMI;
+        }
+    }
+
     /**
-     * Kaynak dosyalari yerinde birakir; her yeni kaniti ait oldugu class
-     * klasorune kopyalar. Allure'in kullandigi attachment dosyalarina dokunmaz.
-     *
-     * Sinifi bilinmeyen dosyalar yanlis bir test sinifina yazilmaz; ayri bir
-     * Sinifi_Belirlenemeyen klasorune alinarak veri kaybi onlenir.
+     * Yeni kanıtları ait oldukları class klasörüne kopyalar; kaynakları yerinde bırakır.
+     * Class'ı bilinmeyen dosyalar yanlış bir class'a yazılmaz, Sinifi_Belirlenemeyen
+     * klasörüne alınarak veri kaybı önlenir.
      */
     private static void copyClassArtifacts(
             Path source,
@@ -295,7 +306,7 @@ public final class AllureRunOrganizer {
                 Path classDirectory = classDirectories.get(className);
                 if (classDirectory == null) {
                     classDirectory = runDirectory.resolve("Sinifi_Belirlenemeyen");
-                    System.err.println("Kanitin test sinifi eslestirilemedi: " + file);
+                    System.err.println("Kanıtın test sınıfı eşleştirilemedi: " + file);
                 }
 
                 Path destination = classDirectory.resolve(mediaFolder).resolve(relative);
@@ -303,16 +314,15 @@ public final class AllureRunOrganizer {
                     Files.createDirectories(destination.getParent());
                     Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
-                    System.err.println("Kanit kopyalanamadi: " + file
-                            + " | " + e.getMessage());
+                    System.err.println("Kanıt kopyalanamadı: " + file + " | " + e.getMessage());
                 }
             }
         } catch (IOException e) {
-            System.err.println("Class bazli kanit arsivleme basarisiz: "
-                    + source + " | " + e.getMessage());
+            System.err.println("Class bazlı kanıt arşivleme başarısız: " + source + " | " + e.getMessage());
         }
     }
 
+    /** Envanterde olmayan dosyaları klasör yapısını koruyarak kopyalar. */
     private static void copyNewFiles(Path source, Path destination) {
         Set<Path> initial = INITIAL_FILES.get(source);
         if (initial == null || !Files.isDirectory(source)) {
@@ -327,13 +337,10 @@ public final class AllureRunOrganizer {
                 }
                 Path target = destination.resolve(relative);
                 Files.createDirectories(target.getParent());
-                // Kaynaklar korunur; Allure'in result.json -> attachment baglari
-                // ayni klasor altindaki dosya adlari korundugu icin bozulmaz.
                 Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {
-            System.err.println("Kosu kanitlari arsivlenemedi: "
-                    + source + " | " + e.getMessage());
+            System.err.println("Koşu kanıtları arşivlenemedi: " + source + " | " + e.getMessage());
         }
     }
 
@@ -347,7 +354,7 @@ public final class AllureRunOrganizer {
                     .map(source::relativize)
                     .anyMatch(relative -> !initial.contains(relative));
         } catch (IOException e) {
-            System.err.println("Allure dosyalari kontrol edilemedi: " + e.getMessage());
+            System.err.println("Allure dosyaları kontrol edilemedi: " + e.getMessage());
             return false;
         }
     }
@@ -358,8 +365,7 @@ public final class AllureRunOrganizer {
         }
         try (Stream<Path> files = Files.walk(directory)) {
             Set<Path> names = new HashSet<>();
-            files.filter(Files::isRegularFile)
-                    .forEach(file -> names.add(directory.relativize(file)));
+            files.filter(Files::isRegularFile).forEach(file -> names.add(directory.relativize(file)));
             return Set.copyOf(names);
         }
     }
