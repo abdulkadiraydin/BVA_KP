@@ -33,6 +33,10 @@ public class OpenDataPublishTest extends AvpBaseTest {
         );
     }
     @Test
+    public void veriSetiKvkkOnaylama1() {
+        TestContext ctx = testHazirligi();
+    }
+    @Test
     public void veriSetiKvkkOnaylama() {
         TestContext ctx = testHazirligi();
 

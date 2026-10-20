@@ -1,6 +1,7 @@
 
 package com.bvakp.automation.core.playwright;
 
+import com.bvakp.automation.core.config.ConfigManager;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Tracing;
 import org.slf4j.Logger;
@@ -20,7 +21,7 @@ import java.util.UUID;
  * Playwright Java trace kayıtlarının yaşam döngüsünü yönetir.
  * İşlemler, ilgili testin çalıştığı thread kapsamında yürütülür.
  *
- * <p>Çalışma modları (JVM -Dtrace.mode parametresi veya TRACE_MODE ortam değişkeni):
+ * <p>Çalışma modu "trace.mode" ayarından okunur (-Dtrace.mode veya config.properties):
  * off, on, retain-on-failure (varsayılan).
  *
  * <p>Trace dosyaları sayfa içeriklerini ve ağ verilerini barındırabilir.
@@ -119,23 +120,16 @@ public final class TraceManager {
     }
 
     private static Mode configuredMode() {
-        String value = System.getProperty("trace.mode");
-        if (value == null || value.isBlank()) {
-            return Mode.ON;
-        }
-        if (value == null || value.isBlank()) {
-            return Mode.RETAIN_ON_FAILURE;
-        }
-        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+        // Değer sırasıyla -Dtrace.mode, config.properties, varsayılandan gelir.
+        String value = ConfigManager.getOrDefault("trace.mode", "retain-on-failure");
+
+        return switch (value.toLowerCase(Locale.ROOT)) {
             case "off" -> Mode.OFF;
             case "on" -> Mode.ON;
             case "retain-on-failure" -> Mode.RETAIN_ON_FAILURE;
             default -> {
-                LOGGER.warn(
-                        "Unknown trace.mode '{}'; using on.",
-                        value
-                );
-                yield Mode.ON;
+                LOGGER.warn("Unknown trace.mode '{}'; using retain-on-failure.", value);
+                yield Mode.RETAIN_ON_FAILURE;
             }
         };
     }

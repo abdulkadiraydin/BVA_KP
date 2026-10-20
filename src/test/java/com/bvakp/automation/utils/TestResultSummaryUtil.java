@@ -16,11 +16,7 @@ import java.util.Properties;
  */
 public final class TestResultSummaryUtil {
 
-    private static final Path SUMMARY_FILE =
-            Paths.get(
-                    "target",
-                    "test-summary.properties"
-            );
+    private static final Path SUMMARY_FILE = Paths.get("target", "test-summary.properties");
 
     private TestResultSummaryUtil() {
     }
@@ -28,84 +24,40 @@ public final class TestResultSummaryUtil {
     public static TestSummary sonTestSonucunuAl() {
 
         if (!Files.exists(SUMMARY_FILE)) {
-
             throw new IllegalStateException(
-                    "Test özet dosyası bulunamadı: "
-                            + SUMMARY_FILE.toAbsolutePath()
-            );
+                    "Test özet dosyası bulunamadı: " + SUMMARY_FILE.toAbsolutePath());
         }
 
-        Properties properties =
-                new Properties();
+        Properties properties = new Properties();
 
-        try (InputStream inputStream =
-                     Files.newInputStream(
-                             SUMMARY_FILE
-                     )) {
+        try (InputStream inputStream = Files.newInputStream(SUMMARY_FILE)) {
 
-            properties.load(
-                    inputStream
-            );
+            properties.load(inputStream);
 
-            int toplam =
-                    Integer.parseInt(
-                            properties.getProperty(
-                                    "total",
-                                    "0"
-                            )
-                    );
+            int toplam = Integer.parseInt(properties.getProperty("total", "0"));
+            int basarili = Integer.parseInt(properties.getProperty("passed", "0"));
+            int basarisiz = Integer.parseInt(properties.getProperty("failed", "0"));
+            int atlanan = Integer.parseInt(properties.getProperty("skipped", "0"));
 
-            int basarili =
-                    Integer.parseInt(
-                            properties.getProperty(
-                                    "passed",
-                                    "0"
-                            )
-                    );
-
-            int basarisiz =
-                    Integer.parseInt(
-                            properties.getProperty(
-                                    "failed",
-                                    "0"
-                            )
-                    );
-
-            int atlanan =
-                    Integer.parseInt(
-                            properties.getProperty(
-                                    "skipped",
-                                    "0"
-                            )
-                    );
-
-            return new TestSummary(
-                    toplam,
-                    basarili,
-                    basarisiz,
-                    atlanan
-            );
+            return new TestSummary(toplam, basarili, basarisiz, atlanan);
 
         } catch (IOException e) {
-
-            throw new RuntimeException(
-                    "Test özet dosyası okunurken hata oluştu.",
-                    e
-            );
+            throw new RuntimeException("Test özet dosyası okunurken hata oluştu.", e);
         }
     }
 
-    public record TestSummary(
-            int toplam,
-            int basarili,
-            int basarisiz,
-            int atlanan) {
+    public record TestSummary(int toplam, int basarili, int basarisiz, int atlanan) {
 
+        /**
+         * Koşunun genel durumunu verir.
+         * Atlanan test, hazırlık hatasının işareti olabileceği için hatalı sayılır;
+         * hiç test çalışmamış koşu da başarılı kabul edilmez.
+         */
         public String durum() {
-
-            return basarisiz > 0
-                    ? "HATALI"
-                    : "BASARILI";
+            if (basarisiz > 0 || atlanan > 0 || toplam == 0) {
+                return "HATALI";
+            }
+            return "BASARILI";
         }
     }
 }

@@ -74,7 +74,13 @@ public final class ConfigManager {
 
     public static String get(String key) {
 
-        String value = properties.getProperty(key);
+        // 1. -D parametresi
+        String value = System.getProperty(key);
+
+        // 2. -D yoksa config.properties
+        if (value == null || value.isBlank()) {
+            value = properties.getProperty(key);
+        }
 
         if (value == null || value.isBlank()) {
             throw new RuntimeException(
@@ -88,10 +94,18 @@ public final class ConfigManager {
     public static boolean getBoolean(String key) {
         return Boolean.parseBoolean(get(key));
     }
+
     public static String getOrDefault(String key, String defaultValue) {
 
-        String value = properties.getProperty(key);
+        // 1. -D parametresi
+        String value = System.getProperty(key);
 
+        // 2. -D yoksa config.properties
+        if (value == null || value.isBlank()) {
+            value = properties.getProperty(key);
+        }
+
+        // 3. İkisi de yoksa koddaki varsayılan
         if (value == null || value.isBlank()) {
             return defaultValue;
         }

@@ -38,6 +38,11 @@ public final class PlaywrightManager {
     private PlaywrightManager() {
     }
 
+    /** Kayıtlı oturum kullanılmadan, konfigürasyondaki tarayıcıyı başlatır. */
+    public static void initialize() {
+        initialize(false);
+    }
+
     /** İstenirse kayıtlı authentication state kullanılarak tarayıcıyı başlatır. */
     public static void initialize(boolean authStateKullan) {
         initialize(
@@ -46,6 +51,12 @@ public final class PlaywrightManager {
                 authStateKullan
         );
     }
+
+    /** Belirtilen tarayıcı ve headless ayarıyla, auth state olmadan başlatır. */
+    public static void initialize(BrowserName browserName, boolean headless) {
+        initialize(browserName, headless, false);
+    }
+
     /**
      * Teste özel tarayıcı ve API oturumunu oluşturur.
      * Nesneler oluşturuldukça ThreadLocal içine alınır; kapanışta temizlenebilir.
@@ -57,10 +68,8 @@ public final class PlaywrightManager {
 
         Locale.setDefault(Locale.ENGLISH);
 
-        int genislik = Integer.parseInt(
-                ConfigManager.getOrDefault("viewport.width", "1280"));
-        int yukseklik = Integer.parseInt(
-                ConfigManager.getOrDefault("viewport.height", "720"));
+        int genislik = Integer.parseInt(ConfigManager.getOrDefault("viewport.width", "1280"));
+        int yukseklik = Integer.parseInt(ConfigManager.getOrDefault("viewport.height", "720"));
 
         try {
             Playwright playwright = Playwright.create();
@@ -70,9 +79,14 @@ public final class PlaywrightManager {
             browserThread.set(browser);
 
             Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
-                    .setViewportSize(genislik, yukseklik)
-                    .setRecordVideoDir(VideoManager.getVideoDirectory())
-                    .setRecordVideoSize(genislik, yukseklik);
+                    .setViewportSize(genislik, yukseklik);
+
+            // video.mode=off ise kayıt hiç başlatılmaz.
+            if (VideoManager.kayitAcikMi()) {
+                contextOptions
+                        .setRecordVideoDir(VideoManager.getVideoDirectory())
+                        .setRecordVideoSize(genislik, yukseklik);
+            }
 
             if (authStateKullan && AvpAuthStateManager.authStateVarMi()) {
                 contextOptions.setStorageStatePath(AvpAuthStateManager.authStatePathAlma());
@@ -81,7 +95,6 @@ public final class PlaywrightManager {
             BrowserContext context = browser.newContext(contextOptions);
             contextThread.set(context);
 
-            // TraceManager modu (off/on/retain-on-failure) tek yetkili mekanizmadır.
             // Trace, ilk sayfa oluşturulmadan önce başlatılmalıdır.
             TraceManager.start(context);
 
@@ -90,6 +103,7 @@ public final class PlaywrightManager {
 
             APIRequestContext apiRequestContext = playwright.request().newContext();
             apiRequestContextThread.set(apiRequestContext);
+
         } catch (RuntimeException | Error e) {
             // Kurulum yarıda kaldıysa açılan Playwright kaynaklarını güvenli temizle.
             kaynaklariTemizle();
@@ -128,7 +142,7 @@ public final class PlaywrightManager {
     }
 
     /**
-     * Önce Trace'i kaydeder, ardından Context'i kapatıp videoyu arşivler.
+     * Önce trace'i kaydeder, ardından context'i kapatıp videoyu arşivler.
      * Her kapanış adımı bağımsızdır; tek bir hata diğer kaynakların kapanmasını engellemez.
      */
     public static void close(String testName, String status) {
@@ -168,19 +182,33 @@ public final class PlaywrightManager {
             }
 
             if (video != null) {
-                try {
-                    Path videoPath = renameVideo(video.path(), testName, status);
-                    if (videoPath != null) {
-                        AllureArtifactCollector.registerVideo(videoPath);
-                    }
-                } catch (Exception e) {
-                    System.err.println("Video arşivlenemedi: " + e.getMessage());
-                }
+                videoyuIsle(video, testName, status);
             }
+
         } finally {
             // Beklenmedik bir hata oluşsa bile kaynaklar ve ThreadLocal'lar temizlenir.
             kaynaklariTemizle();
             AllureArtifactCollector.clearCurrentTest();
+        }
+    }
+
+    /**
+     * video.mode kuralına göre videoyu saklar ve Allure'a bağlar ya da siler.
+     * Context kapatıldıktan sonra çağrılmalıdır; video dosyası ancak o zaman tamamlanır.
+     */
+    private static void videoyuIsle(Video video, String testName, String status) {
+        try {
+            if (!VideoManager.saklanmaliMi(status)) {
+                video.delete();
+                return;
+            }
+
+            Path videoPath = renameVideo(video.path(), testName, status);
+            if (videoPath != null) {
+                AllureArtifactCollector.registerVideo(videoPath);
+            }
+        } catch (Exception e) {
+            System.err.println("Video işlenemedi: " + e.getMessage());
         }
     }
 
@@ -223,15 +251,13 @@ public final class PlaywrightManager {
             return null;
         }
 
-        String dateTime = LocalDateTime.now().format(ZAMAN_BICIMI);
         String fileName = sanitizeFileName(testName)
-                + "_" + dateTime
+                + "_" + LocalDateTime.now().format(ZAMAN_BICIMI)
                 + "_" + sanitizeFileName(status)
                 + "_" + UUID.randomUUID().toString().substring(0, 8)
                 + ".webm";
 
         Path targetDirectory = VideoManager.getVideoDirectory();
-        Files.createDirectories(targetDirectory);
         Path targetVideoPath = targetDirectory.resolve(fileName);
         Files.move(generatedVideoPath, targetVideoPath, StandardCopyOption.REPLACE_EXISTING);
         return targetVideoPath;

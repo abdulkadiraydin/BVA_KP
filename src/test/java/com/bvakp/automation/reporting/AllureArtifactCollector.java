@@ -1,5 +1,6 @@
 package com.bvakp.automation.reporting;
 
+import com.bvakp.automation.core.config.ConfigManager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -106,16 +107,35 @@ public final class AllureArtifactCollector {
         if (path == null || !Files.isRegularFile(path)) {
             return;
         }
-        // Teste ait fiziksel dosya Allure UUID olmasa da sinif altina arsivlenir.
+
+        // Arşivde doğru class klasörüne gitmesi için her durumda hatırlanır.
         rememberArtifactClass(path);
+
+        if (!allureyaEklensinMi(type)) {
+            LOGGER.debug("{} Allure'a eklenmedi (ayar kapalı), dosya korundu: {}", type.name, path);
+            return;
+        }
+
         String testUuid = CURRENT_TEST_UUID.get();
         if (testUuid == null || testUuid.isBlank()) {
             LOGGER.warn("{} Allure'a eşleştirilemedi, dosya korundu: {}", type.name, path);
             return;
         }
+
         PENDING.computeIfAbsent(testUuid, ignored -> new ConcurrentHashMap<>())
                 .put(type, path.toAbsolutePath());
+
         LOGGER.info("{} Allure testine ayrıldı | UUID={} | {}", type.name, testUuid, path);
+    }
+
+    /** allure.attach.video / allure.attach.trace ayarlarına göre karar verir. */
+    private static boolean allureyaEklensinMi(ArtifactType type) {
+        return switch (type) {
+            case VIDEO -> Boolean.parseBoolean(
+                    ConfigManager.getOrDefault("allure.attach.video", "false"));
+            case TRACE -> Boolean.parseBoolean(
+                    ConfigManager.getOrDefault("allure.attach.trace", "true"));
+        };
     }
 
     /** @AfterMethod içinde BrowserContext ve video kapandıktan sonra thread kaydı temizlenir. */
