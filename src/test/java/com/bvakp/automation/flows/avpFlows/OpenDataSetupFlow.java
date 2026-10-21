@@ -1,5 +1,7 @@
 package com.bvakp.automation.flows.avpFlows;
 
+import com.bvakp.automation.model.VeriSetiTanimi;
+import com.bvakp.automation.model.YayinAyarlari;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.TestDataUtil;
@@ -31,32 +33,44 @@ public class OpenDataSetupFlow {
     }
 
     /**
-     * Kaynak ve veri seti oluşturur, KVKK onayından geçirir, yayınlar ve portala
-     * aktarılmasını bekler.
-     *
-     * @param adOnEki veri seti adının ön eki; "otomasyon_" ile başlamalıdır
-     * @return "Yayında" ve portala "Aktarıldı" durumundaki veri setinin adı
+     * Yayında bir veri seti hazırlar ve yalnızca adını döndürür.
+     * Ayrıntılı değerlere ihtiyacı olmayan testler içindir (ör. Güncelleme Takvimi).
      */
     public String yayindaVeriSetiOlusturma(String adOnEki) {
+        return yayindaVeriSetiTanimiOlusturma(adOnEki).ad();
+    }
+
+    /**
+     * Kaynak ve veri seti oluşturur, KVKK onayından geçirir, yayınlar ve portala
+     * aktarılmasını bekler. Her adımda ekrandaki değerleri toplar.
+     *
+     * @param adOnEki veri seti adının ön eki; "otomasyon_" ile başlamalıdır
+     * @return kamuya açık portalda karşılaştırılacak beklenen değerler
+     */
+    public VeriSetiTanimi yayindaVeriSetiTanimiOlusturma(String adOnEki) {
 
         String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
-        String veriSeti = TestDataUtil.dinamikAdOlusturma(adOnEki);
+        String veriSetiAdi = TestDataUtil.dinamikAdOlusturma(adOnEki);
 
-        ReportManager.step("Ön koşul: yayında veri seti hazırlanıyor | " + veriSeti);
+        ReportManager.step("Ön koşul: yayında veri seti hazırlanıyor | " + veriSetiAdi);
 
         createFlow.createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon kaynağı - " + kaynakAdi);
-        createFlow.createDataSetForApproval(kaynakAdi, veriSeti, SORUMLU_BIRIM, KATEGORI, KULLANIM_LISANSI,
-                "Otomasyon veri seti - " + veriSeti);
-        publishPage.waitForStatus(veriSeti, "KVKK Onayında");
 
-        publishFlow.approveKvkk(veriSeti);
-        publishPage.waitForStatus(veriSeti, "Yayın Onayında");
+        VeriSetiTanimi tanim = createFlow.createDataSetForApproval(kaynakAdi, veriSetiAdi,
+                SORUMLU_BIRIM, KATEGORI, KULLANIM_LISANSI, "Otomasyon veri seti - " + veriSetiAdi);
+        publishPage.waitForStatus(veriSetiAdi, "KVKK Onayında");
 
-        publishFlow.publishDataSet(veriSeti);
-        publishPage.waitForStatus(veriSeti, "Yayında");
-        publishPage.waitForPortalStatus(veriSeti, "Aktarıldı");
+        publishFlow.approveKvkk(veriSetiAdi);
+        publishPage.waitForStatus(veriSetiAdi, "Yayın Onayında");
 
-        ReportManager.info("Ön koşul hazır: yayında ve portala aktarıldı | " + veriSeti);
-        return veriSeti;
+        YayinAyarlari yayinAyarlari = publishFlow.publishDataSet(veriSetiAdi);
+        publishPage.waitForStatus(veriSetiAdi, "Yayında");
+        publishPage.waitForPortalStatus(veriSetiAdi, "Aktarıldı");
+
+        ReportManager.info("Ön koşul hazır: yayında ve portala aktarıldı | " + veriSetiAdi
+                + " | Maskelenen: " + tanim.maskelenenKolonlar()
+                + " | Formatlar: " + yayinAyarlari.formatlar());
+
+        return tanim.yayinAyarlariIle(yayinAyarlari);
     }
 }

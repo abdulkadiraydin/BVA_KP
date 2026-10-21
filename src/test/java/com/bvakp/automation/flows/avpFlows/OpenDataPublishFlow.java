@@ -2,6 +2,7 @@ package com.bvakp.automation.flows.avpFlows;
 
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
+import com.bvakp.automation.model.YayinAyarlari;
 
 /**
  * Var olan bir veri seti üzerinde Veri Seti Yönetimi'ndeki tek bir iş adımını yapar:
@@ -43,16 +44,6 @@ public class OpenDataPublishFlow {
         publishPage.enterKvkkRedAciklama("Otomasyon testi kapsamında KVKK reddi verilmiştir.");
         publishPage.confirmKvkkRed();
         publishPage.bildirimBekleme("Veri seti düzenlenmek üzere geri gönderildi");
-    }
-
-    public void publishDataSet(String dataSetName) {
-
-        ReportManager.step("Veri seti yayınlanıyor: " + dataSetName);
-
-        publishPage.clickYayinla(dataSetName);
-        publishPage.enterYayinAciklama("Otomasyon testi kapsamında yayınlama işlemi gerçekleştirilmiştir.");
-        publishPage.confirmYayinla();
-        publishPage.bildirimBekleme("Veri seti yayınlandı");
     }
 
     public void rejectPublication(String dataSetName) {
@@ -173,4 +164,26 @@ public class OpenDataPublishFlow {
         publishPage.confirmGuncelle();
         publishPage.bildirimBekleme("Güncelleme başlatıldı");
     }
+    private static final String YAYIN_ACIKLAMASI =
+            "Otomasyon testi kapsamında yayınlama işlemi gerçekleştirilmiştir.";
+
+    /**
+     * Veri setini yayınlar; yayınla butonuna basmadan önce penceredeki ayarları
+     * (formatlar, Data API, KVKK notu) okuyup döndürür.
+     */
+    public YayinAyarlari publishDataSet(String dataSetName) {
+
+        ReportManager.step("Veri seti yayınlanıyor: " + dataSetName);
+
+        publishPage.clickYayinla(dataSetName);
+        publishPage.enterYayinAciklama(YAYIN_ACIKLAMASI);
+
+        YayinAyarlari ayarlar = publishPage.yayinAyarlariniOkuma(YAYIN_ACIKLAMASI);
+
+        publishPage.confirmYayinla();
+        publishPage.bildirimBekleme("Veri seti yayınlandı");
+
+        return ayarlar;
+    }
+
 }

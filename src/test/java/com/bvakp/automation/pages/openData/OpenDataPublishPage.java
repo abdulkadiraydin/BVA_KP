@@ -1,5 +1,6 @@
 package com.bvakp.automation.pages.openData;
 
+import com.bvakp.automation.model.YayinAyarlari;
 import com.bvakp.automation.pages.BasePage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
@@ -7,6 +8,9 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
 import org.testng.Assert;
+import com.bvakp.automation.model.YayinAyarlari;
+import java.util.ArrayList;
+import java.util.List;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -399,4 +403,45 @@ public class OpenDataPublishPage extends BasePage {
         clickPublishTab();
         searchDataSet(dataSetName);
     }
+    private static final String DATA_API_ETIKETI = "Data API";
+
+    /**
+     * "Veri Setini Yayınla" penceresindeki ayarları okur: işaretli formatlar,
+     * Data API, yayın zamanlaması ve portaldaki KVKK notu.
+     *
+     * <p>Yayınla butonuna basılmadan önce çağrılmalıdır; okunan değerler kamuya açık
+     * portalda beklenen formatlar ve KVKK notu olarak kullanılır.
+     *
+     * @param yayinAciklamasi pencereye girilen açıklama (portaldaki değişiklik geçmişinde görünür)
+     */
+    public YayinAyarlari yayinAyarlariniOkuma(String yayinAciklamasi) {
+
+        Locator onayKutulari = popup.locator("label").filter(new Locator.FilterOptions()
+                .setHas(page.locator("input[type='checkbox']")));
+        onayKutulari.first().waitFor();
+
+        List<String> formatlar = new ArrayList<>();
+        boolean dataApiAcik = false;
+
+        for (int i = 0; i < onayKutulari.count(); i++) {
+            Locator etiket = onayKutulari.nth(i);
+            String ad = etiket.innerText().trim();
+            boolean isaretli = etiket.locator("input[type='checkbox']").isChecked();
+
+            if (ad.startsWith(DATA_API_ETIKETI)) {
+                dataApiAcik = isaretli;
+            } else if (isaretli) {
+                formatlar.add(ad);
+            }
+        }
+
+        String zamanlama = popup.locator("input[name='publishTiming'][value='scheduled']").isChecked()
+                ? "scheduled"
+                : "now";
+
+        String kvkkNotu = popup.locator("textarea[name='privacyNote']").inputValue().trim();
+
+        return new YayinAyarlari(formatlar, dataApiAcik, zamanlama, kvkkNotu, yayinAciklamasi);
+    }
+
 }

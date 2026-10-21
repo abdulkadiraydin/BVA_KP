@@ -1,25 +1,27 @@
 package com.bvakp.automation.flows.avpFlows;
 
 import com.bvakp.automation.components.KaynakEkleModal;
+import com.bvakp.automation.model.KolonTanimi;
+import com.bvakp.automation.model.VeriSetiTanimi;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Page;
 import org.testng.Assert;
 
+import java.util.List;
+import java.util.Map;
+
 /**
- * Açık Veri Portalı kaynak CRUD ve veri setini KVKK onayına gönderme
- * işlemlerini tek bir Flow sınıfında toplar.
+ * Açık Veri Portalı'nda kaynak oluşturma ve veri setini KVKK onayına gönderme adımları.
+ *
+ * <p>Testlerin ön koşulu olarak kullanılır. Kaynak oluşturmanın ve veri setini onaya
+ * göndermenin ayrıntılı testleri OpenDataCreateTest'tedir; o testler bu flow'u kullanmaz.
  */
 public class OpenDataCreateFlow {
 
     private final OpenDataPage openDataPage;
     private final KaynakEkleModal kaynakEkleModal;
 
-    /**
-     * Ortak Page Object ve kaynak ekleme modalını aktif Playwright Page ile hazırlar.
-     *
-     * @param page aktif Playwright sayfası
-     */
     public OpenDataCreateFlow(Page page) {
         this.openDataPage = new OpenDataPage(page);
         this.kaynakEkleModal = new KaynakEkleModal(page);
@@ -27,8 +29,6 @@ public class OpenDataCreateFlow {
 
     /**
      * Kaynak Ekle formunu doldurarak yeni kaynak oluşturur ve listede göründüğünü doğrular.
-     * Testlerin ön koşulu olarak kullanılır; kaynak oluşturmanın ayrıntılı testi
-     * OpenDataCreateTest.kaynakOlusturma'dadır.
      */
     public void createSource(String kaynakAdi, String tabloAdi, String aciklama) {
 
@@ -55,7 +55,15 @@ public class OpenDataCreateFlow {
         ReportManager.info("Ön koşul kaynağı hazır | " + kaynakAdi);
     }
 
-    public void createDataSetForApproval(
+    /**
+     * Verilen kaynaktan veri seti oluşturur ("yil" kolonuna maskeleme uygular),
+     * KVKK onayına gönderir ve ekranlardan toplanan değerleri döndürür.
+     *
+     * <p>Dönüş değeri isteğe bağlıdır; sadece onaya göndermek isteyen çağıranlar yok sayabilir.
+     *
+     * @return veri setinin girilen ve ekranlardan okunan değerleri (yayın ayarları henüz yok)
+     */
+    public VeriSetiTanimi createDataSetForApproval(
             String kaynakAdi,
             String veriSetiAdi,
             String sorumluBirim,
@@ -63,17 +71,36 @@ public class OpenDataCreateFlow {
             String kullanimLisansi,
             String aciklama) {
 
+        ReportManager.step("Ön koşul: veri seti oluşturulup KVKK onayına gönderiliyor | " + veriSetiAdi);
+
         openDataPage.kaynakSecme(kaynakAdi);
         openDataPage.veriSetiIleriGitme();
+
         openDataPage.yilAlaninaMaskeleKuraliUygulama();
+        List<KolonTanimi> kolonlar = openDataPage.alanTanimlariniOkuma();
+
         openDataPage.veriSetiAdiGirme(veriSetiAdi);
         openDataPage.sorumluBirimSecme(sorumluBirim);
         openDataPage.kategoriSecme(kategori);
         openDataPage.kullanimLisansiSecme(kullanimLisansi);
         openDataPage.veriSetiAciklamasiGirme(aciklama);
+
         openDataPage.veriSetiOnizleme();
+        List<Map<String, String>> onizlemeKayitlari = openDataPage.onizlemeKayitlariniOkuma();
+
         openDataPage.veriSetiOnayaGonderme();
         openDataPage.veriSetiOnayaGondermeyiOnaylama();
         openDataPage.bildirimBekleme("Veri seti oluşturuldu ve KVKK onay kuyruğuna gönderildi");
+
+        return new VeriSetiTanimi(
+                veriSetiAdi,
+                aciklama,
+                kaynakAdi,
+                sorumluBirim,
+                kategori,
+                kullanimLisansi,
+                kolonlar,
+                onizlemeKayitlari,
+                null);
     }
 }

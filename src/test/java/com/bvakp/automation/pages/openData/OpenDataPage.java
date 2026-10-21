@@ -1,5 +1,6 @@
 package com.bvakp.automation.pages.openData;
 
+import com.bvakp.automation.model.KolonTanimi;
 import com.bvakp.automation.pages.BasePage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
@@ -7,6 +8,11 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.WaitForSelectorState;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class OpenDataPage extends BasePage {
 
@@ -713,5 +719,62 @@ public class OpenDataPage extends BasePage {
 
         return page.getByRole(AriaRole.ROW)
                 .filter(new Locator.FilterOptions().setHas(kaynakAdiLocator));
+    }
+    /**
+     * "Alan Seçimi ve Anonimleştirme" ekranındaki kolon tablosunu okur:
+     * kolon adı, veri tipi, anonimleştirme kuralı ve yayına dahil olup olmadığı.
+     *
+     * <p>Kurallar uygulandıktan sonra çağrılmalıdır; okunan değerler kamuya açık
+     * portaldaki veri sözlüğü, API alanları ve maskeleme kontrolleri için beklenen değerdir.
+     */
+    public List<KolonTanimi> alanTanimlariniOkuma() {
+
+        Locator satirlar = page.locator("[role='grid'] [role='row'][data-id]");
+        satirlar.first().waitFor();
+
+        List<KolonTanimi> kolonlar = new ArrayList<>();
+
+        for (int i = 0; i < satirlar.count(); i++) {
+            Locator satir = satirlar.nth(i);
+            Locator kuralHucresi = satir.locator("[data-field='__rule']");
+
+            kolonlar.add(new KolonTanimi(
+                    satir.getAttribute("data-id"),
+                    satir.locator("[data-field='dataType']").innerText().trim(),
+                    kuralHucresi.locator("input[aria-hidden='true']").inputValue(),
+                    kuralHucresi.locator("[role='combobox']").innerText().trim(),
+                    satir.locator("[data-field='__included'] input[type='checkbox']").isChecked()));
+        }
+
+        return kolonlar;
+    }
+
+    /**
+     * "Önizleme ve KVKK Kontrolü" ekranındaki anonimleştirilmiş önizleme tablosunu
+     * (ilk 10 kayıt) kolon adı → değer eşlemesi olarak okur.
+     */
+    public List<Map<String, String>> onizlemeKayitlariniOkuma() {
+
+        Locator tablo = page.locator("table:has(thead)");
+        tablo.locator("tbody tr").first().waitFor();
+
+        List<String> basliklar = tablo.locator("thead th p").allInnerTexts().stream()
+                .map(String::trim)
+                .toList();
+
+        Locator satirlar = tablo.locator("tbody tr");
+        List<Map<String, String>> kayitlar = new ArrayList<>();
+
+        for (int i = 0; i < satirlar.count(); i++) {
+            List<String> hucreler = satirlar.nth(i).locator("td").allInnerTexts();
+
+            Map<String, String> kayit = new LinkedHashMap<>();
+            for (int j = 0; j < basliklar.size() && j < hucreler.size(); j++) {
+                kayit.put(basliklar.get(j), hucreler.get(j).trim());
+            }
+            kayitlar.add(kayit);
+        }
+
+        return kayitlar;
     }
 }
