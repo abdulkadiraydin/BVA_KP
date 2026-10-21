@@ -1,17 +1,29 @@
-
 package com.bvakp.automation.pages;
 
-import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
 
+/**
+ * Keycloak giriş ekranı ve giriş sonrası oturum durumu.
+ */
 public class LoginPage extends BasePage {
 
-    private static final double LOGIN_EKRANI_TIMEOUT = 15000;
-    private static final double BASARILI_GIRIS_TIMEOUT = 20000;
-    private static final double HATA_MESAJI_TIMEOUT = 10000;
+    private static final int LOGIN_EKRANI_TIMEOUT_MS = 15_000;
+    private static final int BASARILI_GIRIS_TIMEOUT_MS = 20_000;
+    private static final int HATA_MESAJI_TIMEOUT_MS = 10_000;
+    private static final int OTURUM_DURUMU_TIMEOUT_MS = 30_000;
+
+    /** Portal açıldığında hangi ekranın geldiği. */
+    public enum OturumDurumu {
+        /** Kayıtlı oturum geçerli, doğrudan Gösterge Panosu açıldı. */
+        GOSTERGE_PANOSU,
+        /** Oturum yok veya süresi dolmuş, giriş ekranı açıldı. */
+        LOGIN_EKRANI,
+        /** Süre içinde ikisi de görünmedi. */
+        BELIRSIZ
+    }
 
     private final Locator kullaniciAdiAlani;
     private final Locator sifreAlani;
@@ -19,228 +31,95 @@ public class LoginPage extends BasePage {
     private final Locator girisHataMesaji;
     private final Locator gostergePanosu;
 
-    /**
-     * Yeni giriş ekranına ait locator'ları tanımlar.
-     *
-     * @param page aktif Playwright sayfası
-     */
     public LoginPage(Page page) {
 
         super(page);
 
         this.kullaniciAdiAlani = page.locator("#username");
         this.sifreAlani = page.locator("#password");
+        this.girisButonu = page.locator("#kc-login").or(page.locator("form button[type='submit']"));
 
-        this.girisButonu = page.locator("#kc-login")
-                .or(page.locator("form button[type='submit']"));
+        this.girisHataMesaji = page.getByText("Kullanıcı adı veya şifre hatalı.",
+                new Page.GetByTextOptions().setExact(true));
 
-        // Yeni ekrandaki hata metni doğrulanana kadar korunur.
-        this.girisHataMesaji =
-                page.getByText(
-                        "Invalid username or password.",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        // Başarılı giriş sonrası mevcut uygulama locator'ı.
-        this.gostergePanosu =
-                page.getByLabel(
-                        "breadcrumb"
-                ).getByRole(
-                        AriaRole.BUTTON,
-                        new Locator.GetByRoleOptions()
-                                .setName("Gösterge Panosu")
-                                .setExact(true)
-                );
+        this.gostergePanosu = page.getByLabel("breadcrumb").getByRole(AriaRole.BUTTON,
+                new Locator.GetByRoleOptions().setName("Gösterge Panosu").setExact(true));
     }
 
-    /**
-     * Portal adresini açarak giriş ekranına yönlendirir.
-     */
-    public void girisSayfasiAcma() {
+    // =====================================================================
+    // İşlemler
+    // =====================================================================
 
+    /** Portal adresini açarak giriş ekranına yönlendirir. */
+    public void girisSayfasiAcma() {
         openBaseUrl();
     }
 
-    /**
-     * Kullanıcı adı veya e-posta alanını doldurur.
-     *
-     * @param kullaniciAdi kullanıcı adı
-     */
     public void kullaniciAdiGirme(String kullaniciAdi) {
-
         kullaniciAdiAlani.fill(kullaniciAdi);
     }
 
-    /**
-     * Şifre alanını doldurur.
-     *
-     * @param sifre kullanıcı şifresi
-     */
     public void sifreGirme(String sifre) {
-
         sifreAlani.fill(sifre);
     }
 
-    /**
-     * Giriş butonuna tıklayarak kimlik doğrulamayı başlatır.
-     */
     public void girisButonunaTiklama() {
-
         girisButonu.click();
     }
 
-    /**
-     * Kullanıcı adı ve şifreyle giriş işlemini gerçekleştirir.
-     *
-     * @param kullaniciAdi kullanıcı adı
-     * @param sifre kullanıcı şifresi
-     */
+    /** Kullanıcı adı ve şifreyle giriş yapar. */
     public void girisYapma(String kullaniciAdi, String sifre) {
-
         kullaniciAdiGirme(kullaniciAdi);
-
         sifreGirme(sifre);
-
         girisButonunaTiklama();
     }
 
-    /**
-     * Login ekranındaki temel alanların görünmesini bekler
-     * ve kullanıcı adı, şifre ve giriş butonunu kontrol eder.
-     *
-     * @return tüm giriş alanları görünüyorsa true
-     */
+    // =====================================================================
+    // Durum kontrolleri
+    // =====================================================================
+
+    /** Kullanıcı adı, şifre alanları ve giriş butonu görünüyorsa true. */
     public boolean girisEkraniGoruntuleniyorMu() {
-
-        try {
-
-            kullaniciAdiAlani.waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(
-                                    com.microsoft.playwright.options.WaitForSelectorState.VISIBLE
-                            )
-                            .setTimeout(LOGIN_EKRANI_TIMEOUT)
-            );
-
-            return kullaniciAdiAlani.isVisible()
-                    && sifreAlani.isVisible()
-                    && girisButonu.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            ReportManager.error(
-                    "Login ekranı kontrol edilirken hata oluştu: "
-                            + e.getMessage()
-            );
-
-            return false;
-        }
+        return gorunurMu(kullaniciAdiAlani, LOGIN_EKRANI_TIMEOUT_MS)
+                && sifreAlani.isVisible()
+                && girisButonu.isVisible();
     }
 
-    /**
-     * Başarılı girişin ardından Gösterge Panosu'nun
-     * görüntülenmesini bekleyerek giriş sonucunu doğrular.
-     *
-     * @return Gösterge Panosu görünüyorsa true
-     */
+    /** Girişten sonra Gösterge Panosu görünürse true. */
     public boolean basariliGirisYapildiMi() {
-
-        try {
-
-            gostergePanosu.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(BASARILI_GIRIS_TIMEOUT)
-            );
-
-            return gostergePanosu.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            ReportManager.error(
-                    "Başarılı giriş kontrol edilirken hata oluştu: "
-                            + e.getMessage()
-            );
-
-            return false;
-        }
+        return gorunurMu(gostergePanosu, BASARILI_GIRIS_TIMEOUT_MS);
     }
 
-    /**
-     * Hatalı girişten sonra beklenen hata mesajının
-     * görüntülenip görüntülenmediğini kontrol eder.
-     *
-     * @return hata mesajı görünüyorsa true
-     */
     public boolean girisHataMesajiGoruntulendiMi() {
-
-        try {
-
-            girisHataMesaji.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(HATA_MESAJI_TIMEOUT)
-            );
-
-            return girisHataMesaji.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            ReportManager.error(
-                    "Login hata mesajı kontrol edilirken hata oluştu: "
-                            + e.getMessage()
-            );
-
-            return false;
-        }
+        return gorunurMu(girisHataMesaji, HATA_MESAJI_TIMEOUT_MS);
     }
 
-    /**
-     * Giriş ekranındaki hata mesajının metnini döndürür.
-     *
-     * @return görüntülenen hata mesajı
-     */
     public String girisHataMesajiAlma() {
-
-        return girisHataMesaji
-                .innerText()
-                .trim();
+        return girisHataMesaji.innerText().trim();
     }
 
     /**
-     * AVP oturum hazırlama sırasında login ekranının
-     * görünürlüğünü bekleme yapmadan kontrol eder.
+     * Portal açıldıktan sonra Gösterge Panosu'nun veya giriş ekranının gelmesini bekler;
+     * hangisi önce görünürse beklemeden döner.
      *
-     * @return login ekranı görünüyorsa true
+     * <p>Kayıtlı oturum geçerliyse pano, değilse giriş ekranı gelir. İkisi birlikte
+     * beklendiği için sayfa hızlı açıldığında boşa bekleme olmaz.
      */
-    public boolean loginEkraniGorunurMu() {
+    public OturumDurumu oturumDurumunuBekle() {
 
         try {
-
-            return kullaniciAdiAlani.isVisible()
-                    && sifreAlani.isVisible()
-                    && girisButonu.isVisible();
-
+            gostergePanosu.or(kullaniciAdiAlani).first().waitFor(
+                    new Locator.WaitForOptions().setTimeout(OTURUM_DURUMU_TIMEOUT_MS));
         } catch (PlaywrightException e) {
-
-            return false;
+            return OturumDurumu.BELIRSIZ;
         }
-    }
 
-    /**
-     * AVP oturum hazırlama sırasında Gösterge Panosu'nun
-     * görünürlüğünü bekleme yapmadan kontrol eder.
-     *
-     * @return Gösterge Panosu görünüyorsa true
-     */
-    public boolean gostergePanosuGorunurMu() {
-
-        try {
-
-            return gostergePanosu.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
+        if (gostergePanosu.isVisible()) {
+            return OturumDurumu.GOSTERGE_PANOSU;
         }
+        if (kullaniciAdiAlani.isVisible()) {
+            return OturumDurumu.LOGIN_EKRANI;
+        }
+        return OturumDurumu.BELIRSIZ;
     }
 }

@@ -11,240 +11,93 @@ import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.WaitUntilState;
 import org.testng.annotations.AfterSuite;
 
+/**
+ * AVP (Açık Veri Portalı) testlerinin ortak temeli: oturum hazırlığı ve koşu sonu temizliği.
+ */
 public abstract class AvpBaseTest extends BaseTest {
 
+    private static final int PORTAL_ACILIS_TIMEOUT_MS = 30_000;
+    private static final int MAKSIMUM_NAVIGASYON_DENEMESI = 2;
 
     /**
      * Kayıtlı oturum dosyasının kullanılıp kullanılmayacağını belirler.
-     * false ise her test kendi girişini yapar (paralel koşuda token çakışmasını önler).
+     *
+     * <p>false (varsayılan) ise her test kendi girişini yapar. Paralel koşuda oturum
+     * dosyasını paylaşmak, sunucunun token'ları birbirine karşı geçersiz kılmasına yol açıyor.
      */
     @Override
     protected boolean authStateKullan() {
-        return Boolean.parseBoolean(ConfigManager.getOrDefault("auth.state.reuse", "true"));
+        return Boolean.parseBoolean(ConfigManager.getOrDefault("auth.state.reuse", "false"));
     }
 
-
     /**
-     * AVP testleri için ilgili test thread'ine ait
-     * bağımsız kullanıcı oturumunu hazırlar.
+     * Portalı açar; kayıtlı oturum geçerliyse doğrudan devam eder,
+     * değilse kullanıcı bilgileriyle giriş yapıp oturumu kaydeder.
      */
     protected void avpOturumuHazirlama() {
 
-        ReportManager.step(
-                "AVP portalı açılıyor."
-        );
-
+        ReportManager.step("AVP portalı açılıyor.");
         avpPortaliniAcma();
 
+        LoginPage loginPage = new LoginPage(page());
 
-        LoginPage loginPage =
-                new LoginPage(
-                        page()
-                );
+        switch (loginPage.oturumDurumunuBekle()) {
 
+            case GOSTERGE_PANOSU ->
+                    ReportManager.info("Geçerli oturum kullanıldı.");
 
-        ReportManager.step(
-                "AVP oturum durumu bekleniyor."
-        );
+            case LOGIN_EKRANI -> {
+                ReportManager.step("Kullanıcı bilgileri ile giriş yapılıyor.");
+                loginPage.girisYapma(ConfigManager.get("username"), ConfigManager.get("password"));
 
+                if (!loginPage.basariliGirisYapildiMi()) {
+                    throw new IllegalStateException(
+                            "AVP kullanıcı girişi başarısız. Gösterge Panosu görüntülenemedi.");
+                }
 
-        int maksimumBeklemeSaniye = 30;
-
-        boolean loginEkraniAcildi = false;
-        boolean dashboardAcildi = false;
-
-
-        for (int saniye = 0;
-             saniye < maksimumBeklemeSaniye;
-             saniye++) {
-
-            if (loginPage.gostergePanosuGorunurMu()) {
-
-                dashboardAcildi = true;
-                break;
+                AvpAuthStateManager.authStateKaydetme(PlaywrightManager.getContext());
+                ReportManager.info("AVP girişi başarılı, oturum kaydedildi.");
             }
 
-
-            if (loginPage.loginEkraniGorunurMu()) {
-
-                loginEkraniAcildi = true;
-                break;
-            }
-
-
-            page().waitForTimeout(
-                    1000
-            );
+            case BELIRSIZ -> throw new IllegalStateException(
+                    "AVP oturum durumu belirlenemedi: ne giriş ekranı ne Gösterge Panosu görüntülendi. "
+                            + "Mevcut URL: " + page().url());
         }
-
-
-        if (dashboardAcildi) {
-
-            ReportManager.info(
-                    "Geçerli authentication state kullanıldı."
-            );
-
-            return;
-        }
-
-
-        if (loginEkraniAcildi) {
-
-            ReportManager.info(
-                    "Aktif AVP oturumu bulunamadı. Giriş işlemi gerçekleştirilecek."
-            );
-
-
-            ReportManager.step(
-                    "Geçerli kullanıcı bilgileri ile giriş yapılıyor."
-            );
-
-            loginPage.girisYapma(
-                    ConfigManager.get("username"),
-                    ConfigManager.get("password")
-            );
-
-
-            ReportManager.step(
-                    "Gösterge Panosu ekranının açıldığı doğrulanıyor."
-            );
-
-            if (!loginPage.basariliGirisYapildiMi()) {
-
-                throw new IllegalStateException(
-                        "AVP kullanıcı girişi başarısız. Gösterge Panosu görüntülenemedi."
-                );
-            }
-
-
-            ReportManager.step(
-                    "AVP authentication state kaydediliyor."
-            );
-
-            AvpAuthStateManager.authStateKaydetme(
-                    PlaywrightManager.getContext()
-            );
-
-
-            ReportManager.info(
-                    "AVP authentication state güncellendi."
-            );
-
-            ReportManager.info(
-                    "AVP kullanıcı girişi başarılı."
-            );
-
-            return;
-        }
-
-
-        throw new IllegalStateException(
-                "AVP oturum durumu 30 saniye içerisinde belirlenemedi. "
-                        + "Login ekranı veya Gösterge Panosu görüntülenemedi. "
-                        + "Mevcut URL: "
-                        + page().url()
-        );
     }
 
-
-    /**
-     * AVP portalını ilgili test thread'ine ait Page
-     * üzerinden açar ve geçici network hatasında tekrar dener.
-     */
+    /** Portalı açar; geçici ağ hatalarında bir kez daha dener. */
     private void avpPortaliniAcma() {
 
-        String portalUrl =
-                ConfigManager.get(
-                        "base.url"
-                );
+        String portalUrl = ConfigManager.get("base.url");
 
-        int maksimumDeneme = 2;
-
-
-        for (int deneme = 1;
-             deneme <= maksimumDeneme;
-             deneme++) {
-
+        for (int deneme = 1; deneme <= MAKSIMUM_NAVIGASYON_DENEMESI; deneme++) {
             try {
-
-                ReportManager.info(
-                        "AVP portal navigation denemesi: "
-                                + deneme
-                                + "/"
-                                + maksimumDeneme
-                );
-
-
-                page().navigate(
-                        portalUrl,
-                        new Page.NavigateOptions()
-                                .setWaitUntil(
-                                        WaitUntilState.DOMCONTENTLOADED
-                                )
-                                .setTimeout(
-                                        30000
-                                )
-                );
-
-
-                ReportManager.info(
-                        "AVP portal navigation tamamlandı | URL: "
-                                + page().url()
-                );
-
+                page().navigate(portalUrl, new Page.NavigateOptions()
+                        .setWaitUntil(WaitUntilState.DOMCONTENTLOADED)
+                        .setTimeout(PORTAL_ACILIS_TIMEOUT_MS));
                 return;
 
             } catch (PlaywrightException e) {
-
-                boolean tekrarDenenebilirHata =
-                        e.getMessage() != null
-                                && (
-                                e.getMessage()
-                                        .contains("ERR_NETWORK_CHANGED")
-                                        ||
-                                        e.getMessage()
-                                                .contains("ERR_ABORTED")
-                        );
-
-
-                if (!tekrarDenenebilirHata
-                        || deneme == maksimumDeneme) {
-
+                if (!geciciAgHatasiMi(e) || deneme == MAKSIMUM_NAVIGASYON_DENEMESI) {
                     throw e;
                 }
-
-
-                ReportManager.info(
-                        "Geçici navigation hatası oluştu. "
-                                + "Portal navigation tekrar denenecek. "
-                                + "Hata: "
-                                + e.getMessage()
-                );
-
-
-                page().waitForTimeout(
-                        1500
-                );
+                ReportManager.warn("Geçici ağ hatası, portal tekrar açılıyor (" + deneme + "/"
+                        + MAKSIMUM_NAVIGASYON_DENEMESI + "): " + e.getMessage());
             }
         }
     }
 
+    private static boolean geciciAgHatasiMi(PlaywrightException e) {
+        String mesaj = e.getMessage();
+        return mesaj != null && (mesaj.contains("ERR_NETWORK_CHANGED") || mesaj.contains("ERR_ABORTED"));
+    }
 
-    /**
-     * TestNG suite tamamlandıktan sonra koşu sırasında
-     * oluşturulan otomasyon kaynaklarını temizler.
-     */
+    /** Suite sonunda, cleanup.enabled açıksa testlerin oluşturduğu kaynakları temizler. */
     @AfterSuite(alwaysRun = true)
     public void kosuSonuOtomasyonKaynaklariniTemizleme() {
 
-        boolean temizlikAcik = Boolean.parseBoolean(
-                ConfigManager.getOrDefault("cleanup.enabled", "false")
-        );
-
-        if (!temizlikAcik) {
-            ReportManager.info(
-                    "Koşu sonu temizliği kapalı (cleanup.enabled=false). Atlandı."
-            );
+        if (!Boolean.parseBoolean(ConfigManager.getOrDefault("cleanup.enabled", "false"))) {
+            ReportManager.info("Koşu sonu temizliği kapalı (cleanup.enabled=false). Atlandı.");
             return;
         }
 
@@ -253,12 +106,8 @@ public abstract class AvpBaseTest extends BaseTest {
         try {
             OtomasyonKaynakTemizleyici.kosuSonuTemizliginiCalistir();
             ReportManager.info("KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLEME TAMAMLANDI");
-
         } catch (Exception e) {
-            ReportManager.error(
-                    "KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLENEMEDİ | Hata: " + e.getMessage()
-            );
-            e.printStackTrace();
+            ReportManager.error("KOŞU SONU OTOMASYON KAYNAKLARI TEMİZLENEMEDİ: " + e.getMessage(), e);
         }
     }
 }
