@@ -55,7 +55,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
                         aktifPage
                 );
 
-        openDataPage.clickAcikVeriPortali();
+        openDataPage.acikVeriPortalinaGitme();
 
 
         OpenDataPublishPage publishPage =

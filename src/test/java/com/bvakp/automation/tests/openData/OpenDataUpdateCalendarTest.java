@@ -45,7 +45,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     private TestContext nesneleriOlusturma() {
 
         avpOturumuHazirlama();
-        new OpenDataPage(page()).clickAcikVeriPortali();
+        new OpenDataPage(page()).acikVeriPortalinaGitme();
 
         OpenDataPublishPage publishPage = new OpenDataPublishPage(page());
         OpenDataPublishFlow publishFlow = new OpenDataPublishFlow(publishPage);

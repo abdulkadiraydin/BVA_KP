@@ -1,8 +1,10 @@
 package com.bvakp.automation.flows.avpFlows;
 
-import com.bvakp.automation.companents.KaynakEkleModal;
+import com.bvakp.automation.components.KaynakEkleModal;
 import com.bvakp.automation.pages.openData.OpenDataPage;
+import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Page;
+import org.testng.Assert;
 
 /**
  * Açık Veri Portalı kaynak CRUD ve veri setini KVKK onayına gönderme
@@ -24,53 +26,34 @@ public class OpenDataCreateFlow {
     }
 
     /**
-     * Kaynak Ekle formunu doldurarak yeni kaynak oluşturur.
-     *
-     * @param kaynakAdi oluşturulacak kaynak adı
-     * @param tabloAdi kaynak tablosu
-     * @param aciklama kaynak açıklaması
+     * Kaynak Ekle formunu doldurarak yeni kaynak oluşturur ve listede göründüğünü doğrular.
+     * Testlerin ön koşulu olarak kullanılır; kaynak oluşturmanın ayrıntılı testi
+     * OpenDataCreateTest.kaynakOlusturma'dadır.
      */
     public void createSource(String kaynakAdi, String tabloAdi, String aciklama) {
+
+        ReportManager.step("Ön koşul: kaynak oluşturuluyor | " + kaynakAdi + " | Tablo: " + tabloAdi);
+
         openDataPage.kaynakEklemeEkraniniAcma();
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
+                "Ön koşul: Kaynak Ekle formu açılamadı.");
+
         kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
         kaynakEkleModal.kaynakTablosuSecme(tabloAdi);
         kaynakEkleModal.kaynakAciklamasiGirme(aciklama);
+
+        Assert.assertTrue(kaynakEkleModal.veriOnizlemeGoruntulendiMi(),
+                "Ön koşul: Veri Önizleme görüntülenemedi.");
+
         kaynakEkleModal.kaynakEkleme();
-    }
 
-    /**
-     * Belirtilen kaynağın silme butonuna tıklar ve silmeyi onaylar.
-     *
-     * @param kaynakAdi silinecek kaynak adı
-     */
-    public void deleteSource(String kaynakAdi) {
-        openDataPage.kaynakSilmeButonunaTiklama(kaynakAdi);
-        openDataPage.kaynakSilmeOnayiVerme();
-    }
+        Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuKapandiMi(),
+                "Ön koşul: Kaynak oluşturulduktan sonra form kapanmadı.");
+        Assert.assertTrue(openDataPage.kaynakListedeMi(kaynakAdi),
+                "Ön koşul: Kaynak listede bulunamadı: " + kaynakAdi);
 
-    /**
-     * Kaynağın adını ve açıklamasını düzenleyip kaydeder.
-     *
-     * @param kaynakAdi düzenlenecek kaynak adı
-     * @param yeniKaynakAdi yeni kaynak adı
-     * @param yeniAciklama yeni kaynak açıklaması
-     */
-    public void editSource(String kaynakAdi, String yeniKaynakAdi, String yeniAciklama) {
-        openDataPage.kaynakDuzenlemeButonunaTiklama(kaynakAdi);
-        openDataPage.kaynakAdiniGuncelleme(yeniKaynakAdi);
-        openDataPage.kaynakAciklamasiniGuncelleme(yeniAciklama);
-        openDataPage.kaynakDuzenlemeyiKaydetme();
+        ReportManager.info("Ön koşul kaynağı hazır | " + kaynakAdi);
     }
-
-    /**
-     * Belirtilen kaynağın görüntüleme ekranını açar.
-     *
-     * @param kaynakAdi görüntülenecek kaynak adı
-     */
-    public void openSource(String kaynakAdi) {
-        openDataPage.kaynakGoruntulemeButonunaTiklama(kaynakAdi);
-    }
-
 
     public void createDataSetForApproval(
             String kaynakAdi,

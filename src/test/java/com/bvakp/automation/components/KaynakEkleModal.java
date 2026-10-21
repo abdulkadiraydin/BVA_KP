@@ -1,4 +1,4 @@
-package com.bvakp.automation.companents;
+package com.bvakp.automation.components;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;

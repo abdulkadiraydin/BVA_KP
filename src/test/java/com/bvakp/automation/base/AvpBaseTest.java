@@ -15,14 +15,12 @@ public abstract class AvpBaseTest extends BaseTest {
 
 
     /**
-     * AVP testlerinde kayıtlı authentication state kullanılmasını sağlar.
-     *
-     * @return auth state kullanılacaksa true
+     * Kayıtlı oturum dosyasının kullanılıp kullanılmayacağını belirler.
+     * false ise her test kendi girişini yapar (paralel koşuda token çakışmasını önler).
      */
     @Override
     protected boolean authStateKullan() {
-
-        return true;
+        return Boolean.parseBoolean(ConfigManager.getOrDefault("auth.state.reuse", "true"));
     }
 
 

@@ -11,74 +11,13 @@ import com.microsoft.playwright.options.WaitForSelectorState;
 public class OpenDataPage extends BasePage {
 
 
-    private final Locator acikVeriPortali;
-
-
     public OpenDataPage(Page page) {
 
         super(page);
-
-        // =========================
-        // Açık Veri / Kaynak
-        // =========================
-
-        this.acikVeriPortali = page.getByText(
-                "Açık Veri Portalı",
-                new Page.GetByTextOptions().setExact(true)
-        );
-
-
-
-
-        // =========================
-        // Veri Seti Oluşturma
-        // =========================
-
     }
-
-    // =========================
-    // Açık Veri
-    // =========================
-
-    public void clickAcikVeriPortali() {
-        acikVeriPortali.click();
-    }
-
     // =========================
     // Kaynak Oluşturma
     // =========================
-
-
-
-    public void deleteSource(String sourceName) {
-
-        Locator row = page.locator("[role='row']")
-                .filter(new Locator.FilterOptions()
-                        .setHasText(sourceName));
-
-        // Satırdaki Sil
-        row.getByRole(
-                AriaRole.BUTTON,
-                new Locator.GetByRoleOptions()
-                        .setName("Sil")
-        ).click();
-
-        // Popup'ın açılmasını bekle
-        page.waitForTimeout(500);
-
-        // Popup'taki Sil
-        page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions()
-                        .setName("Sil")
-                        .setExact(true)
-        ).last().click();
-
-        // Backend işleminin tamamlanmasını bekle
-        page.waitForTimeout(2000);
-
-        page.reload();
-    }
 
     /**
      * Sol menüden Açık Veri Portalı ekranına geçer.
@@ -94,33 +33,8 @@ public class OpenDataPage extends BasePage {
     }
 
 
-    /**
-     * Kaynak Tablo / Sorgu bölümünün görüntülendiğini kontrol eder.
-     *
-     * @return bölüm görüntüleniyorsa true
-     */
     public boolean kaynakTabloSorguGoruntulendiMi() {
-
-        try {
-
-            Locator baslik =
-                    page.getByText(
-                            "Kaynak Tablo / Sorgu",
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            baslik.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(15000)
-            );
-
-            return baslik.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(page.getByText("Kaynak Tablo / Sorgu", new Page.GetByTextOptions().setExact(true)));
     }
 
 
@@ -172,25 +86,8 @@ public class OpenDataPage extends BasePage {
     }
 
 
-    /**
-     * Oluşturulan kaynağın listede bulunduğunu kontrol eder.
-     *
-     * @param kaynakAdi kontrol edilecek kaynak adı
-     * @return kaynak listede görünüyorsa true
-     */
-    public boolean kaynakListedeMi(
-            String kaynakAdi) {
-
-        try {
-
-            return kaynakSatiriBulma(
-                    kaynakAdi
-            ).isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+    public boolean kaynakListedeMi(String kaynakAdi) {
+        return gorunurMu(kaynakSatiri(kaynakAdi));
     }
 
 
@@ -268,100 +165,6 @@ public class OpenDataPage extends BasePage {
                 .click();
     }
 
-
-    /**
-     * Kaynağı Sil dialogundaki
-     * Sil butonuna tıklar.
-     */
-    public void kaynakSilmeOnayiVerme() {
-
-        Locator dialog =
-                page.getByRole(
-                        AriaRole.DIALOG
-                );
-
-        dialog.waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(10000)
-        );
-
-        dialog.getByRole(
-                AriaRole.BUTTON,
-                new Locator.GetByRoleOptions()
-                        .setName("Sil")
-                        .setExact(true)
-        ).click();
-    }
-
-
-    /**
-     * Silme işleminden sonra dialogun
-     * kapandığını doğrular.
-     *
-     * @return dialog kapandıysa true
-     */
-    public boolean kaynakSilmeDialoguKapandiMi() {
-
-        try {
-
-            page.getByRole(
-                    AriaRole.DIALOG
-            ).waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(
-                                    WaitForSelectorState.HIDDEN
-                            )
-                            .setTimeout(15000)
-            );
-
-            return true;
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
-    }
-
-
-    /**
-     * Silinen kaynağın artık listede
-     * görüntülenmediğini doğrular.
-     *
-     * @param kaynakAdi silinen kaynak adı
-     * @return kaynak artık listede değilse true
-     */
-    public boolean kaynakListedenSilindiMi(
-            String kaynakAdi) {
-
-        Locator kaynak =
-                page.getByText(
-                        kaynakAdi,
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        try {
-
-            kaynak.waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(
-                                    WaitForSelectorState.HIDDEN
-                            )
-                            .setTimeout(15000)
-            );
-
-        } catch (PlaywrightException e) {
-
-            /*
-             * Silme sonrasında kayıt tamamen DOM'dan
-             * kaldırılmış olabilir.
-             */
-        }
-
-        return kaynak.count() == 0
-                || !kaynak.isVisible();
-    }
-
     public void kaynakGoruntulemeButonunaTiklama(
             String kaynakAdi) {
 
@@ -390,54 +193,21 @@ public class OpenDataPage extends BasePage {
                         .setExact(true)
         ).click();
     }
-
-
     /**
-     * Kaynak detay ekranındaki Genel Bilgi
-     * bölümünün açıldığını doğrular.
-     *
-     * Kaynak Bilgileri ve Kayıt Bilgileri
-     * başlıklarının birlikte görüntülenmesi beklenir.
-     *
-     * @return Genel Bilgi ekranı doğru açıldıysa true
+     * Kaynak listede görünmüyorsa true döner (silinme veya ad değişikliği sonrası).
+     * Kayıt zaten yoksa beklemeden döner.
      */
+    public boolean kaynakListedeYokMu(String kaynakAdi) {
+        return gorunmuyorMu(kaynakSatiri(kaynakAdi));
+    }
+
     public boolean genelBilgiSayfasiGoruntulendiMi() {
+        Locator kaynakBilgileri = page.getByRole(AriaRole.HEADING,
+                new Page.GetByRoleOptions().setName("Kaynak Bilgileri").setExact(true));
+        Locator kayitBilgileri = page.getByRole(AriaRole.HEADING,
+                new Page.GetByRoleOptions().setName("Kayıt Bilgileri").setExact(true));
 
-        try {
-
-            Locator kaynakBilgileri =
-                    page.getByRole(
-                            AriaRole.HEADING,
-                            new Page.GetByRoleOptions()
-                                    .setName("Kaynak Bilgileri")
-                                    .setExact(true)
-                    );
-
-            Locator kayitBilgileri =
-                    page.getByRole(
-                            AriaRole.HEADING,
-                            new Page.GetByRoleOptions()
-                                    .setName("Kayıt Bilgileri")
-                                    .setExact(true)
-                    );
-
-            kaynakBilgileri.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(15000)
-            );
-
-            kayitBilgileri.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(15000)
-            );
-
-            return kaynakBilgileri.isVisible()
-                    && kayitBilgileri.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(kaynakBilgileri) && gorunurMu(kayitBilgileri);
     }
 
 
@@ -513,51 +283,6 @@ public class OpenDataPage extends BasePage {
                 .click();
     }
 
-
-    /**
-     * Kaynak adını yeni değerle değiştirir.
-     *
-     * @param yeniKaynakAdi yeni kaynak adı
-     */
-    public void kaynakAdiniGuncelleme(
-            String yeniKaynakAdi) {
-
-        page.getByLabel(
-                "Ad *"
-        ).fill(
-                yeniKaynakAdi
-        );
-    }
-
-
-    /**
-     * Kaynak açıklamasını yeni değerle değiştirir.
-     *
-     * @param yeniAciklama yeni açıklama
-     */
-    public void kaynakAciklamasiniGuncelleme(
-            String yeniAciklama) {
-
-        page.getByLabel(
-                "Açıklama"
-        ).fill(
-                yeniAciklama
-        );
-    }
-
-
-    /**
-     * Kaynak düzenleme işlemini kaydeder.
-     */
-    public void kaynakDuzenlemeyiKaydetme() {
-
-        page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions()
-                        .setName("Kaydet")
-                        .setExact(true)
-        ).click();
-    }
     /**
      * Kaynak ara alanına verilen kriteri yazar
      * ve arama işlemini başlatır.
@@ -678,34 +403,9 @@ public class OpenDataPage extends BasePage {
 
         return gorunenKayitSayisi > 0;
     }
-    /**
-     * Arama sonucunda kaynak bulunamadığında
-     * boş liste mesajının görüntülendiğini kontrol eder.
-     *
-     * @return boş liste mesajı görünüyorsa true
-     */
     public boolean kaynakBulunamadiMesajiGoruntulendiMi() {
-
-        try {
-
-            Locator mesaj =
-                    page.getByText(
-                            "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.",
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            mesaj.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return mesaj.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(page.getByText("Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.",
+                new Page.GetByTextOptions().setExact(true)), 10_000);
     }
 
     /**
@@ -908,117 +608,24 @@ public class OpenDataPage extends BasePage {
     }
 
 
-    /**
-     * Veri setinin oluşturulup KVKK sürecine
-     * gönderildiğine ait başarı mesajını kontrol eder.
-     */
     public boolean veriSetiKvkkOnayinaGonderildiMi() {
-
-        try {
-
-            Locator mesaj =
-                    page.getByText(
-                            "Veri seti oluşturuldu ve KVKK",
-                            new Page.GetByTextOptions()
-                                    .setExact(false)
-                    );
-
-            mesaj.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(15000)
-            );
-
-            return mesaj.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(page.getByText("Veri seti oluşturuldu ve KVKK",
+                new Page.GetByTextOptions().setExact(false)));
     }
-    /**
-     * Veri Seti Adı zorunlu alan mesajının
-     * görüntülendiğini kontrol eder.
-     */
     public boolean veriSetiAdiZorunluMesajiGoruntulendiMi() {
-
-        try {
-
-            Locator mesaj =
-                    page.getByText(
-                            "Veri seti adı zorunludur.",
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            mesaj.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return mesaj.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(page.getByText("Veri seti adı zorunludur.",
+                new Page.GetByTextOptions().setExact(true)), 10_000);
     }
 
 
-    /**
-     * Sorumlu Birim zorunlu alan mesajının
-     * görüntülendiğini kontrol eder.
-     */
     public boolean sorumluBirimZorunluMesajiGoruntulendiMi() {
-
-        try {
-
-            Locator mesaj =
-                    page.getByText(
-                            "Sorumlu birim zorunludur.",
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            mesaj.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return mesaj.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(page.getByText("Sorumlu birim zorunludur.",
+                new Page.GetByTextOptions().setExact(true)), 10_000);
     }
 
-
-    /**
-     * Kategori zorunlu alan mesajının
-     * görüntülendiğini kontrol eder.
-     */
     public boolean kategoriZorunluMesajiGoruntulendiMi() {
-
-        try {
-
-            Locator mesaj =
-                    page.getByText(
-                            "Kategori zorunludur.",
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            mesaj.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return mesaj.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(page.getByText("Kategori zorunludur.",
+                new Page.GetByTextOptions().setExact(true)), 10_000);
     }
     /**
      * Verilen kolona Maskele anonimleştirme
@@ -1040,62 +647,12 @@ public class OpenDataPage extends BasePage {
     }
 
 
-    /**
-     * Önizleme ekranında beklenen kolonun
-     * görüntülendiğini kontrol eder.
-     */
-    public boolean onizlemeKolonuGoruntulendiMi(
-            String kolonAdi) {
-
-        try {
-
-            Locator kolon =
-                    page.getByText(
-                            kolonAdi,
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            kolon.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(15000)
-            );
-
-            return kolon.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+    public boolean onizlemeKolonuGoruntulendiMi(String kolonAdi) {
+        return gorunurMu(page.getByText(kolonAdi, new Page.GetByTextOptions().setExact(true)));
     }
 
-
-    /**
-     * Önizleme ekranında Maskelendi bilgisinin
-     * görüntülendiğini kontrol eder.
-     */
     public boolean maskelendiBilgisiGoruntulendiMi() {
-
-        try {
-
-            Locator maskelendi =
-                    page.getByText(
-                            "Maskelendi",
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            maskelendi.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(15000)
-            );
-
-            return maskelendi.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(page.getByText("Maskelendi", new Page.GetByTextOptions().setExact(true)));
     }
 
 
@@ -1148,5 +705,13 @@ public class OpenDataPage extends BasePage {
         }
 
         return false;
+    }
+    /** Kaynak adına (tam eşleşme) ait satırın locator'ı; beklemez. */
+    private Locator kaynakSatiri(String kaynakAdi) {
+
+        Locator kaynakAdiLocator = page.getByText(kaynakAdi, new Page.GetByTextOptions().setExact(true));
+
+        return page.getByRole(AriaRole.ROW)
+                .filter(new Locator.FilterOptions().setHas(kaynakAdiLocator));
     }
 }

@@ -21,7 +21,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
         avpOturumuHazirlama();
 
-        new OpenDataPage(page()).clickAcikVeriPortali();
+        new OpenDataPage(page()).acikVeriPortalinaGitme();
 
         OpenDataPublishPage publishPage =
                 new OpenDataPublishPage(page());
@@ -31,10 +31,6 @@ public class OpenDataPublishTest extends AvpBaseTest {
                 new OpenDataPublishFlow(publishPage),
                 new OpenDataCreateFlow(page())
         );
-    }
-    @Test
-    public void veriSetiKvkkOnaylama1() {
-        TestContext ctx = testHazirligi();
     }
     @Test
     public void veriSetiKvkkOnaylama() {
