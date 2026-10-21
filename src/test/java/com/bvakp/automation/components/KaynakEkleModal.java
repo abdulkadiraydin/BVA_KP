@@ -1,345 +1,171 @@
 package com.bvakp.automation.components;
-import com.bvakp.automation.reporting.ReportManager;
+
+import com.bvakp.automation.pages.BasePage;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
-import com.microsoft.playwright.options.WaitForSelectorState;
 
-public class KaynakEkleModal {
+/**
+ * Açık Veri Portalı "Kaynak Ekle" modalı (Kaynak Tablo ve Hazır Sorgu sekmeleri).
+ *
+ * <p>Bütün locator'lar modal (dialog) içine sınırlıdır; arka plandaki sayfada aynı
+ * isimli buton veya metinler (örneğin "Kaynak Ekle", tablo adları) olsa da karışmaz.
+ */
+public class KaynakEkleModal extends BasePage {
 
-    private final Page page;
+    private static final int FORM_TIMEOUT_MS = 10_000;
+    private static final int SUNUCU_CEVABI_TIMEOUT_MS = 15_000;
+    /** Negatif kontrollerde, beklenen mesaj görüldükten sonra kısa bir bekleme yeterlidir. */
+    private static final int NEGATIF_KONTROL_TIMEOUT_MS = 2_000;
 
+    private static final String TABLOLAR_OKUNAMADI_MESAJI = "Tablolar okunamadı";
+
+    private final Locator modal;
     private final Locator adAlani;
     private final Locator tabloAlani;
     private final Locator aciklamaAlani;
     private final Locator veriOnizleme;
     private final Locator kaynakEkleButonu;
+    private final Locator kaynakAdiZorunluMesaji;
+    private final Locator tabloZorunluMesaji;
 
-
-    /**
-     * Kaynak Ekle modalındaki elementleri tanımlar.
-     *
-     * @param page aktif Playwright sayfası
-     */
     public KaynakEkleModal(Page page) {
 
-        this.page = page;
+        super(page);
 
-        this.adAlani =
-                page.getByLabel(
-                        "Ad *"
-                );
+        this.modal = page.getByRole(AriaRole.DIALOG);
 
-        this.tabloAlani =
-                page.getByLabel(
-                        "Tablo *"
-                );
+        this.adAlani = modal.getByLabel("Ad *");
+        this.tabloAlani = modal.getByLabel("Tablo *");
+        this.aciklamaAlani = modal.getByLabel("Açıklama");
+        this.veriOnizleme = modal.getByText("Veri Önizleme", new Locator.GetByTextOptions().setExact(true));
+        this.kaynakEkleButonu = modal.getByRole(AriaRole.BUTTON,
+                new Locator.GetByRoleOptions().setName("Kaynak Ekle").setExact(true));
 
-        this.aciklamaAlani =
-                page.getByLabel(
-                        "Açıklama"
-                );
-
-        this.veriOnizleme =
-                page.getByText(
-                        "Veri Önizleme",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        this.kaynakEkleButonu =
-                page.getByRole(
-                        AriaRole.BUTTON,
-                        new Page.GetByRoleOptions()
-                                .setName("Kaynak Ekle")
-                                .setExact(true)
-                );
+        this.kaynakAdiZorunluMesaji = modal.getByText("Kaynak adı zorunludur.",
+                new Locator.GetByTextOptions().setExact(true));
+        this.tabloZorunluMesaji = modal.getByText("Bir tablo seçin.",
+                new Locator.GetByTextOptions().setExact(true));
     }
 
+    // =====================================================================
+    // Form
+    // =====================================================================
 
-    /**
-     * Kaynak Ekle formundaki temel alanların
-     * görüntülendiğini kontrol eder.
-     *
-     * @return form alanları görünüyorsa true
-     */
     public boolean kaynakEkleFormuGoruntulendiMi() {
-
-        try {
-
-            adAlani.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            tabloAlani.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            aciklamaAlani.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return adAlani.isVisible()
-                    && tabloAlani.isVisible()
-                    && aciklamaAlani.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(adAlani, FORM_TIMEOUT_MS)
+                && tabloAlani.isVisible()
+                && aciklamaAlani.isVisible();
     }
 
-
-    /**
-     * Kaynak adı alanına verilen değeri girer.
-     *
-     * @param kaynakAdi oluşturulacak kaynak adı
-     */
-    public void kaynakAdiGirme(
-            String kaynakAdi) {
-
-        adAlani.fill(
-                kaynakAdi
-        );
+    public boolean kaynakEkleFormuKapandiMi() {
+        return gorunmuyorMu(adAlani, SUNUCU_CEVABI_TIMEOUT_MS);
     }
 
+    public void kaynakAdiGirme(String kaynakAdi) {
+        adAlani.fill(kaynakAdi);
+    }
 
-    /**
-     * Kaynak adı alanındaki mevcut değeri döndürür.
-     *
-     * @return kaynak adı alanındaki değer
-     */
     public String kaynakAdiAlma() {
-
-        return adAlani
-                .inputValue()
-                .trim();
+        return adAlani.inputValue().trim();
     }
 
+    public void kaynakAciklamasiGirme(String aciklama) {
+        aciklamaAlani.fill(aciklama);
+    }
+
+    public String kaynakAciklamasiAlma() {
+        return aciklamaAlani.inputValue().trim();
+    }
 
     /**
-     * Tablo seçim alanını açar ve belirtilen
-     * kaynak tablosunu seçer.
+     * Tablo listesini açar ve verilen tabloyu seçer.
      *
-     * @param tabloAdi seçilecek tablo adı
+     * <p>Liste sunucudan yüklenir. Sunucu "Tablolar okunamadı" derse (örneğin oturum
+     * geçersizse) zaman aşımını beklemeden, sebebi açıkça yazan bir hatayla durur.
      */
-    public void kaynakTablosuSecme(
-            String tabloAdi) {
+    public void kaynakTablosuSecme(String tabloAdi) {
 
         tabloAlani.click();
 
-        Locator tabloSecenegi =
-                page.getByText(
-                        tabloAdi,
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
+        Locator tabloSecenegi = page.getByRole(AriaRole.OPTION,
+                new Page.GetByRoleOptions().setName(tabloAdi).setExact(true));
+        Locator tablolarOkunamadi = modal.getByText(TABLOLAR_OKUNAMADI_MESAJI);
 
-        tabloSecenegi.waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(10000)
-        );
+        try {
+            tabloSecenegi.or(tablolarOkunamadi).first().waitFor(
+                    new Locator.WaitForOptions().setTimeout(SUNUCU_CEVABI_TIMEOUT_MS));
+        } catch (PlaywrightException e) {
+            throw new IllegalStateException("Tablo listesinde '" + tabloAdi + "' "
+                    + SUNUCU_CEVABI_TIMEOUT_MS / 1000 + " sn içinde görünmedi.", e);
+        }
+
+        if (tablolarOkunamadi.isVisible()) {
+            throw new IllegalStateException("Tablo listesi yüklenemedi: '" + TABLOLAR_OKUNAMADI_MESAJI
+                    + "'. Oturum geçersiz olabilir (SECURITY.UNAUTHORIZED).");
+        }
 
         tabloSecenegi.click();
     }
 
-
-    /**
-     * Tablo alanındaki seçili değeri döndürür.
-     *
-     * @return seçili tablo adı
-     */
     public String seciliTabloyuAlma() {
-
-        return tabloAlani
-                .inputValue()
-                .trim();
+        return tabloAlani.inputValue().trim();
     }
 
-
-    /**
-     * Kaynak açıklaması alanına verilen değeri girer.
-     *
-     * @param aciklama kaynak açıklaması
-     */
-    public void kaynakAciklamasiGirme(
-            String aciklama) {
-
-        aciklamaAlani.fill(
-                aciklama
-        );
-    }
-
-
-    /**
-     * Kaynak açıklaması alanındaki mevcut değeri döndürür.
-     *
-     * @return açıklama alanındaki değer
-     */
-    public String kaynakAciklamasiAlma() {
-
-        return aciklamaAlani
-                .inputValue()
-                .trim();
-    }
-
-
-    /**
-     * Tablo seçimi sonrasında Veri Önizleme
-     * bölümünün görüntülendiğini kontrol eder.
-     *
-     * @return Veri Önizleme görünüyorsa true
-     */
     public boolean veriOnizlemeGoruntulendiMi() {
-
-        try {
-
-            veriOnizleme.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(15000)
-            );
-
-            return veriOnizleme.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(veriOnizleme, SUNUCU_CEVABI_TIMEOUT_MS);
     }
 
-
-    /**
-     * Kaynak Ekle butonuna tıklayarak
-     * kaynak oluşturma işlemini tamamlar.
-     */
+    /** Modaldaki "Kaynak Ekle" (kaydet) butonuna tıklar. */
     public void kaynakEkleme() {
-
-        kaynakEkleButonu.waitFor(
-                new Locator.WaitForOptions()
-                        .setTimeout(10000)
-        );
-
         kaynakEkleButonu.click();
     }
 
+    // =====================================================================
+    // Zorunlu alan mesajları
+    // =====================================================================
 
-    /**
-     * Kaynak oluşturma sonrasında formun
-     * kapandığını kontrol eder.
-     *
-     * @return form kapandıysa true
-     */
-    public boolean kaynakEkleFormuKapandiMi() {
-
-        try {
-            adAlani.waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(
-                                    WaitForSelectorState.HIDDEN
-                            )
-                            .setTimeout(15000)
-            );
-
-            return true;
-
-        } catch (PlaywrightException e) {
-            return false;
-        }
-    }
-    /**
-     * Kaynak adı zorunlu alan mesajının
-     * görüntülendiğini kontrol eder.
-     */
     public boolean kaynakAdiZorunluMesajiGoruntulendiMi() {
-
-        return page.getByText(
-                "Kaynak adı zorunludur.",
-                new Page.GetByTextOptions()
-                        .setExact(true)
-        ).isVisible();
+        return gorunurMu(kaynakAdiZorunluMesaji, FORM_TIMEOUT_MS);
     }
 
+    /** Önce beklenen diğer mesajın göründüğü doğrulandıktan sonra kullanılmalıdır. */
+    public boolean kaynakAdiZorunluMesajiGoruntulenmediMi() {
+        return gorunmuyorMu(kaynakAdiZorunluMesaji, NEGATIF_KONTROL_TIMEOUT_MS);
+    }
 
-    /**
-     * Tablo zorunlu alan mesajının
-     * görüntülendiğini kontrol eder.
-     */
     public boolean tabloZorunluMesajiGoruntulendiMi() {
-
-        return page.getByText(
-                "Bir tablo seçin.",
-                new Page.GetByTextOptions()
-                        .setExact(true)
-        ).isVisible();
+        return gorunurMu(tabloZorunluMesaji, FORM_TIMEOUT_MS);
     }
-    /**
-     * Kaynak Ekle formunu açar.
-     */
-    public void kaynakEkleButonunaTiklama() {
 
-        page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions()
-                        .setName("Kaynak Ekle")
-                        .setExact(true)
-        ).click();
+    /** Önce beklenen diğer mesajın göründüğü doğrulandıktan sonra kullanılmalıdır. */
+    public boolean tabloZorunluMesajiGoruntulenmediMi() {
+        return gorunmuyorMu(tabloZorunluMesaji, NEGATIF_KONTROL_TIMEOUT_MS);
     }
-    /**
-     * Kaynak Ekle formunda Hazır Sorgu seçeneğine geçer.
-     */
+
+    // =====================================================================
+    // Hazır Sorgu
+    // =====================================================================
+
     public void hazirSorguyaGecme() {
-
-        page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions()
-                        .setName("Hazır Sorgu")
-                        .setExact(true)
-        ).click();
+        modal.getByRole(AriaRole.BUTTON,
+                new Locator.GetByRoleOptions().setName("Hazır Sorgu").setExact(true)).click();
     }
 
-
-    /**
-     * Hazır Sorgu alanına verilen SQL sorgusunu yazar.
-     *
-     * @param sorgu çalıştırılacak SQL sorgusu
-     */
-    public void hazirSorguGirme(
-            String sorgu) {
-
-        Locator sorguAlani =
-                page.getByPlaceholder("""
+    public void hazirSorguGirme(String sorgu) {
+        modal.getByPlaceholder("""
                 SELECT a.*, b.ad
                 FROM tablo_a a
-                JOIN tablo_b b ON a.id = b.a_id""");
-
-        sorguAlani.fill(
-                sorgu
-        );
+                JOIN tablo_b b ON a.id = b.a_id""").fill(sorgu);
     }
 
-
-    /**
-     * Girilen hazır sorgunun doğrulanmasını başlatır.
-     */
     public void hazirSorguDogrulama() {
-
-        page.getByRole(
-                AriaRole.BUTTON,
-                new Page.GetByRoleOptions()
-                        .setName("Doğrula")
-                        .setExact(true)
-        ).click();
+        modal.getByRole(AriaRole.BUTTON,
+                new Locator.GetByRoleOptions().setName("Doğrula").setExact(true)).click();
     }
 
-
-    /**
-     * Sorgu doğrulaması sonrasında beklenen
-     * kolonların görüntülendiğini kontrol eder.
-     */
+    /** Sorgu doğrulaması sonrası beklenen beş kolonun hepsi görünürse true. */
     public boolean hazirSorguKolonlariGoruntulendiMi() {
 
         String[] beklenenKolonlar = {
@@ -350,132 +176,25 @@ public class KaynakEkleModal {
                 "hat_adi_yillik_hat_kapasitesi"
         };
 
-
         for (String kolon : beklenenKolonlar) {
-
-            try {
-
-                Locator kolonLocator =
-                        page.getByText(
-                                kolon,
-                                new Page.GetByTextOptions()
-                                        .setExact(true)
-                        );
-
-                kolonLocator.waitFor(
-                        new Locator.WaitForOptions()
-                                .setTimeout(15000)
-                );
-
-
-                if (!kolonLocator.isVisible()) {
-
-                    ReportManager.info(
-                            "Sorgu sonucunda beklenen kolon görüntülenemedi"
-                                    + " | Kolon: "
-                                    + kolon
-                    );
-
-                    return false;
-                }
-
-            } catch (PlaywrightException e) {
-
-                ReportManager.info(
-                        "Sorgu sonucunda beklenen kolon yüklenemedi"
-                                + " | Kolon: "
-                                + kolon
-                );
-
+            Locator kolonLocator = modal.getByText(kolon, new Locator.GetByTextOptions().setExact(true));
+            if (!gorunurMu(kolonLocator, SUNUCU_CEVABI_TIMEOUT_MS)) {
                 return false;
             }
         }
-
-
         return true;
     }
-    /**
-     * SELECT dışındaki sorgularda Kullanıcı Kaynaklı Hata
-     * alanının görüntülendiğini kontrol eder.
-     */
+
     public boolean kullaniciKaynakliHataGoruntulendiMi() {
-
-        try {
-
-            Locator hataBasligi =
-                    page.getByText(
-                            "Kullanıcı Kaynaklı Hata",
-                            new Page.GetByTextOptions()
-                                    .setExact(true)
-                    );
-
-            hataBasligi.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return hataBasligi.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(modal.getByText("Kullanıcı Kaynaklı Hata",
+                new Locator.GetByTextOptions().setExact(true)), SUNUCU_CEVABI_TIMEOUT_MS);
     }
 
-    /**
-     * SELECT dışındaki veri değiştiren sorguların
-     * engellendiğine ait hata mesajını kontrol eder.
-     */
     public boolean sadeceSelectSorgusuHatasiGoruntulendiMi() {
-
-        try {
-
-            Locator hataMesaji =
-                    page.getByText(
-                            "Sorguyu yalnızca SELECT ile yazın.",
-                            new Page.GetByTextOptions()
-                                    .setExact(false)
-                    );
-
-            hataMesaji.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return hataMesaji.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(modal.getByText("Sorguyu yalnızca SELECT ile yazın."), FORM_TIMEOUT_MS);
     }
 
-
-    /**
-     * Read-only sorgu kuralına ait hata kodunun
-     * görüntülendiğini kontrol eder.
-     */
     public boolean readOnlySorguHataKoduGoruntulendiMi() {
-
-        try {
-
-            Locator hataKodu =
-                    page.getByText(
-                            "OPEN_DATA.SOURCE.QUERY_NOT_READ_ONLY",
-                            new Page.GetByTextOptions()
-                                    .setExact(false)
-                    );
-
-            hataKodu.waitFor(
-                    new Locator.WaitForOptions()
-                            .setTimeout(10000)
-            );
-
-            return hataKodu.isVisible();
-
-        } catch (PlaywrightException e) {
-
-            return false;
-        }
+        return gorunurMu(modal.getByText("OPEN_DATA.SOURCE.QUERY_NOT_READ_ONLY"), FORM_TIMEOUT_MS);
     }
 }

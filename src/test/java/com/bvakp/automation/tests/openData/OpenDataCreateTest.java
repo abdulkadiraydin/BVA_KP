@@ -284,7 +284,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
         // Önce beklenen mesaj doğrulanır; ardından diğer mesajın olmadığı kontrol edilir.
         Assert.assertTrue(kaynakEkleModal.tabloZorunluMesajiGoruntulendiMi(),
                 "Tablo zorunlu alan mesajı görüntülenmedi.");
-        Assert.assertFalse(kaynakEkleModal.kaynakAdiZorunluMesajiGoruntulendiMi(),
+        Assert.assertTrue(kaynakEkleModal.kaynakAdiZorunluMesajiGoruntulenmediMi(),
                 "Kaynak adı dolu olmasına rağmen zorunlu alan mesajı görüntülendi.");
         Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
                 "Tablo alanı boş olmasına rağmen form kapandı.");
@@ -306,7 +306,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
         Assert.assertTrue(kaynakEkleModal.kaynakAdiZorunluMesajiGoruntulendiMi(),
                 "Kaynak adı zorunlu alan mesajı görüntülenmedi.");
-        Assert.assertFalse(kaynakEkleModal.tabloZorunluMesajiGoruntulendiMi(),
+        Assert.assertTrue(kaynakEkleModal.tabloZorunluMesajiGoruntulenmediMi(),
                 "Tablo seçili olmasına rağmen Tablo zorunlu alan mesajı görüntülendi.");
         Assert.assertTrue(kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(),
                 "Kaynak adı boş olmasına rağmen form kapandı.");

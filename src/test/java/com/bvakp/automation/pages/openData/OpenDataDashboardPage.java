@@ -1,17 +1,43 @@
 package com.bvakp.automation.pages.openData;
 
+import com.bvakp.automation.pages.BasePage;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
-import com.microsoft.playwright.options.WaitForSelectorState;
 
 import java.util.regex.Pattern;
 
-public class OpenDataDashboardPage {
+/**
+ * Açık Veri Portalı "Portal Dashboard" sekmesi: istatistik kartları, format dağılımı,
+ * indirme/API trendi, en çok indirilen/sorgulanan veri setleri ve kategori dağılımı.
+ *
+ * <p>Kartlar ve grafikler sekme açıldıktan sonra sunucudan yüklenir; bütün görünürlük
+ * kontrolleri bu yüzden bekleyerek yapılır.
+ */
+public class OpenDataDashboardPage extends BasePage {
+
+    private static final int DASHBOARD_TIMEOUT_MS = 15_000;
+
+    /** Seçenekleri kodda yazım hatasına karşı tek yerde tutar. */
+    public enum TrendDonemi {
+        GUNLUK("Günlük"),
+        HAFTALIK("Haftalık"),
+        AYLIK("Aylık");
+
+        private final String butonAdi;
+
+        TrendDonemi(String butonAdi) {
+            this.butonAdi = butonAdi;
+        }
+
+        public String butonAdi() {
+            return butonAdi;
+        }
+    }
 
     private final Locator portalDashboardSekmesi;
-
     private final Locator portalIstatistikleriBasligi;
+
     private final Locator toplamVeriSetiKarti;
     private final Locator toplamIndirmeKarti;
     private final Locator apiCagrisiKarti;
@@ -22,266 +48,171 @@ public class OpenDataDashboardPage {
     private final Locator csvLegend;
     private final Locator tsvLegend;
     private final Locator xlsxLegend;
-    private final Locator indirmeApiTrendiAlani;
 
-    private final Locator gunlukButonu;
-    private final Locator haftalikButonu;
-    private final Locator aylikButonu;
+    private final Locator indirmeApiTrendiBasligi;
+
     private final Locator enCokIndirilenVeriSetleriBasligi;
     private final Locator enCokIndirilenVeriSetleriAciklamasi;
     private final Locator enCokApiIleSorgulananVeriSetleriBasligi;
     private final Locator enCokApiIleSorgulananVeriSetleriAciklamasi;
     private final Locator kategoriDagilimiBasligi;
     private final Locator kategoriDagilimiAciklamasi;
-    /**
-     * Portal Dashboard ekranındaki bileşenleri
-     * yönetmek ve doğrulamak için kullanılır.
-     */
+
     public OpenDataDashboardPage(Page page) {
-        portalDashboardSekmesi =
-                page.getByRole(
-                        AriaRole.TAB,
-                        new Page.GetByRoleOptions()
-                                .setName("Portal Dashboard")
-                                .setExact(true)
-                );
 
-        portalIstatistikleriBasligi =
-                page.getByText(
-                        "Portal İstatistikleri ve Raporlama",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
+        super(page);
 
-        toplamVeriSetiKarti =
-                page.getByText(
-                        "Toplam Veri Seti",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
+        portalDashboardSekmesi = page.getByRole(AriaRole.TAB,
+                new Page.GetByRoleOptions().setName("Portal Dashboard").setExact(true));
+        portalIstatistikleriBasligi = tamMetin("Portal İstatistikleri ve Raporlama");
 
-        toplamIndirmeKarti =
-                page.getByText(
-                        "Toplam İndirme",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
+        toplamVeriSetiKarti = tamMetin("Toplam Veri Seti");
+        toplamIndirmeKarti = tamMetin("Toplam İndirme");
+        // "API Çağrısı" metni grafik legend'ında da geçtiği için kart etiketi (p) ayrıca hedeflenir.
+        apiCagrisiKarti = page.locator("p").filter(new Locator.FilterOptions()
+                .setHasText(Pattern.compile("^API Çağrısı$")));
+        benzersizKullaniciKarti = tamMetin("Benzersiz Kullanıcı");
 
-        apiCagrisiKarti =
-                page.locator("p")
-                        .filter(
-                                new Locator.FilterOptions()
-                                        .setHasText(
-                                                Pattern.compile(
-                                                        "^API Çağrısı$"
-                                                )
-                                        )
-                        );
+        formatDagilimiBasligi = tamMetin("Format Dağılımı");
+        formatDagilimiGrafikAlani = page.locator("svg").filter(new Locator.FilterOptions().setHasText("İNDİRME"));
+        csvLegend = page.getByText("CSV:");
+        tsvLegend = page.getByText("TSV:");
+        xlsxLegend = page.getByText("XLSX:");
 
-        benzersizKullaniciKarti =
-                page.getByText(
-                        "Benzersiz Kullanıcı",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
+        indirmeApiTrendiBasligi = tamMetin("İndirme ve API Erişim Trendi");
 
-        formatDagilimiBasligi =
-                page.getByText(
-                        "Format Dağılımı",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        formatDagilimiGrafikAlani =
-                page.locator("svg")
-                        .filter(
-                                new Locator.FilterOptions()
-                                        .setHasText("İNDİRME")
-                        );
-
-        csvLegend =
-                page.getByText(
-                        "CSV:",
-                        new Page.GetByTextOptions()
-                                .setExact(false)
-                );
-
-        tsvLegend =
-                page.getByText(
-                        "TSV:",
-                        new Page.GetByTextOptions()
-                                .setExact(false)
-                );
-
-        xlsxLegend =
-                page.getByText(
-                        "XLSX:",
-                        new Page.GetByTextOptions()
-                                .setExact(false)
-                );
-        indirmeApiTrendiAlani =
-                page.getByText(
-                        "İndirme ve API Erişim TrendiAylık indirme ve API çağrısı sayıları",
-                        new Page.GetByTextOptions()
-                                .setExact(false)
-                );
-
-        gunlukButonu =
-                page.getByRole(
-                        AriaRole.BUTTON,
-                        new Page.GetByRoleOptions()
-                                .setName("Günlük")
-                                .setExact(true)
-                );
-
-        haftalikButonu =
-                page.getByRole(
-                        AriaRole.BUTTON,
-                        new Page.GetByRoleOptions()
-                                .setName("Haftalık")
-                                .setExact(true)
-                );
-
-        aylikButonu =
-                page.getByRole(
-                        AriaRole.BUTTON,
-                        new Page.GetByRoleOptions()
-                                .setName("Aylık")
-                                .setExact(true)
-                );
-        enCokIndirilenVeriSetleriBasligi =
-                page.getByText(
-                        "En Çok İndirilen Veri Setleri",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        enCokIndirilenVeriSetleriAciklamasi =
-                page.getByText(
-                        "Dönem içinde en çok indirilen veri setleri",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-        enCokApiIleSorgulananVeriSetleriBasligi =
-                page.getByText(
-                        "En Çok API ile Sorgulanan Veri Setleri",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        enCokApiIleSorgulananVeriSetleriAciklamasi =
-                page.getByText(
-                        "Dönem içinde API ile en çok sorgulanan veri setleri",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-        kategoriDagilimiBasligi =
-                page.getByText(
-                        "Kategori Dağılımı",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
-
-        kategoriDagilimiAciklamasi =
-                page.getByText(
-                        "Yayınlanmış veri setlerinin kategorilere göre dağılımı",
-                        new Page.GetByTextOptions()
-                                .setExact(true)
-                );
+        enCokIndirilenVeriSetleriBasligi = tamMetin("En Çok İndirilen Veri Setleri");
+        enCokIndirilenVeriSetleriAciklamasi = tamMetin("Dönem içinde en çok indirilen veri setleri");
+        enCokApiIleSorgulananVeriSetleriBasligi = tamMetin("En Çok API ile Sorgulanan Veri Setleri");
+        enCokApiIleSorgulananVeriSetleriAciklamasi = tamMetin("Dönem içinde API ile en çok sorgulanan veri setleri");
+        kategoriDagilimiBasligi = tamMetin("Kategori Dağılımı");
+        kategoriDagilimiAciklamasi = tamMetin("Yayınlanmış veri setlerinin kategorilere göre dağılımı");
     }
 
+    private Locator tamMetin(String metin) {
+        return page.getByText(metin, new Page.GetByTextOptions().setExact(true));
+    }
 
-    /**
-     * Portal Dashboard sekmesine geçiş yapar
-     * ve dashboard içeriğinin açılmasını bekler.
-     */
+    // =====================================================================
+    // Sekme
+    // =====================================================================
+
+    /** Portal Dashboard sekmesine geçer ve başlığın yüklenmesini bekler. */
     public void portalDashboardAcma() {
-
         portalDashboardSekmesi.click();
-
-        portalIstatistikleriBasligi.waitFor(
-                new Locator.WaitForOptions()
-                        .setState(
-                                WaitForSelectorState.VISIBLE
-                        )
-                        .setTimeout(
-                                15000
-                        )
-        );
-
+        if (!gorunurMu(portalIstatistikleriBasligi, DASHBOARD_TIMEOUT_MS)) {
+            throw new IllegalStateException("Portal Dashboard sekmesi açılamadı: başlık görüntülenmedi.");
+        }
     }
 
+    // =====================================================================
+    // İstatistik kartları
+    // =====================================================================
 
-    /**
-     * Toplam Veri Seti kartının görüntülendiğini kontrol eder.
-     */
     public boolean toplamVeriSetiKartiGorunurMu() {
-
-        return toplamVeriSetiKarti.isVisible();
+        return gorunurMu(toplamVeriSetiKarti, DASHBOARD_TIMEOUT_MS);
     }
 
-
-    /**
-     * Toplam İndirme kartının görüntülendiğini kontrol eder.
-     */
     public boolean toplamIndirmeKartiGorunurMu() {
-
-        return toplamIndirmeKarti.isVisible();
+        return gorunurMu(toplamIndirmeKarti, DASHBOARD_TIMEOUT_MS);
     }
 
-
-    /**
-     * API Çağrısı kartının görüntülendiğini kontrol eder.
-     */
     public boolean apiCagrisiKartiGorunurMu() {
-
-        return apiCagrisiKarti.isVisible();
+        return gorunurMu(apiCagrisiKarti, DASHBOARD_TIMEOUT_MS);
     }
 
-
-    /**
-     * Benzersiz Kullanıcı kartının görüntülendiğini kontrol eder.
-     */
     public boolean benzersizKullaniciKartiGorunurMu() {
-
-        return benzersizKullaniciKarti.isVisible();
+        return gorunurMu(benzersizKullaniciKarti, DASHBOARD_TIMEOUT_MS);
     }
 
+    // =====================================================================
+    // Format dağılımı
+    // =====================================================================
 
-    /**
-     * Format Dağılımı başlığının görüntülendiğini kontrol eder.
-     */
     public boolean formatDagilimiBasligiGorunurMu() {
-
-        return formatDagilimiBasligi.isVisible();
+        return gorunurMu(formatDagilimiBasligi, DASHBOARD_TIMEOUT_MS);
     }
 
-
-    /**
-     * Format Dağılımı grafiğinin görüntülendiğini kontrol eder.
-     */
     public boolean formatDagilimiGrafikGorunurMu() {
-
-        return formatDagilimiGrafikAlani.isVisible();
+        return gorunurMu(formatDagilimiGrafikAlani, DASHBOARD_TIMEOUT_MS);
     }
 
-
     /**
-     * CSV, TSV ve XLSX bilgilerinin
-     * görüntülendiğini kontrol eder.
+     * CSV, TSV ve XLSX legend'larının üçü de görünüyorsa true.
+     * Not: legend yalnızca indirmesi olan formatları gösteriyorsa sonuç test verisine bağlıdır.
      */
     public boolean formatDagilimiLegendleriGorunurMu() {
-
-        return csvLegend.isVisible()
+        return gorunurMu(csvLegend, DASHBOARD_TIMEOUT_MS)
                 && tsvLegend.isVisible()
                 && xlsxLegend.isVisible();
     }
 
+    // =====================================================================
+    // İndirme ve API erişim trendi
+    // =====================================================================
 
-    /*
-     * Aşağıdaki locator getter'ları yalnızca
-     * screenshot sırasında alanları çerçevelemek için kullanılır.
+    public boolean indirmeApiTrendiBasligiGorunurMu() {
+        return gorunurMu(indirmeApiTrendiBasligi, DASHBOARD_TIMEOUT_MS);
+    }
+
+    public void trendDonemiSecme(TrendDonemi donem) {
+        trendButonu(donem).click();
+    }
+
+    /**
+     * Verilen dönem butonu seçili görünüyorsa true.
+     * Seçim durumu, butonun aria-pressed özelliğinden veya Mui-selected sınıfından okunur.
      */
+    public boolean trendDonemiSeciliMi(TrendDonemi donem) {
+
+        Locator buton = trendButonu(donem);
+
+        if (!gorunurMu(buton, DASHBOARD_TIMEOUT_MS)) {
+            return false;
+        }
+
+        String ariaPressed = buton.getAttribute("aria-pressed");
+        String sinif = buton.getAttribute("class");
+
+        return "true".equals(ariaPressed) || (sinif != null && sinif.contains("Mui-selected"));
+    }
+
+    private Locator trendButonu(TrendDonemi donem) {
+        return page.getByRole(AriaRole.BUTTON,
+                new Page.GetByRoleOptions().setName(donem.butonAdi()).setExact(true));
+    }
+
+    // =====================================================================
+    // En çok indirilen / sorgulanan, kategori dağılımı
+    // =====================================================================
+
+    public boolean enCokIndirilenVeriSetleriBasligiGorunurMu() {
+        return gorunurMu(enCokIndirilenVeriSetleriBasligi, DASHBOARD_TIMEOUT_MS);
+    }
+
+    public boolean enCokIndirilenVeriSetleriAciklamasiGorunurMu() {
+        return gorunurMu(enCokIndirilenVeriSetleriAciklamasi, DASHBOARD_TIMEOUT_MS);
+    }
+
+    public boolean enCokApiIleSorgulananVeriSetleriBasligiGorunurMu() {
+        return gorunurMu(enCokApiIleSorgulananVeriSetleriBasligi, DASHBOARD_TIMEOUT_MS);
+    }
+
+    public boolean enCokApiIleSorgulananVeriSetleriAciklamasiGorunurMu() {
+        return gorunurMu(enCokApiIleSorgulananVeriSetleriAciklamasi, DASHBOARD_TIMEOUT_MS);
+    }
+
+    public boolean kategoriDagilimiBasligiGorunurMu() {
+        return gorunurMu(kategoriDagilimiBasligi, DASHBOARD_TIMEOUT_MS);
+    }
+
+    public boolean kategoriDagilimiAciklamasiGorunurMu() {
+        return gorunurMu(kategoriDagilimiAciklamasi, DASHBOARD_TIMEOUT_MS);
+    }
+
+    // =====================================================================
+    // Ekran görüntüsünde alanları çerçevelemek için locator'lar
+    // =====================================================================
 
     public Locator toplamVeriSetiKarti() {
         return toplamVeriSetiKarti;
@@ -303,117 +234,19 @@ public class OpenDataDashboardPage {
         return formatDagilimiBasligi;
     }
 
-    /**
-     * Günlük trend görünümünü seçmek için kullanılır.
-     */
-    public void gunlukTrendSecme() {
-        gunlukButonu.click();
+    public Locator indirmeApiTrendiBasligi() {
+        return indirmeApiTrendiBasligi;
     }
 
-
-    /**
-     * Haftalık trend görünümünü seçmek için kullanılır.
-     */
-    public void haftalikTrendSecme() {
-        haftalikButonu.click();
-    }
-
-
-    /**
-     * Aylık trend görünümünü seçmek için kullanılır.
-     */
-    public void aylikTrendSecme() {
-        aylikButonu.click();
-    }
-
-    /**
-     * Screenshot sırasında trend alanını
-     * işaretlemek için kullanılır.
-     */
-    public Locator indirmeApiTrendiAlani() {
-
-        return indirmeApiTrendiAlani;
-    }
-    /**
-     * En Çok İndirilen Veri Setleri başlığının
-     * görüntülendiğini kontrol eder.
-     */
-    public boolean enCokIndirilenVeriSetleriBasligiGorunurMu() {
-
-        return enCokIndirilenVeriSetleriBasligi.isVisible();
-    }
-
-
-    /**
-     * En Çok İndirilen Veri Setleri açıklamasının
-     * görüntülendiğini kontrol eder.
-     */
-    public boolean enCokIndirilenVeriSetleriAciklamasiGorunurMu() {
-
-        return enCokIndirilenVeriSetleriAciklamasi.isVisible();
-    }
-
-
-    /**
-     * Screenshot sırasında ilgili alanı
-     * çerçevelemek için locator döndürür.
-     */
     public Locator enCokIndirilenVeriSetleriBasligi() {
-
         return enCokIndirilenVeriSetleriBasligi;
     }
-    /**
-     * En Çok API ile Sorgulanan Veri Setleri başlığının
-     * görüntülendiğini kontrol eder.
-     */
-    public boolean enCokApiIleSorgulananVeriSetleriBasligiGorunurMu() {
 
-        return enCokApiIleSorgulananVeriSetleriBasligi.isVisible();
-    }
-
-
-    /**
-     * En Çok API ile Sorgulanan Veri Setleri açıklamasının
-     * görüntülendiğini kontrol eder.
-     */
-    public boolean enCokApiIleSorgulananVeriSetleriAciklamasiGorunurMu() {
-
-        return enCokApiIleSorgulananVeriSetleriAciklamasi.isVisible();
-    }
-
-
-    /**
-     * Screenshot sırasında ilgili alanı
-     * çerçevelemek için locator döndürür.
-     */
     public Locator enCokApiIleSorgulananVeriSetleriBasligi() {
-
         return enCokApiIleSorgulananVeriSetleriBasligi;
     }
-    /**
-     * Kategori Dağılımı başlığının görüntülendiğini kontrol eder.
-     */
-    public boolean kategoriDagilimiBasligiGorunurMu() {
 
-        return kategoriDagilimiBasligi.isVisible();
-    }
-
-
-    /**
-     * Kategori Dağılımı açıklamasının görüntülendiğini kontrol eder.
-     */
-    public boolean kategoriDagilimiAciklamasiGorunurMu() {
-
-        return kategoriDagilimiAciklamasi.isVisible();
-    }
-
-
-    /**
-     * Screenshot sırasında Kategori Dağılımı alanını
-     * çerçevelemek için locator döndürür.
-     */
     public Locator kategoriDagilimiBasligi() {
-
         return kategoriDagilimiBasligi;
     }
 }
