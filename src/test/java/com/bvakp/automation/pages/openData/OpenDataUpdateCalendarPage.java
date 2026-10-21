@@ -11,19 +11,33 @@ import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+/**
+ * Açık Veri Portalı "Güncelleme Takvimi" sekmesi: dönem seçici, özet kartları, takvim,
+ * Güncelleme Planı tablosu, İşlem Geçmişi ve Güncelleme Ayrıntısı çekmecesi.
+ *
+ * <p>Locator'lar ilgili bölüme sınırlıdır (#refresh-plan, #refresh-history, çekmece).
+ * assert... metotları Playwright assertThat ile bekleyerek doğrular; ...VarMi metotları
+ * boolean döner ve doğrulama testte yapılır.
+ */
 public class OpenDataUpdateCalendarPage extends BasePage {
 
-    private static final int GECMIS_KAYIT_TIMEOUT = 60_000;
-    private static final int GECMIS_KONTROL_TIMEOUT = 3_000;
+    private static final int SATIR_TIMEOUT_MS = 10_000;
+    private static final int GECMIS_KAYIT_TIMEOUT_MS = 60_000;
+    private static final int GECMIS_TUR_KONTROL_MS = 3_000;
+    private static final int GECMIS_TUR_ARALIGI_MS = 2_000;
+    /** Güncelleme sonrası portala aktarım 3 dakikaya kadar sürebilir. */
+    private static final int GECMIS_SONUC_TIMEOUT_MS = 180_000;
 
     public OpenDataUpdateCalendarPage(Page page) {
         super(page);
     }
 
-    // ---------- Sekme ----------
+    // =====================================================================
+    // Sekme
+    // =====================================================================
+
     private Locator guncellemeTakvimiSekmesi() {
-        return page.getByRole(AriaRole.TAB,
-                new Page.GetByRoleOptions().setName("Güncelleme Takvimi"));
+        return page.getByRole(AriaRole.TAB, new Page.GetByRoleOptions().setName("Güncelleme Takvimi"));
     }
 
     /** Güncelleme Takvimi sekmesine geçer ve plan tablosunun görünmesini bekler. */
@@ -39,12 +53,14 @@ public class OpenDataUpdateCalendarPage extends BasePage {
 
     public void assertSekmeSecili() {
         assertThat(guncellemeTakvimiSekmesi()).hasAttribute("aria-selected", "true");
-        ReportManager.info("Güncelleme Takvimi sekmesi seçili.");
     }
 
-    // ---------- Dönem seçici + özet kartları ----------
+    // =====================================================================
+    // Dönem seçici ve özet kartları
+    // =====================================================================
+
+    /** value: 7d, 30d, 90d, 1y */
     private Locator donemButonu(String value) {
-        // value: 7d, 30d, 90d, 1y
         return page.locator("[aria-label='Dönem'] button[value='" + value + "']");
     }
 
@@ -54,40 +70,36 @@ public class OpenDataUpdateCalendarPage extends BasePage {
 
     public void assertDonemSecili(String value) {
         assertThat(donemButonu(value)).hasAttribute("aria-pressed", "true");
-        ReportManager.info("Dönem seçili: " + value);
     }
 
     public void assertDonemSeciliDegil(String value) {
         assertThat(donemButonu(value)).hasAttribute("aria-pressed", "false");
     }
 
-    private Locator ozetKarti(String baslik) {
-        return page.locator("div.MuiCard-root").filter(
-                new Locator.FilterOptions().setHasText(baslik));
-    }
-
     private Locator ozetKartiDegeri(String baslik) {
-        return ozetKarti(baslik).locator("p").first();
+        return page.locator("div.MuiCard-root")
+                .filter(new Locator.FilterOptions().setHasText(baslik))
+                .locator("p").first();
     }
 
     /** Kartın değeri sayısal olmalı (veri yüklenene kadar bekler). */
     public void assertOzetKartiSayisal(String baslik) {
         assertThat(ozetKartiDegeri(baslik)).hasText(Pattern.compile("^\\d+$"));
-        ReportManager.info("Özet kartı sayısal değer gösteriyor: " + baslik);
     }
 
     /** Kartın değeri en az 1 olmalı (veri yüklenene kadar bekler). */
     public void assertOzetKartiEnAz1(String baslik) {
         assertThat(ozetKartiDegeri(baslik)).hasText(Pattern.compile("^[1-9]\\d*$"));
-        ReportManager.info("Özet kartı en az 1 gösteriyor: " + baslik);
     }
 
     public void assertOzetKartiDolu(String baslik) {
         assertThat(ozetKartiDegeri(baslik)).not().hasText("");
-        ReportManager.info("Özet kartı dolu: " + baslik);
     }
 
-    // ---------- Güncelleme Planı tablosu ----------
+    // =====================================================================
+    // Güncelleme Planı tablosu
+    // =====================================================================
+
     private Locator planBolumu() {
         return page.locator("#refresh-plan");
     }
@@ -97,151 +109,170 @@ public class OpenDataUpdateCalendarPage extends BasePage {
     }
 
     private Locator planSatiri(String veriSetiAdi) {
-        return planBolumu().locator("[role='row']").filter(
-                new Locator.FilterOptions().setHas(
-                        page.locator("[data-field='name'] p[title='" + veriSetiAdi + "']")));
+        return planBolumu().locator("[role='row']").filter(new Locator.FilterOptions().setHas(
+                page.locator("[data-field='name'] p[title='" + veriSetiAdi + "']")));
     }
 
     public void planAramaYapma(String metin) {
         planBolumu().getByPlaceholder("Veri seti, kategori veya birim ara").fill(metin);
     }
 
-    /** Plan tablosunda satırın görünmesini 10 sn'ye kadar bekler. */
     public boolean planListesindeVarMi(String veriSetiAdi) {
-        try {
-            planSatiri(veriSetiAdi).first()
-                    .waitFor(new Locator.WaitForOptions().setTimeout(10_000));
-            return true;
-        } catch (PlaywrightException e) {
-            return false;
-        }
+        return gorunurMu(planSatiri(veriSetiAdi), SATIR_TIMEOUT_MS);
     }
 
     public String planSikligiAlma(String veriSetiAdi) {
         return planSatiri(veriSetiAdi).locator("[data-field='frequency']").innerText().trim();
     }
 
+    /** Hücrede tarih ve sürüm ("v1") birlikte yer alır; sürüm span'ı okunur. */
     public String planSonGuncellemeSurumuAlma(String veriSetiAdi) {
-        // Hücrede tarih + "v1" caption'ı var; caption span'ı alınır
         return planSatiri(veriSetiAdi).locator("[data-field='lastUpdatedAt'] span").innerText().trim();
     }
 
-    // ---------- Takvim ----------
+    // =====================================================================
+    // Takvim
+    // =====================================================================
+
+    /** Ay dışı günler (dayOutsideMonth) elenir. */
     private Locator takvimGunu(int gun) {
-        // Ay dışı günler dayOutsideMonth sınıfıyla elenir
         return page.locator("button.MuiPickersDay-root:not(.MuiPickersDay-dayOutsideMonth)")
                 .filter(new Locator.FilterOptions().setHasText(Pattern.compile("^" + gun + "$")));
     }
 
     /** aria-label örneği: "14 Ekim 2026: 0 planlı, 2 başarılı, 0 portala aktarılamadı, 0 başarısız" */
     public void assertBugunBasariliGuncellemeVar(int gun) {
-        assertThat(takvimGunu(gun)).hasAttribute("aria-label",
-                Pattern.compile("\\b[1-9]\\d* başarılı"));
-        ReportManager.info("Takvimde " + gun + ". gün için başarılı güncelleme görünüyor.");
+        assertThat(takvimGunu(gun)).hasAttribute("aria-label", Pattern.compile("\\b[1-9]\\d* başarılı"));
     }
 
-    /** Seçili günün listesinde kaydın görünmesini 10 sn'ye kadar bekler. */
     public boolean gunDetayindaKayitVarMi(String veriSetiAdi) {
-        try {
-            page.locator("li p[title='" + veriSetiAdi + "']").first()
-                    .waitFor(new Locator.WaitForOptions().setTimeout(10_000));
-            return true;
-        } catch (PlaywrightException e) {
-            return false;
-        }
+        return gorunurMu(page.locator("li p[title='" + veriSetiAdi + "']"), SATIR_TIMEOUT_MS);
     }
 
-    // ---------- İşlem Geçmişi ----------
+    // =====================================================================
+    // İşlem Geçmişi
+    // =====================================================================
+
     private Locator gecmisBolumu() {
         return page.locator("#refresh-history");
     }
 
     private Locator gecmisSatiri(String veriSetiAdi) {
-        return gecmisBolumu().locator("[role='row']").filter(
-                new Locator.FilterOptions().setHas(
-                        page.locator("[data-field='datasetName'] p[title='" + veriSetiAdi + "']")));
+        return gecmisBolumu().locator("[role='row']").filter(new Locator.FilterOptions().setHas(
+                page.locator("[data-field='datasetName'] p[title='" + veriSetiAdi + "']")));
     }
 
+    /** value: ALL, SUCCEEDED, FAILED */
     public void gecmisSonucFiltresiSecme(String value) {
-        // value: ALL, SUCCEEDED, FAILED
         gecmisBolumu().locator("[aria-label='Sonuç'] button[value='" + value + "']").click();
     }
 
-    /** İşlem Geçmişi'ndeki "Veri seti" autocomplete'inden veri setini seçip tabloyu filtreler. */
+    /** "Veri seti" autocomplete'inden veri setini seçip geçmiş tablosunu filtreler. */
     public void gecmisVeriSetiFiltreleme(String veriSetiAdi) {
         Locator giris = gecmisBolumu().getByLabel("Veri seti");
         giris.click();
         giris.fill(veriSetiAdi);
-        page.getByRole(AriaRole.OPTION,
-                new Page.GetByRoleOptions().setName(veriSetiAdi)).first().click();
+        page.getByRole(AriaRole.OPTION, new Page.GetByRoleOptions().setName(veriSetiAdi)).first().click();
     }
 
-    /** Geçmiş tablosunda satırın görünmesini 10 sn'ye kadar bekler. */
     public boolean gecmisteVarMi(String veriSetiAdi) {
-        return gecmisteVarMi(veriSetiAdi, 10_000);
+        return gorunurMu(gecmisSatiri(veriSetiAdi), SATIR_TIMEOUT_MS);
     }
 
-    private boolean gecmisteVarMi(String veriSetiAdi, int timeoutMs) {
-        try {
-            gecmisSatiri(veriSetiAdi).first()
-                    .waitFor(new Locator.WaitForOptions().setTimeout(timeoutMs));
-            return true;
-        } catch (PlaywrightException e) {
-            return false;
-        }
-    }
-
-    /** Kaydın geçmiş tablosunda GÖRÜNMEDİĞİNİ bekleyerek doğrular (filtre sonrası). */
+    /** Filtre sonrası kaydın geçmiş tablosunda görünmediğini bekleyerek doğrular. */
     public void assertGecmisteKayitYok(String veriSetiAdi) {
         assertThat(gecmisSatiri(veriSetiAdi)).hasCount(0);
-        ReportManager.info("Geçmiş tablosunda kayıt görünmüyor: " + veriSetiAdi);
     }
 
     public String gecmisSonucuAlma(String veriSetiAdi) {
-        return gecmisSatiri(veriSetiAdi).locator("[data-field='status']").innerText().trim();
+        return gecmisHucresi(veriSetiAdi, "status");
     }
 
     public String gecmisSurumuAlma(String veriSetiAdi) {
-        return gecmisSatiri(veriSetiAdi).locator("[data-field='versionNo']").innerText().trim();
+        return gecmisHucresi(veriSetiAdi, "versionNo");
     }
 
     public String gecmisTetikleyenAlma(String veriSetiAdi) {
-        return gecmisSatiri(veriSetiAdi).locator("[data-field='trigger']").innerText().trim();
+        return gecmisHucresi(veriSetiAdi, "trigger");
     }
 
     public String gecmisKayitSayisiAlma(String veriSetiAdi) {
-        return gecmisSatiri(veriSetiAdi).locator("[data-field='recordCount']")
-                .innerText().trim();
+        return gecmisHucresi(veriSetiAdi, "recordCount");
+    }
+
+    private String gecmisHucresi(String veriSetiAdi, String sutun) {
+        return gecmisSatiri(veriSetiAdi).locator("[data-field='" + sutun + "']").innerText().trim();
     }
 
     /**
-     * Sayfayı yenileyip geçmişte kaydın görünmesini bekler.
-     * Her turda: reload, sekmeye geçiş, veri seti filtresi, kayıt kontrolü.
-     * Bir tur başarısız olursa (ör. reload sonrası sekme gelmediyse) sonraki tur denenir,
-     * süre dolunca URL ve son hata ile AssertionError fırlatılır.
+     * Geçmiş kaydı asenkron oluştuğu için sayfayı belirli aralıklarla yenileyip kaydı bekler.
+     * Bir tur başarısız olursa (ör. yenileme sonrası sekme gelmediyse) sonraki tur denenir;
+     * süre dolunca URL ve son hatayla AssertionError fırlatılır.
      */
     public void gecmisteKayitBekleme(String veriSetiAdi) {
-        long start = System.currentTimeMillis();
+
+        long bitis = System.currentTimeMillis() + GECMIS_KAYIT_TIMEOUT_MS;
         String sonHata = "yok";
 
-        while (System.currentTimeMillis() - start < GECMIS_KAYIT_TIMEOUT) {
+        while (System.currentTimeMillis() < bitis) {
             try {
                 page.reload();
                 guncellemeTakvimiSekmesineGecme();
                 gecmisVeriSetiFiltreleme(veriSetiAdi);
-                if (gecmisteVarMi(veriSetiAdi, GECMIS_KONTROL_TIMEOUT)) {
+
+                if (gorunurMu(gecmisSatiri(veriSetiAdi), GECMIS_TUR_KONTROL_MS)) {
                     ReportManager.info("Geçmişte kayıt görüldü: " + veriSetiAdi);
                     return;
                 }
             } catch (PlaywrightException | AssertionError e) {
                 sonHata = e.getMessage();
             }
+
+            // Yenilemeler arasında bekleme: sunucuyu gereksiz yere yormamak için.
+            page.waitForTimeout(GECMIS_TUR_ARALIGI_MS);
         }
-        throw new AssertionError("Geçmişte kayıt bulunamadı: " + veriSetiAdi
-                + " | URL: " + page.url() + " | Son hata: " + sonHata);
+
+        throw new AssertionError("Geçmişte kayıt " + GECMIS_KAYIT_TIMEOUT_MS / 1000 + " sn içinde bulunamadı: "
+                + veriSetiAdi + " | URL: " + page.url() + " | Son hata: " + sonHata);
     }
 
-    /** "v2" -> 2. Okunamazsa ("—" gibi) net hata verir. */
+    /**
+     * Geçmişteki kaydın sonucu beklenen değere ulaşana kadar sayfayı yenileyerek bekler.
+     *
+     * <p>Güncelleme sonrası kayıt önce ara durumlardan geçer ("Portala aktarılıyor" gibi);
+     * yalnızca kaydın var olmasını beklemek, işlem bitmeden okumaya yol açar.
+     */
+    public void gecmisteSonucBekleme(String veriSetiAdi, String beklenenSonuc) {
+
+        long bitis = System.currentTimeMillis() + GECMIS_SONUC_TIMEOUT_MS;
+        String sonDurum = "kayıt bulunamadı";
+
+        while (System.currentTimeMillis() < bitis) {
+            try {
+                page.reload();
+                guncellemeTakvimiSekmesineGecme();
+                gecmisVeriSetiFiltreleme(veriSetiAdi);
+
+                if (gorunurMu(gecmisSatiri(veriSetiAdi), GECMIS_TUR_KONTROL_MS)) {
+                    sonDurum = gecmisSonucuAlma(veriSetiAdi);
+                    if (beklenenSonuc.equals(sonDurum)) {
+                        ReportManager.info("Geçmiş sonucu doğrulandı: " + veriSetiAdi + " | " + sonDurum);
+                        return;
+                    }
+                }
+            } catch (PlaywrightException | AssertionError e) {
+                sonDurum = "okunamadı: " + e.getMessage();
+            }
+
+            // Yenilemeler arasında bekleme: sunucuyu gereksiz yere yormamak için.
+            page.waitForTimeout(GECMIS_TUR_ARALIGI_MS);
+        }
+
+        throw new AssertionError("Geçmiş sonucu " + GECMIS_SONUC_TIMEOUT_MS / 1000 + " sn içinde '"
+                + beklenenSonuc + "' olmadı: " + veriSetiAdi + " | Son görülen: " + sonDurum);
+    }
+
+    /** "v2" → 2. Okunamazsa ("—" gibi) net hata verir. */
     public int surumNumarasi(String hamDeger) {
         String temiz = hamDeger == null ? "" : hamDeger.replaceAll("[^0-9]", "");
         if (temiz.isEmpty()) {
@@ -250,17 +281,18 @@ public class OpenDataUpdateCalendarPage extends BasePage {
         return Integer.parseInt(temiz);
     }
 
-    // ---------- Güncelleme Ayrıntısı çekmecesi ----------
+    // =====================================================================
+    // Güncelleme Ayrıntısı çekmecesi
+    // =====================================================================
+
     private Locator detayCekmecesi() {
         return page.locator("div.MuiDrawer-paper[role='dialog']");
     }
 
-    /** Takvimde seçili günün listesinden veri setinin kaydına tıklar. */
+    /** Takvimde seçili günün listesinden veri setinin kaydına tıklar ve çekmeceyi bekler. */
     public void gunListesindenKayitAcma(String veriSetiAdi) {
-        page.locator("li").filter(
-                        new Locator.FilterOptions().setHas(
-                                page.locator("p[title='" + veriSetiAdi + "']")))
-                .first().click();
+        page.locator("li").filter(new Locator.FilterOptions().setHas(
+                page.locator("p[title='" + veriSetiAdi + "']"))).first().click();
         detayCekmecesi().waitFor();
     }
 
@@ -296,15 +328,15 @@ public class OpenDataUpdateCalendarPage extends BasePage {
 
     public void assertDetayCekmecesiKapali() {
         assertThat(detayCekmecesi()).hasCount(0);
-        ReportManager.info("Güncelleme ayrıntısı çekmecesi kapalı.");
     }
 
-    // ---------- Veri seti detay sayfası ("Veri setine git" sonrası) ----------
+    // =====================================================================
+    // Veri seti detay sayfası ("Veri setine git" sonrası)
+    // =====================================================================
+
     public void assertDetayBaslik(String veriSetiAdi) {
-        page.waitForURL(url -> !url.endsWith("/opendata"),
-                new Page.WaitForURLOptions().setTimeout(10_000));
+        page.waitForURL(url -> !url.endsWith("/opendata"), new Page.WaitForURLOptions().setTimeout(10_000));
         assertThat(page.locator("h6").first()).hasText(veriSetiAdi);
-        ReportManager.info("Veri seti detay sayfası açıldı: " + veriSetiAdi);
     }
 
     public void detaySekmesineGecme(String ad) {
@@ -314,8 +346,7 @@ public class OpenDataUpdateCalendarPage extends BasePage {
     public String versiyonDurumuAlma(String versiyon) {
         return page.locator("tbody tr")
                 .filter(new Locator.FilterOptions().setHas(
-                        page.locator("td").getByText(versiyon,
-                                new Locator.GetByTextOptions().setExact(true))))
+                        page.locator("td").getByText(versiyon, new Locator.GetByTextOptions().setExact(true))))
                 .locator("td").nth(1).innerText().trim();
     }
 }
