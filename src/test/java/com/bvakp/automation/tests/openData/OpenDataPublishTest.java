@@ -10,689 +10,280 @@ import com.bvakp.automation.utils.TestDataUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+/**
+ * Veri Seti Yönetimi yaşam döngüsü testleri.
+ *
+ * <p>Her test kendi veri setini oluşturup KVKK onayına göndererek başlar ({@link #veriSetiOlustur});
+ * sonraki her adım testin içinde açıkça yazılıdır. Testler birbirinden bağımsızdır ve paralel çalışabilir.
+ */
 public class OpenDataPublishTest extends AvpBaseTest {
+
+    private static final String KAYNAK_TABLOSU = "arac_bakim_is_yeri_sayisi";
+    private static final String SORUMLU_BIRIM = "İşletme Dairesi Başkanlığı";
+    private static final String KATEGORI = "Altyapı & Şebeke";
+    private static final String KULLANIM_LISANSI = "TCDD Taşımacılık Açık Veri Lisansı";
 
     private record TestContext(
             OpenDataPublishPage publishPage,
             OpenDataPublishFlow publishFlow,
             OpenDataCreateFlow createFlow) {
     }
+
     private TestContext testHazirligi() {
 
         avpOturumuHazirlama();
-
         new OpenDataPage(page()).acikVeriPortalinaGitme();
 
-        OpenDataPublishPage publishPage =
-                new OpenDataPublishPage(page());
+        OpenDataPublishPage publishPage = new OpenDataPublishPage(page());
 
-        return new TestContext(
-                publishPage,
-                new OpenDataPublishFlow(publishPage),
-                new OpenDataCreateFlow(page())
-        );
+        return new TestContext(publishPage, new OpenDataPublishFlow(publishPage), new OpenDataCreateFlow(page()));
     }
+
+    /** Her testin ortak başlangıcı: kaynak ve veri seti oluşturup KVKK onayına gönderir, veri seti adını döner. */
+    private String veriSetiOlustur(TestContext ctx, String adOnEki) {
+
+        String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String veriSeti = TestDataUtil.dinamikAdOlusturma(adOnEki);
+
+        ctx.createFlow().createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon kaynağı - " + kaynakAdi);
+        ctx.createFlow().createDataSetForApproval(kaynakAdi, veriSeti, SORUMLU_BIRIM, KATEGORI, KULLANIM_LISANSI,
+                "Otomasyon veri seti - " + veriSeti);
+
+        return veriSeti;
+    }
+
+    // =====================================================================
+    // KVKK
+    // =====================================================================
+
     @Test
     public void veriSetiKvkkOnaylama() {
+
         TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_kvkk_onay");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_onay");
+        ctx.publishFlow().approveKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayın Onayında");
 
-        ReportManager.info(
-                "KVKK onaylama testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "KVKK onay testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "KVKK onay testi veri seti"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        ctx.publishFlow().approveKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Yayın Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayın Onayında");
-
-        ReportManager.pass(
-                "KVKK onaylama doğrulandı. Veri seti Yayın Onayında: "
-                        + dataSetName
-        );
+        ReportManager.pass("KVKK onayı sonrası veri seti Yayın Onayında: " + veriSeti);
     }
+
     @Test
     public void veriSetiKvkkReddetme() {
+
         TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_kvkk_red");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_red");
+        ctx.publishFlow().rejectKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Düzenleme Bekliyor");
 
-        ReportManager.info(
-                "KVKK reddetme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "KVKK reddetme testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "KVKK reddetme testi veri seti"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(
-                dataSetName,
-                "KVKK Onayında"
-        );
-
-        ReportManager.info("KVKK reddetme işlemi başlatılıyor.");
-        ctx.publishFlow().rejectKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Düzenleme Bekliyor olması bekleniyor.");
-        ctx.publishPage().waitForStatus(
-                dataSetName,
-                "Düzenleme Bekliyor"
-        );
-
-        ReportManager.pass(
-                "KVKK reddi doğrulandı. Veri seti Düzenleme Bekliyor durumunda: "
-                        + dataSetName
-        );
+        ReportManager.pass("KVKK reddi sonrası veri seti Düzenleme Bekliyor: " + veriSeti);
     }
-    @Test
-    public void veriSetiYayinlama() {
-        TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
-
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_yayinlama");
-
-        ReportManager.info(
-                "Veri seti yayınlama testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Yayınlama testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Veri seti yayınlama testi"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(
-                dataSetName,
-                "KVKK Onayında"
-        );
-
-        ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        ctx.publishFlow().approveKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Yayın Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(
-                dataSetName,
-                "Yayın Onayında"
-        );
-
-        ReportManager.info("Veri seti yayınlama işlemi başlatılıyor.");
-        ctx.publishFlow().publishDataSet(dataSetName);
-
-        ReportManager.info("Veri setinin Yayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(
-                dataSetName,
-                "Yayında"
-        );
-
-        ReportManager.info("Veri setinin portala aktarılması bekleniyor.");
-        ctx.publishPage().waitForPortalStatus(
-                dataSetName,
-                "Aktarıldı"
-        );
-
-        ReportManager.pass(
-                "Veri seti yayınlandı ve portala aktarıldı: " + dataSetName
-        );
-    }
-    @Test
-    public void veriSetiYayiniReddetme() {
-        TestContext ctx = testHazirligi();
-
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
-
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_red");
-
-        ReportManager.info(
-                "Yayın reddetme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Yayın reddetme testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Yayın reddetme testi veri seti"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        ctx.publishFlow().approveKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Yayın Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayın Onayında");
-
-        ReportManager.info("Yayın reddetme işlemi başlatılıyor.");
-        ctx.publishFlow().rejectPublication(dataSetName);
-
-        ReportManager.info("Veri setinin Düzenleme Bekliyor olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Düzenleme Bekliyor");
-
-        ReportManager.pass(
-                "Yayın reddi doğrulandı. Veri seti Düzenleme Bekliyor durumunda: "
-                        + dataSetName
-        );
-    }
     @Test
     public void veriSetiKvkkOnayiDuzenleme() {
+
         TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_kvkk_duzenleme");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kvkk_duzenleme");
+        ctx.publishFlow().rejectKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Düzenleme Bekliyor");
 
-        ReportManager.info(
-                "KVKK onayı düzenleme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
+        ctx.publishFlow().editKvkkPendingDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "KVKK düzenleme testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "KVKK onayı düzenleme testi veri seti"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("KVKK reddetme işlemi başlatılıyor.");
-        ctx.publishFlow().rejectKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Düzenleme Bekliyor olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Düzenleme Bekliyor");
-
-        ReportManager.info("Veri seti düzenleniyor.");
-        ctx.publishFlow().editKvkkPendingDataSet(dataSetName);
-
-        ReportManager.info("Düzenleme sonrası KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.pass(
-                "Düzenleme sonrasında veri seti KVKK Onayında durumunda: "
-                        + dataSetName
-        );
+        ReportManager.pass("Düzenleme sonrası veri seti tekrar KVKK Onayında: " + veriSeti);
     }
+
+    // =====================================================================
+    // Yayın
+    // =====================================================================
+
+    @Test
+    public void veriSetiYayinlama() {
+
+        TestContext ctx = testHazirligi();
+
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_yayinlama");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
+
+        ctx.publishFlow().approveKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayın Onayında");
+
+        ctx.publishFlow().publishDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayında");
+        ctx.publishPage().waitForPortalStatus(veriSeti, "Aktarıldı");
+
+        ReportManager.pass("Veri seti yayınlandı ve portala aktarıldı: " + veriSeti);
+    }
+
+    @Test
+    public void veriSetiYayiniReddetme() {
+
+        TestContext ctx = testHazirligi();
+
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_yayin_red");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
+
+        ctx.publishFlow().approveKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayın Onayında");
+
+        ctx.publishFlow().rejectPublication(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Düzenleme Bekliyor");
+
+        ReportManager.pass("Yayın reddi sonrası veri seti Düzenleme Bekliyor: " + veriSeti);
+    }
+
     @Test
     public void veriSetiYayinOnayiDuzenleme() {
+
         TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_yayin_duzenleme");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_duzenleme");
+        ctx.publishFlow().approveKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayın Onayında");
 
-        ReportManager.info(
-                "Yayın onayı düzenleme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
+        ctx.publishFlow().rejectPublication(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Düzenleme Bekliyor");
 
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Yayın onayı düzenleme testi kaynağı"
-        );
+        ctx.publishFlow().editPublicationPendingDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Yayın onayı düzenleme testi veri seti"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        ctx.publishFlow().approveKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Yayın Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayın Onayında");
-
-        ReportManager.info("Yayın reddetme işlemi başlatılıyor.");
-        ctx.publishFlow().rejectPublication(dataSetName);
-
-        ReportManager.info("Veri setinin Düzenleme Bekliyor olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Düzenleme Bekliyor");
-
-        ReportManager.info("Veri seti düzenleniyor.");
-        ctx.publishFlow().editPublicationPendingDataSet(dataSetName);
-
-        ReportManager.info("Düzenleme sonrası KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.pass(
-                "Düzenleme sonrası veri seti KVKK Onayında durumunda: "
-                        + dataSetName
-        );
+        ReportManager.pass("Yayın reddi ve düzenleme sonrası veri seti tekrar KVKK Onayında: " + veriSeti);
     }
-    @Test
-    public void veriSetiYayinOncesiSilme() {
-        TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
-
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_oncesi_silme");
-
-        ReportManager.info(
-                "Yayın öncesi silme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Yayın öncesi silme testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Yayın öncesi silme testi veri seti"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("Veri seti silme işlemi başlatılıyor.");
-        ctx.publishFlow().deleteBeforePublication(dataSetName);
-
-        ReportManager.info("Veri setinin listeden kalkması bekleniyor.");
-        ctx.publishPage().waitForDataSetRemoval(dataSetName);
-
-        ReportManager.pass(
-                "Veri seti yayın öncesinde başarıyla silindi: " + dataSetName
-        );
-    }
-    @Test
-    public void veriSetiYayinSonrasiSilme() {
-        TestContext ctx = testHazirligi();
-
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
-
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_yayin_sonrasi_silme");
-
-        ReportManager.info(
-                "Yayın sonrası silme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Yayın sonrası silme testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Yayın sonrası silme testi veri seti"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        ctx.publishFlow().approveKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Yayın Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayın Onayında");
-
-        ReportManager.info("Veri seti yayınlama işlemi başlatılıyor.");
-        ctx.publishFlow().publishDataSet(dataSetName);
-
-        ReportManager.info("Veri setinin Yayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayında");
-
-        ReportManager.info("Veri setinin portala aktarılması bekleniyor.");
-        ctx.publishPage().waitForPortalStatus(dataSetName, "Aktarıldı");
-
-        ReportManager.info("Veri seti arşivleme işlemi başlatılıyor.");
-        ctx.publishFlow().archiveDataSet(dataSetName);
-
-        ReportManager.info("Veri setinin Arşivlendi olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Arşivlendi");
-
-        ReportManager.info("Veri seti silme işlemi başlatılıyor.");
-        ctx.publishFlow().deleteAfterPublication(dataSetName);
-
-        ReportManager.info("Veri setinin listeden kalkması bekleniyor.");
-        ctx.publishPage().waitForDataSetRemoval(dataSetName);
-
-        ReportManager.pass(
-                "Arşivlenen veri seti başarıyla silindi: " + dataSetName
-        );
-    }
-    @Test
-    public void veriSetiGoruntuleme() {
-        TestContext ctx = testHazirligi();
-
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
-
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_goruntuleme");
-
-        ReportManager.info(
-                "Veri seti görüntüleme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Veri seti görüntüleme testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Veri seti görüntüleme testi"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("Veri seti görüntüleniyor.");
-        ctx.publishFlow().viewDataSet(dataSetName);
-
-        ReportManager.info("Detay ekranının açılması bekleniyor.");
-        ctx.publishPage().waitForDetailScreen(dataSetName);
-
-        ReportManager.info("Önceki ekrana geri dönülüyor.");
-        ctx.publishPage().clickGeriDon();
-
-        ReportManager.pass(
-                "Veri seti detay ekranı açıldı ve geri dönüldü: " + dataSetName
-        );
-    }
-    @Test
-    public void veriSetiArama() {
-        TestContext ctx = testHazirligi();
-
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
-
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_arama");
-
-        ReportManager.info(
-                "Veri seti arama testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
-
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Veri seti arama testi kaynağı"
-        );
-
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Veri seti arama testi"
-        );
-
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("Veri seti aranıyor.");
-        ctx.publishFlow().searchDataSet(dataSetName);
-
-        ReportManager.info("Aranan veri setinin listede bulunduğu doğrulanıyor.");
-        Assert.assertTrue(
-                ctx.publishPage().isDataSetNameMatching(dataSetName),
-                "Aranan veri seti listede bulunamadı. Veri seti: " + dataSetName
-        );
-
-        ReportManager.pass(
-                "Aranan veri seti listede bulundu: " + dataSetName
-        );
-    }
     @Test
     public void veriSetiManuelGuncelleme() {
+
         TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_manuel_guncelleme");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_manuel_guncelleme");
+        ctx.publishFlow().approveKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayın Onayında");
 
-        ReportManager.info(
-                "Manuel güncelleme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
+        ctx.publishFlow().publishDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayında");
+        ctx.publishPage().waitForPortalStatus(veriSeti, "Aktarıldı");
 
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Manuel güncelleme testi kaynağı"
-        );
+        int eskiVersiyon = Integer.parseInt(ctx.publishPage().getCurrentVersion(veriSeti).replace("v", "").trim());
+        int yeniVersiyon = eskiVersiyon + 1;
 
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Manuel güncelleme testi veri seti"
-        );
+        ctx.publishFlow().manuallyUpdateDataSet(veriSeti);
+        ctx.publishPage().waitForVersion(veriSeti, yeniVersiyon);
+        ctx.publishPage().waitForPortalStatus(veriSeti, "Aktarıldı");
 
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
-
-        ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        ctx.publishFlow().approveKvkk(dataSetName);
-
-        ReportManager.info("Veri setinin Yayın Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayın Onayında");
-
-        ReportManager.info("Veri seti yayınlama işlemi başlatılıyor.");
-        ctx.publishFlow().publishDataSet(dataSetName);
-
-        ReportManager.info("Veri setinin Yayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayında");
-
-        ReportManager.info("Veri setinin portala aktarılması bekleniyor.");
-        ctx.publishPage().waitForPortalStatus(dataSetName, "Aktarıldı");
-
-        int oldVersion = Integer.parseInt(
-                ctx.publishPage().getCurrentVersion(dataSetName).replace("v", "")
-        );
-        ReportManager.info("Güncelleme öncesi versiyon: v" + oldVersion);
-
-        ReportManager.info("Manuel güncelleme işlemi başlatılıyor.");
-        ctx.publishFlow().manuallyUpdateDataSet(dataSetName);
-
-        ReportManager.info("Versiyonun v" + (oldVersion + 1) + " olması bekleniyor.");
-        ctx.publishPage().waitForVersion(dataSetName, oldVersion + 1);
-
-        ReportManager.info("Güncel versiyonun portala aktarılması bekleniyor.");
-        ctx.publishPage().waitForPortalStatus(dataSetName, "Aktarıldı");
-
-        ReportManager.pass(
-                "Manuel güncelleme sonrası versiyon bir arttı ve portala aktarıldı: v"
-                        + oldVersion + " → v" + (oldVersion + 1)
-        );
+        ReportManager.pass("Manuel güncelleme sonrası versiyon arttı ve portala aktarıldı: v"
+                + eskiVersiyon + " → v" + yeniVersiyon);
     }
+
+    // =====================================================================
+    // Arşivleme ve silme
+    // =====================================================================
+
     @Test
     public void veriSetiArsiveAlma() {
+
         TestContext ctx = testHazirligi();
 
-        String kaynakAdi =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_arsivleme");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        String dataSetName =
-                TestDataUtil.dinamikAdOlusturma("otomasyon_arsivleme");
+        ctx.publishFlow().approveKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayın Onayında");
 
-        ReportManager.info(
-                "Veri seti arşivleme testi başlatılıyor. Kaynak: " + kaynakAdi
-                        + " | Veri seti: " + dataSetName
-        );
+        ctx.publishFlow().publishDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayında");
+        ctx.publishPage().waitForPortalStatus(veriSeti, "Aktarıldı");
 
-        ReportManager.info("Kaynak oluşturuluyor.");
-        ctx.createFlow().createSource(
-                kaynakAdi,
-                "arac_bakim_is_yeri_sayisi",
-                "Veri seti arşivleme testi kaynağı"
-        );
+        ctx.publishFlow().archiveDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Arşivlendi");
 
-        ReportManager.info("Veri seti oluşturuluyor.");
-        ctx.createFlow().createDataSetForApproval(
-                kaynakAdi,
-                dataSetName,
-                "İşletme Dairesi Başkanlığı",
-                "Altyapı & Şebeke",
-                "TCDD Taşımacılık Açık Veri Lisansı",
-                "Veri seti arşivleme testi"
-        );
+        ReportManager.pass("Veri seti arşivlendi: " + veriSeti);
+    }
 
-        ReportManager.info("Veri setinin KVKK Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "KVKK Onayında");
+    @Test
+    public void veriSetiYayinOncesiSilme() {
 
-        ReportManager.info("KVKK onay işlemi başlatılıyor.");
-        ctx.publishFlow().approveKvkk(dataSetName);
+        TestContext ctx = testHazirligi();
 
-        ReportManager.info("Veri setinin Yayın Onayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayın Onayında");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_yayin_oncesi_silme");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        ReportManager.info("Veri seti yayınlama işlemi başlatılıyor.");
-        ctx.publishFlow().publishDataSet(dataSetName);
+        ctx.publishFlow().deleteBeforePublication(veriSeti);
+        ctx.publishPage().waitForDataSetRemoval(veriSeti);
 
-        ReportManager.info("Veri setinin Yayında olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Yayında");
+        ReportManager.pass("Veri seti yayın öncesinde silindi: " + veriSeti);
+    }
 
-        ReportManager.info("Veri setinin portala aktarılması bekleniyor.");
-        ctx.publishPage().waitForPortalStatus(dataSetName, "Aktarıldı");
+    @Test
+    public void veriSetiYayinSonrasiSilme() {
 
-        ReportManager.info("Veri seti arşivleme işlemi başlatılıyor.");
-        ctx.publishFlow().archiveDataSet(dataSetName);
+        TestContext ctx = testHazirligi();
 
-        ReportManager.info("Veri setinin Arşivlendi olması bekleniyor.");
-        ctx.publishPage().waitForStatus(dataSetName, "Arşivlendi");
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_yayin_sonrasi_silme");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
 
-        ReportManager.pass(
-                "Veri seti arşivleme doğrulandı. Veri seti Arşivlendi: "
-                        + dataSetName
-        );
+        ctx.publishFlow().approveKvkk(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayın Onayında");
+
+        ctx.publishFlow().publishDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Yayında");
+        ctx.publishPage().waitForPortalStatus(veriSeti, "Aktarıldı");
+
+        // Yayındaki veri seti doğrudan silinemez; önce arşivlenir.
+        ctx.publishFlow().archiveDataSet(veriSeti);
+        ctx.publishPage().waitForStatus(veriSeti, "Arşivlendi");
+
+        ctx.publishFlow().deleteAfterPublication(veriSeti);
+        ctx.publishPage().waitForDataSetRemoval(veriSeti);
+
+        ReportManager.pass("Arşivlenen veri seti silindi: " + veriSeti);
+    }
+
+    // =====================================================================
+    // Görüntüleme ve arama
+    // =====================================================================
+
+    @Test
+    public void veriSetiGoruntuleme() {
+
+        TestContext ctx = testHazirligi();
+
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_goruntuleme");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
+
+        ctx.publishFlow().viewDataSet(veriSeti);
+        ctx.publishPage().waitForDetailScreen(veriSeti);
+
+        ctx.publishPage().clickGeriDon();
+        ctx.publishPage().waitForVeriSetiYonetimi();
+
+        ReportManager.pass("Veri seti detay ekranı açıldı ve listeye geri dönüldü: " + veriSeti);
+    }
+
+    @Test
+    public void veriSetiArama() {
+
+        TestContext ctx = testHazirligi();
+
+        String veriSeti = veriSetiOlustur(ctx, "otomasyon_arama");
+        ctx.publishPage().waitForStatus(veriSeti, "KVKK Onayında");
+
+        ctx.publishFlow().searchDataSet(veriSeti);
+
+        Assert.assertTrue(ctx.publishPage().isDataSetNameMatching(veriSeti),
+                "Aranan veri seti listede bulunamadı: " + veriSeti);
+
+        ReportManager.pass("Aranan veri seti listede bulundu: " + veriSeti);
     }
 }
