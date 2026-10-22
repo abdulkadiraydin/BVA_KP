@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -20,8 +19,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Allure'dan bağımsız, tek dosyalık HTML test raporunu (ozet.html) üretir.
  *
  * <p>Koşu boyunca her testin adımları, sonucu, hata mesajı ve ekran görüntüsü
- * bellekte toplanır; koşu sonunda AllureRunOrganizer her test class'ı için
- * ayrı bir rapor oluşturur. Paralel koşuda her thread kendi aktif testine yazar.
+ * bellekte toplanır; koşu sonunda AllureRunOrganizer bütün sınıfları içeren
+ * tek bir ozet.html oluşturur. Paralel koşuda her thread kendi aktif testine yazar.
  */
 public final class HtmlReportManager {
 
@@ -33,8 +32,8 @@ public final class HtmlReportManager {
     private static final List<String> TEST_ORDER = new CopyOnWriteArrayList<>();
     private static final ThreadLocal<String> CURRENT_TEST = new ThreadLocal<>();
 
-    private static final DateTimeFormatter FILE_DATE_FORMAT =
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
+    private static final DateTimeFormatter EKRAN_TARIH_BICIMI =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
     private HtmlReportManager() {
     }
@@ -141,77 +140,74 @@ public final class HtmlReportManager {
     // Rapor üretimi
     // ------------------------------------------------------------------
 
-    /** Belirtilen class'a ait testleri içeren ozet.html raporunu üretir. */
-    public static void generateReport(Path runDirectory, String className) {
+    /**
+     * Koşudaki bütün sınıfları içeren tek ozet.html dosyasını koşu klasörüne yazar.
+     *
+     * @param kosuKlasoru    reports/kosular/&lt;koşu&gt;; ozet.html buraya yazılır
+     * @param kosuBaslangici başlıkta gösterilen koşu zamanı
+     * @param ekranlar       target'taki ekran görüntüsü → kanitlar altındaki kopyası;
+     *                       ozet.html görüntüleri bu kopyalardan gösterir
+     */
+    public static void generateSummary(Path kosuKlasoru, LocalDateTime kosuBaslangici, Map<Path, Path> ekranlar) {
 
         try {
-            Path screenshotDirectory = runDirectory.resolve("screenshots");
-            Files.createDirectories(screenshotDirectory);
-
-            String html = createHtml(screenshotDirectory, getTestsForClass(className), className);
-
-            Files.writeString(runDirectory.resolve("ozet.html"), html, StandardCharsets.UTF_8);
+            String html = ozetHtmlOlustur(kosuKlasoru, kosuBaslangici, ekranlar);
+            Files.createDirectories(kosuKlasoru);
+            Files.writeString(kosuKlasoru.resolve("ozet.html"), html, StandardCharsets.UTF_8);
 
         } catch (IOException e) {
-            ReportManager.error("HTML raporu oluşturulurken hata oluştu.", e);
+            ReportManager.error("ozet.html oluşturulurken hata oluştu.", e);
         }
     }
 
-    private static String createHtml(
-            Path screenshotDirectory,
-            List<TestResultData> tests,
-            String className) throws IOException {
+    private static String ozetHtmlOlustur(Path kosuKlasoru, LocalDateTime kosuBaslangici, Map<Path, Path> ekranlar) {
 
-        int total = tests.size();
+        List<TestResultData> tests = getAllTestsInOrder();
+
         long passed = tests.stream().filter(test -> BASARILI.equals(test.status)).count();
         long failed = tests.stream().filter(test -> HATALI.equals(test.status)).count();
         long skipped = tests.stream().filter(test -> ATLANDI.equals(test.status)).count();
 
-        String overallStatus = tests.stream().anyMatch(HtmlReportManager::sorunluMu)
-                ? HATALI
-                : BASARILI;
+        String overallStatus = tests.stream().anyMatch(HtmlReportManager::sorunluMu) ? HATALI : BASARILI;
 
-        StringBuilder testBlocks = new StringBuilder();
-
-        for (TestResultData test : tests) {
-            testBlocks.append(testKartiOlustur(test, screenshotDirectory));
+        StringBuilder siniflar = new StringBuilder();
+        for (String className : getExecutedClassNames()) {
+            siniflar.append(sinifBolumuOlustur(className, kosuKlasoru, ekranlar));
         }
-
-        String reportTime = LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"));
 
         return """
                 <!DOCTYPE html>
                 <html lang="tr">
                 <head>
                     <meta charset="UTF-8">
-                    <title>Otomasyon Test Raporu</title>
+                    <title>Otomasyon Test Özeti</title>
                     <style>
                         body { font-family: Arial, sans-serif; background: #f5f6f8; margin: 0; padding: 30px; color: #252525; }
                         .container { max-width: 1100px; margin: auto; }
                         .header { background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; }
                         .summary { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
                         .summary-card { background: #f1f2f4; padding: 15px 25px; border-radius: 8px; min-width: 120px; }
-                        .test-card { background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; }
+                        details.sinif { background: white; border-radius: 10px; margin-bottom: 16px; padding: 0 25px; }
+                        details.sinif > summary { cursor: pointer; padding: 18px 0; font-size: 18px; font-weight: bold;
+                                                  display: flex; justify-content: space-between; align-items: center; }
+                        .test-card { border-top: 1px solid #eee; padding: 20px 0; }
                         .test-header { display: flex; justify-content: space-between; align-items: center; }
-                        .class-name { color: #777; font-size: 13px; }
-                        .status { padding: 8px 14px; border-radius: 20px; font-weight: bold; }
+                        .test-header h3 { margin: 0; }
+                        .status { padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
                         .success { background: #dff5e5; color: #19763a; }
                         .failure { background: #fde2e2; color: #b42318; }
                         .skipped { background: #fff0c2; color: #8a6100; }
                         .unknown { background: #e5e7eb; }
-                        .steps li { margin-bottom: 10px; }
+                        .steps li { margin-bottom: 6px; }
                         .error { background: #fff1f1; padding: 15px; border-radius: 8px; margin-top: 15px; }
-                        .error pre { white-space: pre-wrap; }
-                        .screenshot { margin-top: 20px; }
-                        .screenshot img { max-width: 700px; max-height: 450px; border: 1px solid #ddd; border-radius: 6px; }
+                        .error pre { white-space: pre-wrap; margin: 0; }
+                        .screenshot img { max-width: 700px; max-height: 450px; border: 1px solid #ddd; border-radius: 6px; margin-top: 15px; }
                     </style>
                 </head>
                 <body>
                     <div class="container">
                         <div class="header">
-                            <h1>Otomasyon Test Raporu</h1>
-                            <p><strong>Test Class:</strong> %s</p>
+                            <h1>Otomasyon Test Özeti</h1>
                             <p><strong>Koşu Tarihi:</strong> %s</p>
                             <p><strong>Genel Durum:</strong> %s</p>
                             <div class="summary">
@@ -226,20 +222,44 @@ public final class HtmlReportManager {
                 </body>
                 </html>
                 """.formatted(
-                escapeHtml(className),
-                reportTime,
+                kosuBaslangici.format(EKRAN_TARIH_BICIMI),
                 overallStatus,
-                total,
+                tests.size(),
                 passed,
                 failed,
                 skipped,
-                testBlocks
+                siniflar
         );
     }
 
-    private static String testKartiOlustur(
-            TestResultData test,
-            Path screenshotDirectory) throws IOException {
+    /** Sınıf başlığı ve testleri; sorunlu sınıflar açık, diğerleri kapalı gelir. */
+    private static String sinifBolumuOlustur(String className, Path kosuKlasoru, Map<Path, Path> ekranlar) {
+
+        List<TestResultData> tests = getTestsForClass(className);
+        long gecen = tests.stream().filter(test -> BASARILI.equals(test.status)).count();
+        boolean sorunlu = tests.stream().anyMatch(HtmlReportManager::sorunluMu);
+
+        StringBuilder kartlar = new StringBuilder();
+        for (TestResultData test : tests) {
+            kartlar.append(testKartiOlustur(test, kosuKlasoru, ekranlar));
+        }
+
+        return """
+                <details class="sinif"%s>
+                    <summary><span>%s</span><span class="status %s">%d / %d</span></summary>
+                    %s
+                </details>
+                """.formatted(
+                sorunlu ? " open" : "",
+                escapeHtml(className),
+                sorunlu ? "failure" : "success",
+                gecen,
+                tests.size(),
+                kartlar
+        );
+    }
+
+    private static String testKartiOlustur(TestResultData test, Path kosuKlasoru, Map<Path, Path> ekranlar) {
 
         String statusClass = switch (test.status) {
             case BASARILI -> "success";
@@ -252,6 +272,7 @@ public final class HtmlReportManager {
         for (String step : test.steps) {
             steps.append("<li>").append(escapeHtml(step)).append("</li>");
         }
+        String adimlarHtml = steps.isEmpty() ? "" : "<ol class=\"steps\">" + steps + "</ol>";
 
         String errorHtml = "";
         if (test.errorMessage != null) {
@@ -267,61 +288,47 @@ public final class HtmlReportManager {
         return """
                 <div class="test-card">
                     <div class="test-header">
-                        <div>
-                            <h2>%s</h2>
-                            <span class="class-name">%s</span>
-                        </div>
+                        <h3>%s</h3>
                         <span class="status %s">%s</span>
                     </div>
                     <p><strong>Süre:</strong> %.2f saniye</p>
-                    <h3>Test Adımları</h3>
-                    <ol class="steps">%s</ol>
+                    %s
                     %s
                     %s
                 </div>
                 """.formatted(
                 escapeHtml(test.testName),
-                escapeHtml(test.className),
                 statusClass,
                 test.status,
                 test.duration / 1000.0,
-                steps,
+                adimlarHtml,
                 errorHtml,
-                screenshotHtmlOlustur(test, screenshotDirectory)
+                ekranHtmlOlustur(test, kosuKlasoru, ekranlar)
         );
     }
 
     /**
-     * Ekran görüntüsünü raporun yanındaki screenshots klasörüne kopyalar.
-     * Böylece ozet.html klasörüyle birlikte taşındığında da görüntüler açılır.
+     * Ekran görüntüsünü kanitlar altındaki kopyasından, ozet.html'e göre bağıl yolla gösterir.
+     * Böylece koşu klasörü (veya mail ZIP'i) taşındığında da görüntüler açılır.
      */
-    private static String screenshotHtmlOlustur(
-            TestResultData test,
-            Path screenshotDirectory) throws IOException {
+    private static String ekranHtmlOlustur(TestResultData test, Path kosuKlasoru, Map<Path, Path> ekranlar) {
 
-        if (test.screenshotPath == null || !Files.exists(test.screenshotPath)) {
+        if (test.screenshotPath == null) {
             return "";
         }
 
-        String fileName = sanitizeFileName(test.testName)
-                + "_" + test.startedAt.format(FILE_DATE_FORMAT)
-                + "_" + test.status
-                + ".png";
+        Path kopya = ekranlar.get(test.screenshotPath.toAbsolutePath().normalize());
+        if (kopya == null) {
+            return "";
+        }
 
-        Files.copy(
-                test.screenshotPath,
-                screenshotDirectory.resolve(fileName),
-                StandardCopyOption.REPLACE_EXISTING
-        );
+        String goreliYol = kosuKlasoru.relativize(kopya).toString().replace("\\", "/");
 
         return """
                 <div class="screenshot">
-                    <p><strong>Screenshot</strong></p>
-                    <a href="screenshots/%s" target="_blank">
-                        <img src="screenshots/%s" alt="Screenshot">
-                    </a>
+                    <a href="%s" target="_blank"><img src="%s" alt="Ekran görüntüsü"></a>
                 </div>
-                """.formatted(fileName, fileName);
+                """.formatted(goreliYol, goreliYol);
     }
 
     // ------------------------------------------------------------------
@@ -362,13 +369,6 @@ public final class HtmlReportManager {
             return null;
         }
         return throwable.getMessage() != null ? throwable.getMessage() : throwable.toString();
-    }
-
-    private static String sanitizeFileName(String value) {
-        if (value == null || value.isBlank()) {
-            return "test";
-        }
-        return value.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     /** Hata mesajlarındaki HTML parçalarının sayfa yapısını bozmasını önler. */

@@ -19,12 +19,12 @@ import java.util.regex.Pattern;
  */
 public final class TestReportMailService {
 
-    // ReportZipUtil'in ürettiği ad: BVA_KP_Test_Raporu_20261020_230900_123.zip
+    // ReportZipUtil'in ürettiği ad: BVA_KP_Test_Raporu_2026-10-22_19-41-05.zip
     private static final Pattern RAPOR_TARIH_DESENI =
-            Pattern.compile("BVA_KP_Test_Raporu_(\\d{8}_\\d{6}_\\d{3})\\.zip");
+            Pattern.compile("BVA_KP_Test_Raporu_(\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2})\\.zip");
 
     private static final DateTimeFormatter DOSYA_TARIH_FORMATI =
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
     private static final DateTimeFormatter MAIL_TARIH_FORMATI =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
@@ -109,6 +109,7 @@ public final class TestReportMailService {
 
                     <p>
                         Test adımları ve ekran görüntüleri ekteki ZIP dosyasında yer almaktadır.
+                        ZIP'i açtıktan sonra ozet.html dosyasını tarayıcıda açabilirsiniz.
                         Video ve trace kayıtları otomasyon sunucusundaki rapor arşivinde saklanmaktadır.
                     </p>
 

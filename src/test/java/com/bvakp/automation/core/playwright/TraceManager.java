@@ -33,7 +33,7 @@ public final class TraceManager {
     private static final Path TRACE_DIRECTORY = Paths.get("target", "traces");
     // Yerel saat: log, ekran görüntüsü ve video adlarıyla aynı saat dilimi.
     private static final DateTimeFormatter TIMESTAMP =
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS")
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")
                     .withZone(ZoneId.systemDefault());
     private static final ThreadLocal<TraceSession> ACTIVE_SESSION = new ThreadLocal<>();
     private static final Set<String> NON_FAILURE_STATUSES = Set.of(

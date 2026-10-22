@@ -5,11 +5,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -17,38 +14,28 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Son test koşusunun arşiv klasörünü bulur ve mail eki olarak ZIP oluşturur.
+ * Son test koşusundan mail eki ZIP'i oluşturur.
  *
- * <p>ZIP'e yalnızca maille paylaşılması uygun ve dosyadan açılabilen içerik eklenir:
- * class bazlı ozet.html raporları, ekran görüntüleri ve run-info.txt.
- * Video, trace, test bazlı kanıtlar ve Allure dosyaları boyut ve hassas veri nedeniyle eklenmez;
- * bunlar reports/allure-runs arşivinde kalır.
+ * <p>ZIP'e yalnızca maille paylaşılması uygun içerik girer: ozet.html ve
+ * kanitlar altındaki ekran görüntüleri (ozet.html bunları bağıl yolla gösterir).
+ * RAPOR.html, video, trace ve teknik klasörü boyut ve hassas veri nedeniyle eklenmez;
+ * bunlar reports/kosular arşivinde kalır.
  */
 public final class ReportZipUtil {
 
     // AllureRunOrganizer ile aynı kaynaktan okunmalıdır.
     private static final Path RAPOR_KLASORU = Paths.get(
-            System.getProperty("report.archive.directory", "reports/allure-runs"));
+            System.getProperty("report.archive.directory", "reports/kosular"));
 
     private static final Path MAIL_ZIP_KLASORU = Paths.get("target", "mail-reports");
 
     /*
-     * AllureRunOrganizer'ın ürettiği koşu klasörü formatı:
-     * Kosu_20261020_230900_123_ab12cd34_HATALI
-     *      └──── tarih ──────┘ └ id ─┘ └ durum ┘
+     * AllureRunOrganizer'ın ürettiği koşu klasörü adı:
+     * 2026-10-22_19-41-05_HATALI   (aynı saniyede ikinci koşu: 2026-10-22_19-41-05_2_HATALI)
+     * └────── tarih ──────┘
      */
     private static final Pattern KOSU_KLASOR_DESENI = Pattern.compile(
-            "^Kosu_(\\d{8}_\\d{6}_\\d{3})_[0-9a-f]{8}_(BASARILI|HATALI)$");
-
-    private static final DateTimeFormatter TARIH_FORMATI =
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
-
-    /** ZIP'e alınmayacak klasörler. */
-    private static final Set<String> HARIC_KLASORLER = Set.of(
-            "videos", "traces", "allure-results", "allure-report", "kanitlar");
-
-    /** ZIP'e alınmayacak dosyalar. */
-    private static final Set<String> HARIC_DOSYALAR = Set.of("allure-generation.log", "RAPOR.html");
+            "^(\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2})(_\\d+)?_(BASARILI|HATALI)$");
 
     private ReportZipUtil() {
     }
@@ -56,7 +43,7 @@ public final class ReportZipUtil {
     /**
      * En son koşu klasöründen mail eki ZIP'i oluşturur.
      *
-     * @return oluşturulan ZIP dosyasının yolu
+     * @return oluşturulan ZIP dosyasının yolu (ör. BVA_KP_Test_Raporu_2026-10-22_19-41-05.zip)
      */
     public static Path sonKosuyuZipOlustur() {
 
@@ -85,22 +72,21 @@ public final class ReportZipUtil {
         }
     }
 
-    /** Arşivdeki en güncel Kosu_... klasörünü bulur. */
+    /** Arşivdeki en güncel koşu klasörünü bulur; ad tarihle başladığı için alfabetik en büyük olandır. */
     private static Path sonKosuKlasorunuBul() throws IOException {
 
         try (Stream<Path> stream = Files.list(RAPOR_KLASORU)) {
             return stream
                     .filter(Files::isDirectory)
                     .filter(path -> KOSU_KLASOR_DESENI.matcher(path.getFileName().toString()).matches())
-                    .max(Comparator.comparing(path ->
-                            LocalDateTime.parse(kosuTarihiAl(path.getFileName().toString()), TARIH_FORMATI)))
+                    .max(Comparator.comparing(path -> path.getFileName().toString()))
                     .orElseThrow(() -> new IllegalStateException(
                             "ZIP oluşturulabilecek test koşusu bulunamadı: "
                                     + RAPOR_KLASORU.toAbsolutePath()));
         }
     }
 
-    /** Koşu klasör adından yyyyMMdd_HHmmss_SSS formatındaki tarihi çıkarır. */
+    /** Koşu klasör adından 2026-10-22_19-41-05 biçimindeki tarihi çıkarır. */
     private static String kosuTarihiAl(String klasorAdi) {
 
         Matcher matcher = KOSU_KLASOR_DESENI.matcher(klasorAdi);
@@ -112,7 +98,7 @@ public final class ReportZipUtil {
         return matcher.group(1);
     }
 
-    /** Koşu klasörünü, hariç tutulan içerik dışında ZIP'e ekler. */
+    /** ozet.html ve ekran görüntülerini, koşu klasörü adıyla birlikte ZIP'e ekler. */
     private static void kosuKlasorunuZiple(Path kosuKlasoru, Path zipDosyasi) throws IOException {
 
         Path parent = kosuKlasoru.getParent();
@@ -138,14 +124,17 @@ public final class ReportZipUtil {
         }
     }
 
+    /** Yalnızca kökteki ozet.html ve kanitlar altındaki ekran*.png dosyaları. */
     private static boolean zipeEklensinMi(Path goreliYol) {
 
-        for (Path parca : goreliYol) {
-            if (HARIC_KLASORLER.contains(parca.toString())) {
-                return false;
-            }
+        String ad = goreliYol.getFileName().toString();
+
+        if (goreliYol.getNameCount() == 1) {
+            return "ozet.html".equals(ad);
         }
 
-        return !HARIC_DOSYALAR.contains(goreliYol.getFileName().toString());
+        return "kanitlar".equals(goreliYol.getName(0).toString())
+                && ad.startsWith("ekran")
+                && ad.endsWith(".png");
     }
 }

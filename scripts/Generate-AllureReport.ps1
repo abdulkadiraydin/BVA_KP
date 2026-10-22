@@ -1,9 +1,12 @@
 <#
-Allure Report 2 icin tek bir arsivlenmis test kosusunun HTML raporunu uretir.
+Allure Report 2 icin tek bir arsivlenmis test kosusunun raporlarini uretir:
+  <kosu>\RAPOR.html            tek dosyalik rapor (cift tikla)
+  <kosu>\teknik\allure-report  allure open ile acilan rapor
+  reports\SON-KOSU.html        en son kosunun RAPOR.html kopyasi
 Son raporun history bilgisini sonraki kosuya aktarir.
 Kullanim (proje kok klasorunde):
   .\scripts\Generate-AllureReport.ps1
-    .\scripts\Generate-AllureReport.ps1 -RunDirectory '.\reports\allure-runs\Kosu_...'
+  .\scripts\Generate-AllureReport.ps1 -RunDirectory '.\reports\kosular\2026-10-22_19-41-05_HATALI'
 Gereksinim: Allure CLI 2.x, PATH'te `allure` komutu.
 #>
 param(
@@ -12,7 +15,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$runsRoot = Join-Path $projectRoot 'reports\allure-runs'
+$runsRoot = Join-Path $projectRoot 'reports\kosular'
 $historyStore = Join-Path $projectRoot 'reports\allure-history'
 
 if (-not (Test-Path $runsRoot -PathType Container)) {
@@ -21,7 +24,7 @@ if (-not (Test-Path $runsRoot -PathType Container)) {
 
 if ([string]::IsNullOrWhiteSpace($RunDirectory)) {
     $latest = Get-ChildItem $runsRoot -Directory |
-        Where-Object { $_.Name -like 'Kosu_*' } |
+        Where-Object { $_.Name -match '^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}' } |
         Sort-Object Name -Descending |
         Select-Object -First 1
     if ($null -eq $latest) { throw 'Kosu klasoru bulunamadi.' }
@@ -29,9 +32,10 @@ if ([string]::IsNullOrWhiteSpace($RunDirectory)) {
 }
 
 $runPath = (Resolve-Path $RunDirectory).Path
-$resultsPath = Join-Path $runPath 'allure-results'
-$reportPath = Join-Path $runPath 'allure-report'
-$marker = Join-Path $runPath '.allure-history-generated'
+$teknikPath = Join-Path $runPath 'teknik'
+$resultsPath = Join-Path $teknikPath 'allure-results'
+$reportPath = Join-Path $teknikPath 'allure-report'
+$marker = Join-Path $teknikPath '.allure-history-generated'
 
 if (-not (Test-Path $resultsPath -PathType Container)) {
     throw "Allure results klasoru bulunamadi: $resultsPath"
@@ -99,7 +103,7 @@ Set-Content -Path $marker -Value (Get-Date -Format o) -Encoding UTF8
 # Cift tiklayinca acilan tek dosyalik rapor:
 #   kosu klasorunde RAPOR.html, ayrica reports\SON-KOSU.html (her kosuda uzerine yazilir).
 # History bunu etkilemez; uretilemezse ana rapor yine gecerlidir.
-$singleFileTemp = Join-Path $runPath '.rapor-gecici'
+$singleFileTemp = Join-Path $teknikPath '.rapor-gecici'
 & $allureCommand.Source generate $resultsPath '--clean' '--single-file' '-o' $singleFileTemp
 $singleFileIndex = Join-Path $singleFileTemp 'index.html'
 

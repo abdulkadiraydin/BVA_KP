@@ -20,11 +20,12 @@ public final class ScreenshotUtil {
     private static final Path SCREENSHOT_DIRECTORY = Paths.get("target", "screenshots");
 
     private static final DateTimeFormatter ZAMAN_BICIMI =
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
     private ScreenshotUtil() {
     }
 
+    /** Dosya adı: testAdi_basarili_2026-10-22_19-41-05_ab12cd34.png */
     public static Path takeScreenshot(Page page, String testName) {
 
         if (page == null) {
@@ -34,7 +35,7 @@ public final class ScreenshotUtil {
         try {
             Files.createDirectories(SCREENSHOT_DIRECTORY);
 
-            // UUID, aynı adlı paralel testlerin aynı milisaniyede birbirini ezmesini önler.
+            // UUID, aynı adlı paralel testlerin aynı saniyede birbirini ezmesini önler.
             String fileName = sanitizeFileName(testName)
                     + "_" + LocalDateTime.now().format(ZAMAN_BICIMI)
                     + "_" + UUID.randomUUID().toString().substring(0, 8)

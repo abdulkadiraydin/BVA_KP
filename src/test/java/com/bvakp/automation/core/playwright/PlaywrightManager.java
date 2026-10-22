@@ -36,7 +36,7 @@ public final class PlaywrightManager {
     private static final ThreadLocal<APIRequestContext> apiRequestContextThread = new ThreadLocal<>();
 
     private static final DateTimeFormatter ZAMAN_BICIMI =
-            DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
     /** assertThat(...) beklemeleri; BasePage'deki varsayılan bekleme ile aynı. */
     private static final double ASSERT_BEKLEME_MS = 15_000;
@@ -289,9 +289,10 @@ public final class PlaywrightManager {
             return null;
         }
 
+        // Trace ile aynı sıra: testAdi_DURUM_2026-10-22_19-41-05_ab12cd34.webm
         String fileName = sanitizeFileName(testName)
-                + "_" + LocalDateTime.now().format(ZAMAN_BICIMI)
                 + "_" + sanitizeFileName(status)
+                + "_" + LocalDateTime.now().format(ZAMAN_BICIMI)
                 + "_" + UUID.randomUUID().toString().substring(0, 8)
                 + ".webm";
 
