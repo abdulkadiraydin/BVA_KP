@@ -3,13 +3,16 @@ package com.bvakp.automation.core.playwright;
 import com.bvakp.automation.core.auth.AvpAuthStateManager;
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.reporting.AllureArtifactCollector;
+import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.VideoManager;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.Response;
 import com.microsoft.playwright.Video;
+import com.microsoft.playwright.assertions.PlaywrightAssertions;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +37,14 @@ public final class PlaywrightManager {
 
     private static final DateTimeFormatter ZAMAN_BICIMI =
             DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
+
+    /** assertThat(...) beklemeleri; BasePage'deki varsayılan bekleme ile aynı. */
+    private static final double ASSERT_BEKLEME_MS = 15_000;
+
+    static {
+        // Playwright varsayılanı 5 sn; yük altında yavaş açılan ekranlarda yetmiyor.
+        PlaywrightAssertions.setDefaultAssertionTimeout(ASSERT_BEKLEME_MS);
+    }
 
     private PlaywrightManager() {
     }
@@ -101,6 +112,9 @@ public final class PlaywrightManager {
             Page page = context.newPage();
             pageThread.set(page);
 
+            // 5xx yanıtlar (ör. nginx 503) zaman aşımıyla karışmasın diye ayrıca loglanır.
+            page.onResponse(PlaywrightManager::sunucuHatasiniLoglama);
+
             APIRequestContext apiRequestContext = playwright.request().newContext();
             apiRequestContextThread.set(apiRequestContext);
 
@@ -124,6 +138,14 @@ public final class PlaywrightManager {
         } catch (RuntimeException | Error e) {
             kaynaklariTemizle();
             throw e;
+        }
+    }
+
+    /** Sunucu 5xx döndürdüyse ortam hatası olarak loglar; testin akışını değiştirmez. */
+    private static void sunucuHatasiniLoglama(Response yanit) {
+        if (yanit.status() >= 500) {
+            ReportManager.warn("ORTAM HATASI | " + yanit.status() + " | "
+                    + yanit.request().resourceType() + " | " + yanit.url());
         }
     }
 

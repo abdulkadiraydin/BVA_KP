@@ -282,6 +282,13 @@ public class TestListener
         if (result.getAttribute(SCREENSHOT_ATTRIBUTE) != null) {
             return;
         }
+        String testName = getTestName(result);
+
+        // API testlerinde tarayıcı açılmaz; sayfa kontrolünden önce ayrılmalıdır.
+        if (apiTestiMi(result)) {
+            ReportManager.info("API testi; ekran görüntüsü yok, kanıt API eklerinde | " + testName);
+            return;
+        }
 
         try {
             var page = PlaywrightManager.getPage();
@@ -294,11 +301,6 @@ public class TestListener
                 return;
             }
 
-            String testName = getTestName(result);
-            if (apiTestiMi(result)) {
-                ReportManager.info("API testi; ekran görüntüsü yok, kanıt API eklerinde | " + testName);
-                return;
-            }
             boolean basarisiz = result.getStatus() == ITestResult.FAILURE
                     || result.getThrowable() != null;
 
