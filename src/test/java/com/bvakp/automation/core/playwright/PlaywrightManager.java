@@ -111,6 +111,22 @@ public final class PlaywrightManager {
         }
     }
 
+    /**
+     * Tarayıcı açmadan yalnızca API istemcisini başlatır (@ApiTesti işaretli testler).
+     * Kapanış için yine close(...) kullanılır; tarayıcı nesneleri olmadığı için atlanır.
+     */
+    public static void apiBaslatma() {
+        try {
+            Playwright playwright = Playwright.create();
+            playwrightThread.set(playwright);
+            apiRequestContextThread.set(playwright.request().newContext());
+
+        } catch (RuntimeException | Error e) {
+            kaynaklariTemizle();
+            throw e;
+        }
+    }
+
     /** Aktif thread'e ait Playwright sayfasını döndürür. */
     public static Page getPage() {
         return pageThread.get();

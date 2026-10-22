@@ -1,5 +1,6 @@
 package com.bvakp.automation.reporting;
 
+import com.bvakp.automation.base.ApiTesti;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.mail.TestFailureAlertMailService;
 import com.bvakp.automation.utils.ScreenshotUtil;
@@ -15,6 +16,7 @@ import org.testng.ISuiteResult;
 import org.testng.ITestListener;
 import org.testng.ITestResult;
 
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 
 public class TestListener
@@ -66,7 +68,7 @@ public class TestListener
                     "Başarılı test screenshot oluşturuldu | "
                             + screenshotPath.toAbsolutePath()
             );
-        } else {
+        } else if (!apiTestiMi(result)) {
             ReportManager.warn(
                     "Başarılı test için screenshot bulunamadı | " + testName
             );
@@ -117,7 +119,7 @@ public class TestListener
                     "Başarısız test screenshot oluşturuldu | "
                             + screenshotPath.toAbsolutePath()
             );
-        } else {
+        } else if (!apiTestiMi(result)) {
             ReportManager.warn(
                     "Başarısız test için screenshot bulunamadı | " + testName
             );
@@ -293,6 +295,10 @@ public class TestListener
             }
 
             String testName = getTestName(result);
+            if (apiTestiMi(result)) {
+                ReportManager.info("API testi; ekran görüntüsü yok, kanıt API eklerinde | " + testName);
+                return;
+            }
             boolean basarisiz = result.getStatus() == ITestResult.FAILURE
                     || result.getThrowable() != null;
 
@@ -330,6 +336,11 @@ public class TestListener
                             + getTestName(result) + " | " + e.getMessage()
             );
         }
+    }
+    /** @ApiTesti işaretli testlerde tarayıcı yoktur; ekran görüntüsü beklenmez. */
+    private static boolean apiTestiMi(ITestResult result) {
+        Method metot = result.getMethod().getConstructorOrMethod().getMethod();
+        return metot != null && metot.isAnnotationPresent(ApiTesti.class);
     }
 
 }

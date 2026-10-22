@@ -96,6 +96,15 @@ if ($hadOldHistory -and (Test-Path $backupHistory)) {
 }
 Set-Content -Path $marker -Value (Get-Date -Format o) -Encoding UTF8
 
+# Cift tiklayinca acilan tek dosyalik kopya (paylasim/mail icin).
+# History bunu etkilemez; uretilemezse ana rapor yine gecerlidir.
+$singleFilePath = Join-Path $runPath 'allure-report-tek-dosya'
+& $allureCommand.Source generate $resultsPath '--clean' '--single-file' '-o' $singleFilePath
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Tek dosyalik Allure raporu olusturulamadi; ana rapor gecerli.'
+}
+
 Write-Host "Allure HTML: $reportPath"
+Write-Host "Tek dosya (cift tikla): $(Join-Path $singleFilePath 'index.html')"
 Write-Host "History saklandi: $historyStore"
 Write-Host "Acma: allure open `"$reportPath`""

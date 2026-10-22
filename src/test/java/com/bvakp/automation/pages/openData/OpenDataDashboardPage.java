@@ -66,7 +66,7 @@ public class OpenDataDashboardPage extends BasePage {
                 new Page.GetByRoleOptions().setName("Portal Dashboard").setExact(true));
         portalIstatistikleriBasligi = tamMetin("Portal İstatistikleri ve Raporlama");
 
-        toplamVeriSetiKarti = tamMetin("Toplam Veri Seti");
+        toplamVeriSetiKarti = tamMetin("Yayındaki Veri Seti");
         toplamIndirmeKarti = tamMetin("Toplam İndirme");
         // "API Çağrısı" metni grafik legend'ında da geçtiği için kart etiketi (p) ayrıca hedeflenir.
         apiCagrisiKarti = page.locator("p").filter(new Locator.FilterOptions()

@@ -5,13 +5,16 @@
        verbose="1"
        parallel="methods"
        thread-count="3">
-    <test name="BVA Sequential Tests">
 
+    <test name="BVA Tests">
         <classes>
+            <class name="com.bvakp.automation.tests.LoginTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataDashboardTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/>
             <class name="com.bvakp.automation.tests.openData.OpenDataUpdateCalendarTest"/>
-            <!--            <class name="com.bvakp.automation.tests.openData.OpenDataUpdateCalendarTest"/>-->
+            <class name="com.bvakp.automation.tests.openData.PublicOpenDataTest"/>
         </classes>
-
     </test>
 
 </suite>

@@ -3,6 +3,7 @@ package com.bvakp.automation.tests.openData;
 import com.bvakp.automation.api.core.ApiYanit;
 import com.bvakp.automation.api.publicportal.DatastoreSonuc;
 import com.bvakp.automation.api.publicportal.PublicPortalApi;
+import com.bvakp.automation.base.ApiTesti;
 import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
@@ -34,6 +35,7 @@ import java.util.Set;
  *
  * <p>Beklenen değerler, @BeforeClass'ta yayın sırasında ekranlardan toplanan
  * {@link VeriSetiTanimi}'dir. Testler ortak veri setini yalnızca okur; paralel çalışabilir.
+ * {@link ApiTesti} işaretli testler tarayıcı açmaz; sayfa nesnesi kullanmamalıdır.
  */
 public class PublicOpenDataTest extends AvpBaseTest {
 
@@ -254,11 +256,12 @@ public class PublicOpenDataTest extends AvpBaseTest {
     // API
     // ------------------------------------------------------------------
 
+    @ApiTesti
     @Test
     public void apiPaketBilgileriDogrudur() {
-        TestContext ctx = testHazirligi();
+        PublicPortalApi api = PublicPortalApi.portaldan();
 
-        ApiYanit yanit = ctx.api().paketGetir(adresAdi);
+        ApiYanit yanit = api.paketGetir(adresAdi);
         Assert.assertTrue(PublicPortalApi.apiBasariliMi(yanit),
                 "package_show başarısız | Durum: " + yanit.durumKodu() + " | " + yanit.kisaGovde());
 
@@ -272,11 +275,12 @@ public class PublicOpenDataTest extends AvpBaseTest {
         ReportManager.pass("API paket bilgileri doğru.");
     }
 
+    @ApiTesti
     @Test
     public void apiKayitlariMaskelidir() {
-        TestContext ctx = testHazirligi();
+        PublicPortalApi api = PublicPortalApi.portaldan();
 
-        DatastoreSonuc sonuc = ctx.api().kayitlariGetir(kaynakId, API_KAYIT_LIMITI);
+        DatastoreSonuc sonuc = api.kayitlariGetir(kaynakId, API_KAYIT_LIMITI);
         Assert.assertEquals(sonuc.alanAdlari(), tanim.kolonAdlari(), "API alanları kolonlarla aynı değil.");
 
         SoftAssert soft = new SoftAssert();
@@ -291,9 +295,10 @@ public class PublicOpenDataTest extends AvpBaseTest {
         ReportManager.pass("Maskeli kolonların bütün değerleri maskeli: " + tanim.maskelenenKolonlar());
     }
 
+    @ApiTesti
     @Test
     public void apiKayitlariOnizlemeIleAynidir() {
-        TestContext ctx = testHazirligi();
+        PublicPortalApi api = PublicPortalApi.portaldan();
 
         List<Map<String, String>> onizleme = tanim.onizlemeKayitlari();
         Assert.assertFalse(onizleme.isEmpty(), "Ön koşul: kapalı portal önizlemesi okunamadı.");
@@ -301,7 +306,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
         // Önizleme ile API'nin sıralaması farklı; her önizleme satırı API kayıtları içinde aranır.
         // Eşleşen kayıt listeden çıkarılır, böylece tekrar eden satırlar da doğru sayılır.
         List<Map<String, String>> apiSatirlari = new ArrayList<>(
-                ctx.api().kayitlariGetir(kaynakId, API_KAYIT_LIMITI).kayitlar().stream()
+                api.kayitlariGetir(kaynakId, API_KAYIT_LIMITI).kayitlar().stream()
                         .map(this::maskesizKolonlar)
                         .toList());
 
@@ -333,11 +338,12 @@ public class PublicOpenDataTest extends AvpBaseTest {
      * Bilinen bulgu: kaynaktaki integer/date gibi tipler portalda "text" oluyor.
      * Düzeltilene kadar kırmızı kalması beklenir. Maskeli kolonlar metne dönüştüğü için hariçtir.
      */
+    @ApiTesti
     @Test(description = "Kolon tipleri portalda korunur (bilinen bulgu: hepsi text)")
     public void kolonTipleriKorunur() {
-        TestContext ctx = testHazirligi();
+        PublicPortalApi api = PublicPortalApi.portaldan();
 
-        Map<String, String> apiTipleri = ctx.api().kayitlariGetir(kaynakId, 1).alanlar();
+        Map<String, String> apiTipleri = api.kayitlariGetir(kaynakId, 1).alanlar();
 
         List<String> kaybolanTipler = new ArrayList<>();
         for (KolonTanimi kolon : tanim.kolonlar()) {

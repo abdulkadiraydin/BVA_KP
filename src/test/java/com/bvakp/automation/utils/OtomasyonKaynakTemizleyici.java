@@ -56,7 +56,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
         try {
             // Testlerin Page'i kapanmış olabileceği için temizliğe özel oturum açılır.
-            temizleyici.setUp();
+            PlaywrightManager.initialize(temizleyici.authStateKullan());
             temizleyici.otomasyonKaynaklariniTemizle();
         } finally {
             PlaywrightManager.close("otomasyonKaynaklariniTemizleme", "TEMIZLIK");
