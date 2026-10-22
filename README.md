@@ -126,7 +126,7 @@ reports/
       RAPOR.html                      Allure raporu, bütün testler (çift tıkla)
       ozet.html                       sade özet; mailde giden
       kanitlar/<Sınıf>/<test>/        ekran.png, video.webm, trace.zip
-      kanitlar/_hazirlik/             @BeforeClass gibi teste bağlı olmayan kanıtlar
+      kanitlar/_eslesmeyen/           teste bağlanamayan kanıtlar (ör. @BeforeClass)
       teknik/                         allure-results, allure-report, kosu-bilgisi.txt, allure-uretim.log
 ```
 

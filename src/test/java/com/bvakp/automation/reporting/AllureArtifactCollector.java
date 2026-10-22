@@ -43,8 +43,13 @@ public final class AllureArtifactCollector {
     private static final ThreadLocal<String> CURRENT_TEST_NAME = new ThreadLocal<>();
     private static final ConcurrentMap<Path, KanitSahibi> ARTIFACT_OWNERS = new ConcurrentHashMap<>();
 
-    /** Kanıt dosyasının ait olduğu test; testAdi bilinmiyorsa null. */
-    public record KanitSahibi(String sinifAdi, String testAdi) {
+    /**
+     * Kanıt dosyasının ait olduğu test.
+     *
+     * @param testAdi bilinmiyorsa null
+     * @param ad      arşivdeki dosya adı (uzantısız); null ise türün sabit adı kullanılır (ekran, video, trace)
+     */
+    public record KanitSahibi(String sinifAdi, String testAdi, String ad) {
     }
     private static final ConcurrentMap<String, ConcurrentMap<ArtifactType, Path>> PENDING =
             new ConcurrentHashMap<>();
@@ -88,9 +93,19 @@ public final class AllureArtifactCollector {
                 );
     }
 
-    /** Screenshot kaydedildigi anda sinif eslesmesini korur. */
+    /** Testin sonunda alınan ekran görüntüsü; arşivde ekran.png olur. */
     public static void registerScreenshot(Path path) {
         rememberArtifactClass(path);
+    }
+
+    /**
+     * Test sırasında elle alınan ekran görüntüsünü teste bağlar; arşivde kendi adıyla
+     * (ör. kaynak_arama_pozitif.png) testin klasörüne gider.
+     */
+    public static void registerTestScreenshot(Path path, String sinifAdi, String testAdi, String ad) {
+        if (path != null && sinifAdi != null && testAdi != null) {
+            ARTIFACT_OWNERS.put(path.toAbsolutePath().normalize(), new KanitSahibi(sinifAdi, testAdi, ad));
+        }
     }
 
     /** Arsivleyicinin fiziksel kanit dosyalarini siniflara ayirmasi icindir. */
@@ -111,7 +126,7 @@ public final class AllureArtifactCollector {
         String className = CURRENT_TEST_CLASS.get();
         if (className != null && !className.isBlank() && path != null) {
             ARTIFACT_OWNERS.put(path.toAbsolutePath().normalize(),
-                    new KanitSahibi(className, CURRENT_TEST_NAME.get()));
+                    new KanitSahibi(className, CURRENT_TEST_NAME.get(), null));
         }
     }
 

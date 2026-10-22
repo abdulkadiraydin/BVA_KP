@@ -1,7 +1,10 @@
 package com.bvakp.automation.utils;
 
+import com.bvakp.automation.reporting.AllureArtifactCollector;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Page;
+import org.testng.ITestResult;
+import org.testng.Reporter;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,12 +50,30 @@ public final class ScreenshotUtil {
                     .setPath(screenshotPath)
                     .setFullPage(true));
 
+            calisanTesteBaglama(screenshotPath, testName);
+
             return screenshotPath;
 
         } catch (Exception e) {
             ReportManager.error("Screenshot alınırken hata oluştu.", e);
             return null;
         }
+    }
+
+    /**
+     * Görüntüyü o an çalışan teste bağlar; arşivde testin klasörüne kendi adıyla gider.
+     * Test dışında (ör. @BeforeClass) çalışan test yoksa bağlanmaz.
+     */
+    private static void calisanTesteBaglama(Path screenshotPath, String ad) {
+        ITestResult sonuc = Reporter.getCurrentTestResult();
+        if (sonuc == null || !sonuc.getMethod().isTest()) {
+            return;
+        }
+        AllureArtifactCollector.registerTestScreenshot(
+                screenshotPath,
+                sonuc.getTestClass().getRealClass().getSimpleName(),
+                sonuc.getMethod().getMethodName(),
+                sanitizeFileName(ad));
     }
 
     private static String sanitizeFileName(String value) {

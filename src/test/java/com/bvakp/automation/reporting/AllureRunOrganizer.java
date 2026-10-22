@@ -34,7 +34,7 @@ import java.util.stream.Stream;
  *       RAPOR.html                   tek dosyalık Allure raporu (script yazar)
  *       ozet.html                    sade özet, mailde giden
  *       kanitlar/&lt;Sınıf&gt;/&lt;test&gt;/   ekran.png, video.webm, trace.zip
- *       kanitlar/_hazirlik/          teste bağlanamayan kanıtlar (ör. @BeforeClass)
+ *       kanitlar/_eslesmeyen/        teste bağlanamayan kanıtlar (ör. @BeforeClass)
  *       teknik/                      allure-results, allure-report, kosu-bilgisi.txt, allure-uretim.log
  * </pre>
  *
@@ -357,7 +357,8 @@ public final class AllureRunOrganizer {
     /**
      * Yeni kanıtları test klasörüne sabit adla kopyalar: kanitlar/&lt;Sınıf&gt;/&lt;test&gt;/ekran.png.
      * Aynı testten ikinci dosya gelirse (ör. DataProvider) ekran_2.png olarak eklenir.
-     * Teste bağlanamayan dosyalar özgün adıyla kanitlar/_hazirlik altına alınır.
+     * Test sırasında elle alınan görüntüler kendi adlarını korur (kaynak_arama_pozitif.png).
+     * Teste bağlanamayan dosyalar özgün adıyla kanitlar/_eslesmeyen altına alınır.
      *
      * @return kaynak dosya (mutlak yol) → arşivdeki kopyası
      */
@@ -396,15 +397,16 @@ public final class AllureRunOrganizer {
         AllureArtifactCollector.KanitSahibi sahip = AllureArtifactCollector.findArtifactOwner(file);
 
         if (sahip == null || sahip.testAdi() == null) {
-            return kanitKlasoru.resolve("_hazirlik").resolve(file.getFileName());
+            return kanitKlasoru.resolve("_eslesmeyen").resolve(file.getFileName());
         }
 
         Path testKlasoru = kanitKlasoru.resolve(safeName(sahip.sinifAdi())).resolve(safeName(sahip.testAdi()));
         String uzanti = uzantiAl(file.getFileName().toString());
+        String ad = sahip.ad() != null ? safeName(sahip.ad()) : sabitAd;
 
-        Path hedef = testKlasoru.resolve(sabitAd + uzanti);
+        Path hedef = testKlasoru.resolve(ad + uzanti);
         for (int sira = 2; Files.exists(hedef); sira++) {
-            hedef = testKlasoru.resolve(sabitAd + "_" + sira + uzanti);
+            hedef = testKlasoru.resolve(ad + "_" + sira + uzanti);
         }
         return hedef;
     }
