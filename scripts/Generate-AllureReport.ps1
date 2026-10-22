@@ -96,15 +96,23 @@ if ($hadOldHistory -and (Test-Path $backupHistory)) {
 }
 Set-Content -Path $marker -Value (Get-Date -Format o) -Encoding UTF8
 
-# Cift tiklayinca acilan tek dosyalik kopya (paylasim/mail icin).
+# Cift tiklayinca acilan tek dosyalik rapor:
+#   kosu klasorunde RAPOR.html, ayrica reports\SON-KOSU.html (her kosuda uzerine yazilir).
 # History bunu etkilemez; uretilemezse ana rapor yine gecerlidir.
-$singleFilePath = Join-Path $runPath 'allure-report-tek-dosya'
-& $allureCommand.Source generate $resultsPath '--clean' '--single-file' '-o' $singleFilePath
-if ($LASTEXITCODE -ne 0) {
+$singleFileTemp = Join-Path $runPath '.rapor-gecici'
+& $allureCommand.Source generate $resultsPath '--clean' '--single-file' '-o' $singleFileTemp
+$singleFileIndex = Join-Path $singleFileTemp 'index.html'
+
+if ($LASTEXITCODE -eq 0 -and (Test-Path $singleFileIndex)) {
+    $raporHtml = Join-Path $runPath 'RAPOR.html'
+    Move-Item $singleFileIndex $raporHtml -Force
+    Copy-Item $raporHtml (Join-Path $projectRoot 'reports\SON-KOSU.html') -Force
+    Remove-Item $singleFileTemp -Recurse -Force
+    Write-Host "Rapor (cift tikla): $raporHtml"
+} else {
     Write-Warning 'Tek dosyalik Allure raporu olusturulamadi; ana rapor gecerli.'
 }
 
 Write-Host "Allure HTML: $reportPath"
-Write-Host "Tek dosya (cift tikla): $(Join-Path $singleFilePath 'index.html')"
 Write-Host "History saklandi: $historyStore"
 Write-Host "Acma: allure open `"$reportPath`""

@@ -277,7 +277,7 @@ public class TestListener
         }
 
         // Testin Allure UUID'sini ekran görüntüsü ve teardown öncesinde saklar.
-        AllureArtifactCollector.bindCurrentTest(getClassName(result));
+        AllureArtifactCollector.bindCurrentTest(getClassName(result), getTestName(result));
 
         if (result.getAttribute(SCREENSHOT_ATTRIBUTE) != null) {
             return;

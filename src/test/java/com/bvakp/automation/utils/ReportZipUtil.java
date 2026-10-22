@@ -21,7 +21,7 @@ import java.util.zip.ZipOutputStream;
  *
  * <p>ZIP'e yalnızca maille paylaşılması uygun ve dosyadan açılabilen içerik eklenir:
  * class bazlı ozet.html raporları, ekran görüntüleri ve run-info.txt.
- * Video, trace ve Allure dosyaları boyut ve hassas veri nedeniyle eklenmez;
+ * Video, trace, test bazlı kanıtlar ve Allure dosyaları boyut ve hassas veri nedeniyle eklenmez;
  * bunlar reports/allure-runs arşivinde kalır.
  */
 public final class ReportZipUtil {
@@ -45,10 +45,10 @@ public final class ReportZipUtil {
 
     /** ZIP'e alınmayacak klasörler. */
     private static final Set<String> HARIC_KLASORLER = Set.of(
-            "videos", "traces", "allure-results", "allure-report");
+            "videos", "traces", "allure-results", "allure-report", "kanitlar");
 
     /** ZIP'e alınmayacak dosyalar. */
-    private static final Set<String> HARIC_DOSYALAR = Set.of("allure-generation.log");
+    private static final Set<String> HARIC_DOSYALAR = Set.of("allure-generation.log", "RAPOR.html");
 
     private ReportZipUtil() {
     }

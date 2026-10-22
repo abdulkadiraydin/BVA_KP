@@ -37,10 +37,15 @@ public final class AllureArtifactCollector {
 
     private static final ThreadLocal<String> CURRENT_TEST_UUID = new ThreadLocal<>();
 
-    // TestNG test class'i, Allure attachment'larindan bagimsiz olarak gercek
+    // TestNG test class'i ve metodu, Allure attachment'larindan bagimsiz olarak gercek
     // ekran goruntusu / video / trace dosyalarinin arsiv klasorunu belirler.
     private static final ThreadLocal<String> CURRENT_TEST_CLASS = new ThreadLocal<>();
-    private static final ConcurrentMap<Path, String> ARTIFACT_CLASSES = new ConcurrentHashMap<>();
+    private static final ThreadLocal<String> CURRENT_TEST_NAME = new ThreadLocal<>();
+    private static final ConcurrentMap<Path, KanitSahibi> ARTIFACT_OWNERS = new ConcurrentHashMap<>();
+
+    /** Kanıt dosyasının ait olduğu test; testAdi bilinmiyorsa null. */
+    public record KanitSahibi(String sinifAdi, String testAdi) {
+    }
     private static final ConcurrentMap<String, ConcurrentMap<ArtifactType, Path>> PENDING =
             new ConcurrentHashMap<>();
 
@@ -64,9 +69,17 @@ public final class AllureArtifactCollector {
 
     /** Test metodu sona ererken, Allure bağlamı hâlâ aktifken çağrılır. */
     public static void bindCurrentTest(String className) {
+        bindCurrentTest(className, null);
+    }
+
+    /** Sınıfın yanında test adını da saklar; kanıtlar arşivde test klasörüne ayrılır. */
+    public static void bindCurrentTest(String className, String testName) {
         // Allure UUID bulunmasa bile dosyanin test sinifi belli olabilir.
         if (className != null && !className.isBlank()) {
             CURRENT_TEST_CLASS.set(className);
+        }
+        if (testName != null && !testName.isBlank()) {
+            CURRENT_TEST_NAME.set(testName);
         }
         Allure.getLifecycle().getCurrentTestCase()
                 .ifPresentOrElse(
@@ -82,16 +95,23 @@ public final class AllureArtifactCollector {
 
     /** Arsivleyicinin fiziksel kanit dosyalarini siniflara ayirmasi icindir. */
     public static String findArtifactClass(Path path) {
+        KanitSahibi sahip = findArtifactOwner(path);
+        return sahip == null ? null : sahip.sinifAdi();
+    }
+
+    /** Dosyanın ait olduğu sınıf ve test; eşleşme yoksa null. */
+    public static KanitSahibi findArtifactOwner(Path path) {
         if (path == null) {
             return null;
         }
-        return ARTIFACT_CLASSES.get(path.toAbsolutePath().normalize());
+        return ARTIFACT_OWNERS.get(path.toAbsolutePath().normalize());
     }
 
     private static void rememberArtifactClass(Path path) {
         String className = CURRENT_TEST_CLASS.get();
         if (className != null && !className.isBlank() && path != null) {
-            ARTIFACT_CLASSES.put(path.toAbsolutePath().normalize(), className);
+            ARTIFACT_OWNERS.put(path.toAbsolutePath().normalize(),
+                    new KanitSahibi(className, CURRENT_TEST_NAME.get()));
         }
     }
 
@@ -142,6 +162,7 @@ public final class AllureArtifactCollector {
     public static void clearCurrentTest() {
         CURRENT_TEST_UUID.remove();
         CURRENT_TEST_CLASS.remove();
+        CURRENT_TEST_NAME.remove();
     }
 
     /**

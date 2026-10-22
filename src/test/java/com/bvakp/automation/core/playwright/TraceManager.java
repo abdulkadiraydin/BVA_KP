@@ -1,4 +1,3 @@
-
 package com.bvakp.automation.core.playwright;
 
 import com.bvakp.automation.core.config.ConfigManager;
@@ -11,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Set;
@@ -32,9 +31,10 @@ public final class TraceManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TraceManager.class);
     private static final Path TRACE_DIRECTORY = Paths.get("target", "traces");
+    // Yerel saat: log, ekran görüntüsü ve video adlarıyla aynı saat dilimi.
     private static final DateTimeFormatter TIMESTAMP =
             DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS")
-                    .withZone(ZoneOffset.UTC);
+                    .withZone(ZoneId.systemDefault());
     private static final ThreadLocal<TraceSession> ACTIVE_SESSION = new ThreadLocal<>();
     private static final Set<String> NON_FAILURE_STATUSES = Set.of(
             "BASARILI", "SUCCESS", "PASSED", "ATLANDI", "SKIPPED", "HAZIRLIK", "TEMIZLIK"

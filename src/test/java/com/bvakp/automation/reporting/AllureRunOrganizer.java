@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -130,15 +129,12 @@ public final class AllureRunOrganizer {
             return;
         }
 
-        Map<String, Path> classDirectories = new LinkedHashMap<>();
-
         for (String className : classNames) {
             String classStatus = HtmlReportManager.classFailed(className) ? "HATALI" : "BASARILI";
 
             // Koşu kimliği üst klasörde olduğu için class klasöründe tekrarlanmaz;
             // böylece Windows'ta uzun yol sorunları önlenir.
             Path classDirectory = runDirectory.resolve(safeName(className) + "_" + classStatus);
-            classDirectories.put(className, classDirectory);
 
             try {
                 HtmlReportManager.generateReport(classDirectory, className);
@@ -149,11 +145,13 @@ public final class AllureRunOrganizer {
         }
 
         // Allure dosyaları tek klasörde kalır (result.json -> ek bağları dosya adına dayanır);
-        // medya kanıtları ise test class'ına göre ayrılır.
+        // medya kanıtları her testin kendi klasörüne toplanır: kanitlar/<Sınıf>/<test>/.
+        // ozet.html kendi ekran görüntüsü kopyasını sınıf klasöründe tutar.
         copyNewFiles(ALLURE_SOURCE, runDirectory.resolve("allure-results"));
-        copyClassArtifacts(SCREENSHOTS, "screenshots", runDirectory, classDirectories);
-        copyClassArtifacts(VIDEOS, "videos", runDirectory, classDirectories);
-        copyClassArtifacts(TRACES, "traces", runDirectory, classDirectories);
+        Path kanitKlasoru = runDirectory.resolve("kanitlar");
+        copyTestArtifacts(SCREENSHOTS, "ekran", kanitKlasoru);
+        copyTestArtifacts(VIDEOS, "video", kanitKlasoru);
+        copyTestArtifacts(TRACES, "trace", kanitKlasoru);
 
         try {
             Files.writeString(runDirectory.resolve("run-info.txt"),
@@ -244,6 +242,11 @@ public final class AllureRunOrganizer {
             Path indexHtml = runDirectory.resolve("allure-report/index.html");
             if (process.exitValue() == 0 && Files.isRegularFile(indexHtml)) {
                 System.out.println("Allure HTML raporu hazır: " + indexHtml);
+                Path rapor = runDirectory.resolve("RAPOR.html");
+                if (Files.isRegularFile(rapor)) {
+                    System.out.println("Rapor (çift tıkla): " + rapor);
+                    System.out.println("Son koşu kısayolu: " + projectRoot.resolve("reports/SON-KOSU.html"));
+                }
                 System.out.println("Allure History güncellendi: " + projectRoot.resolve("reports/allure-history"));
             } else {
                 System.err.println("Allure raporu oluşturulamadı (çıkış kodu "
@@ -280,15 +283,12 @@ public final class AllureRunOrganizer {
     }
 
     /**
-     * Yeni kanıtları ait oldukları class klasörüne kopyalar; kaynakları yerinde bırakır.
-     * Class'ı bilinmeyen dosyalar yanlış bir class'a yazılmaz, Sinifi_Belirlenemeyen
-     * klasörüne alınarak veri kaybı önlenir.
+     * Yeni kanıtları test klasörüne sabit adla kopyalar: kanitlar/<Sınıf>/<test>/ekran.png.
+     * Aynı testten ikinci dosya gelirse (ör. DataProvider) ekran_2.png olarak eklenir.
+     * Teste eşleşmeyen dosyalar (ör. @BeforeClass kanıtları) özgün adıyla
+     * kanitlar/_eslesmeyen altına alınır; kaynak dosyalar yerinde kalır.
      */
-    private static void copyClassArtifacts(
-            Path source,
-            String mediaFolder,
-            Path runDirectory,
-            Map<String, Path> classDirectories) {
+    private static void copyTestArtifacts(Path source, String sabitAd, Path kanitKlasoru) {
 
         Set<Path> initial = INITIAL_FILES.get(source);
         if (initial == null || !Files.isDirectory(source)) {
@@ -296,20 +296,13 @@ public final class AllureRunOrganizer {
         }
 
         try (Stream<Path> files = Files.walk(source)) {
-            for (Path file : files.filter(Files::isRegularFile).toList()) {
-                Path relative = source.relativize(file);
-                if (initial.contains(relative)) {
-                    continue;
-                }
+            List<Path> yeniDosyalar = files.filter(Files::isRegularFile)
+                    .filter(file -> !initial.contains(source.relativize(file)))
+                    .sorted()
+                    .toList();
 
-                String className = AllureArtifactCollector.findArtifactClass(file);
-                Path classDirectory = classDirectories.get(className);
-                if (classDirectory == null) {
-                    classDirectory = runDirectory.resolve("Sinifi_Belirlenemeyen");
-                    System.err.println("Kanıtın test sınıfı eşleştirilemedi: " + file);
-                }
-
-                Path destination = classDirectory.resolve(mediaFolder).resolve(relative);
+            for (Path file : yeniDosyalar) {
+                Path destination = kanitHedefi(file, sabitAd, kanitKlasoru);
                 try {
                     Files.createDirectories(destination.getParent());
                     Files.copy(file, destination, StandardCopyOption.REPLACE_EXISTING);
@@ -318,8 +311,33 @@ public final class AllureRunOrganizer {
                 }
             }
         } catch (IOException e) {
-            System.err.println("Class bazlı kanıt arşivleme başarısız: " + source + " | " + e.getMessage());
+            System.err.println("Test bazlı kanıt arşivleme başarısız: " + source + " | " + e.getMessage());
         }
+    }
+
+    private static Path kanitHedefi(Path file, String sabitAd, Path kanitKlasoru) {
+
+        AllureArtifactCollector.KanitSahibi sahip = AllureArtifactCollector.findArtifactOwner(file);
+
+        if (sahip == null || sahip.testAdi() == null) {
+            System.err.println("Kanıtın testi eşleştirilemedi: " + file);
+            String sinif = sahip == null ? "_eslesmeyen" : safeName(sahip.sinifAdi());
+            return kanitKlasoru.resolve(sinif).resolve("_eslesmeyen").resolve(file.getFileName());
+        }
+
+        Path testKlasoru = kanitKlasoru.resolve(safeName(sahip.sinifAdi())).resolve(safeName(sahip.testAdi()));
+        String uzanti = uzantiAl(file.getFileName().toString());
+
+        Path hedef = testKlasoru.resolve(sabitAd + uzanti);
+        for (int sira = 2; Files.exists(hedef); sira++) {
+            hedef = testKlasoru.resolve(sabitAd + "_" + sira + uzanti);
+        }
+        return hedef;
+    }
+
+    private static String uzantiAl(String dosyaAdi) {
+        int nokta = dosyaAdi.lastIndexOf('.');
+        return nokta < 0 ? "" : dosyaAdi.substring(nokta);
     }
 
     /** Envanterde olmayan dosyaları klasör yapısını koruyarak kopyalar. */
