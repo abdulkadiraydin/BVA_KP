@@ -10,325 +10,362 @@ import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.pages.openData.OpenDataUpdateCalendarPage;
 import com.bvakp.automation.reporting.ReportManager;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.asserts.SoftAssert;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-
 /**
  * Güncelleme Takvimi sekmesi testleri.
  *
- * <p>Bütün testler, @BeforeClass'ta bir kez hazırlanan ortak veri setini kullanır
- * (yayında ve bir kez manuel güncellenmiş, v2). Manuel güncellemenin geçmişe, plana
- * ve detay ekranına yansıması bu veri üzerinden doğrulanır.
+ * <p>Bütün testler, @BeforeClass'ta bir kez hazırlanan ortak veri setini kullanır (yayında ve bir
+ * kez manuel güncellenmiş, v2). Manuel güncellemenin geçmişe, plana ve detay ekranına yansıması bu
+ * veri üzerinden doğrulanır.
  *
- * <p>Testler ortak veri setini yalnızca okur; bu sayede paralel çalışabilirler.
- * Bu sınıfa veriyi değiştiren bir test eklenecekse kendi veri setini oluşturmalıdır.
+ * <p>Testler ortak veri setini yalnızca okur; bu sayede paralel çalışabilirler. Bu sınıfa veriyi
+ * değiştiren bir test eklenecekse kendi veri setini oluşturmalıdır.
  */
 public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
-    /** @BeforeClass'ta yazılır, testler yalnızca okur. Yayında ve bir kez manuel güncellenmiş (v2). */
-    private String hazirVeriSeti;
+  /**
+   * @BeforeClass'ta yazılır, testler yalnızca okur. Yayında ve bir kez manuel güncellenmiş (v2).
+   */
+  private String hazirVeriSeti;
 
-    private record TestContext(
-            OpenDataUpdateCalendarPage calendarPage,
-            OpenDataUpdateCalendarFlow calendarFlow,
-            OpenDataPublishPage publishPage,
-            OpenDataPublishFlow publishFlow,
-            OpenDataSetupFlow setupFlow) {
+  /** Tek bir testin kullandığı takvim, yayın ve hazırlık nesneleri. */
+  private record TestContext(
+      OpenDataUpdateCalendarPage calendarPage,
+      OpenDataUpdateCalendarFlow calendarFlow,
+      OpenDataPublishPage publishPage,
+      OpenDataPublishFlow publishFlow,
+      OpenDataSetupFlow setupFlow) {}
+
+  // ------------------------------------------------------------------
+  // Hazırlık
+  // ------------------------------------------------------------------
+
+  /** Oturumu açar, Açık Veri Portalına geçer ve test nesnelerini döndürür. */
+  private TestContext nesneleriOlusturma() {
+
+    avpOturumuHazirlama();
+    new OpenDataPage(page()).acikVeriPortalinaGitme();
+
+    OpenDataPublishPage publishPage = new OpenDataPublishPage(page());
+    OpenDataPublishFlow publishFlow = new OpenDataPublishFlow(publishPage);
+    OpenDataUpdateCalendarPage calendarPage = new OpenDataUpdateCalendarPage(page());
+
+    return new TestContext(
+        calendarPage,
+        new OpenDataUpdateCalendarFlow(calendarPage),
+        publishPage,
+        publishFlow,
+        new OpenDataSetupFlow(new OpenDataCreateFlow(page()), publishPage, publishFlow));
+  }
+
+  /** Takvim sekmesi açık olarak başlayan test hazırlığı. */
+  private TestContext testHazirligi() {
+    TestContext ctx = nesneleriOlusturma();
+    ctx.calendarPage().takvimSekmesineGecme();
+    return ctx;
+  }
+
+  /**
+   * Ortak veri seti: oluştur, yayınla, bir kez manuel güncelle (v2). Sınıftaki testlerden önce bir
+   * kez çalışır. BaseTest'in her test öncesi oturumu bu aşamada henüz açılmadığı için kendi
+   * Playwright oturumunu açıp kapatır.
+   */
+  @BeforeClass
+  public void ortakVeriSetiHazirlama() {
+
+    PlaywrightManager.initialize(authStateKullan());
+    boolean basarili = false;
+
+    try {
+      TestContext ctx = nesneleriOlusturma();
+
+      hazirVeriSeti = ctx.setupFlow().yayindaVeriSetiOlusturma("otomasyon_takvim_ortak");
+
+      ctx.publishFlow().manuallyUpdateDataSet(hazirVeriSeti);
+
+      // Salt okunur testler, güncelleme tamamen bitmiş haliyle çalışsın.
+      ctx.calendarPage().gecmisteSonucBekleme(hazirVeriSeti, "Başarılı");
+
+      ReportManager.info("Ortak veri seti hazır: " + hazirVeriSeti);
+      basarili = true;
+
+    } finally {
+      // Hazırlık patlarsa trace/video saklansın diye statü HATALI olarak verilir.
+      PlaywrightManager.close("ortakVeriSetiHazirlama", basarili ? "HAZIRLIK" : "HATALI");
     }
+  }
 
-    // ------------------------------------------------------------------
-    // Hazırlık
-    // ------------------------------------------------------------------
+  // ------------------------------------------------------------------
+  // Sayfa genel yapısı
+  // ------------------------------------------------------------------
 
-    /** Oturumu açar, Açık Veri Portalına geçer ve test nesnelerini döndürür. */
-    private TestContext nesneleriOlusturma() {
+  /** Güncelleme Takvimi sekmesinin açıldığını ve seçili olduğunu doğrular. */
+  @Test
+  public void sekmeGoruntuleme() {
+    TestContext ctx = testHazirligi();
 
-        avpOturumuHazirlama();
-        new OpenDataPage(page()).acikVeriPortalinaGitme();
+    ctx.calendarPage().assertSekmeSecili();
 
-        OpenDataPublishPage publishPage = new OpenDataPublishPage(page());
-        OpenDataPublishFlow publishFlow = new OpenDataPublishFlow(publishPage);
-        OpenDataUpdateCalendarPage calendarPage = new OpenDataUpdateCalendarPage(page());
+    ReportManager.pass("Güncelleme Takvimi sekmesi görüntülendi.");
+  }
 
-        return new TestContext(
-                calendarPage,
-                new OpenDataUpdateCalendarFlow(calendarPage),
-                publishPage,
-                publishFlow,
-                new OpenDataSetupFlow(new OpenDataCreateFlow(page()), publishPage, publishFlow));
-    }
+  /** Dönem seçicide her seçimin (7g, 30g, 90g, 1y) tek başına seçili olduğunu doğrular. */
+  @Test
+  public void donemSeciciCalisir() {
+    TestContext ctx = testHazirligi();
 
-    /** Takvim sekmesi açık olarak başlayan test hazırlığı. */
-    private TestContext testHazirligi() {
-        TestContext ctx = nesneleriOlusturma();
-        ctx.calendarPage().guncellemeTakvimiSekmesineGecme();
-        return ctx;
-    }
+    ctx.calendarPage().assertDonemSecili("30d");
 
-    /**
-     * Ortak veri seti: oluştur, yayınla, bir kez manuel güncelle (v2).
-     * Sınıftaki testlerden önce bir kez çalışır. BaseTest'in her test öncesi
-     * oturumu bu aşamada henüz açılmadığı için kendi Playwright oturumunu açıp kapatır.
-     */
-    @BeforeClass
-    public void ortakVeriSetiHazirlama() {
+    for (String donem : new String[] {"7d", "90d", "1y", "30d"}) {
+      ctx.calendarFlow().donemSecme(donem);
 
-        PlaywrightManager.initialize(authStateKullan());
-        boolean basarili = false;
-
-        try {
-            TestContext ctx = nesneleriOlusturma();
-
-            hazirVeriSeti = ctx.setupFlow().yayindaVeriSetiOlusturma("otomasyon_takvim_ortak");
-
-            ctx.publishFlow().manuallyUpdateDataSet(hazirVeriSeti);
-
-            // Salt okunur testler, güncelleme tamamen bitmiş haliyle çalışsın.
-            ctx.calendarPage().gecmisteSonucBekleme(hazirVeriSeti, "Başarılı");
-
-            ReportManager.info("Ortak veri seti hazır: " + hazirVeriSeti);
-            basarili = true;
-
-        } finally {
-            // Hazırlık patlarsa trace/video saklansın diye statü HATALI olarak verilir.
-            PlaywrightManager.close("ortakVeriSetiHazirlama", basarili ? "HAZIRLIK" : "HATALI");
+      ctx.calendarPage().assertDonemSecili(donem);
+      for (String diger : new String[] {"7d", "30d", "90d", "1y"}) {
+        if (!diger.equals(donem)) {
+          ctx.calendarPage().assertDonemSeciliDegil(diger);
         }
+      }
     }
 
-    // ------------------------------------------------------------------
-    // Sayfa genel yapısı
-    // ------------------------------------------------------------------
+    ReportManager.pass("Dönem seçici doğru çalışıyor.");
+  }
 
-    @Test
-    public void sekmeGoruntuleme() {
-        TestContext ctx = testHazirligi();
+  /** Özet kartlarının sayısal değerlerle, Ortalama Süre kartının dolu görüntülendiğini doğrular. */
+  @Test
+  public void ozetKartlariGoruntulenir() {
+    TestContext ctx = testHazirligi();
 
-        ctx.calendarPage().assertSekmeSecili();
-
-        ReportManager.pass("Güncelleme Takvimi sekmesi görüntülendi.");
+    for (String baslik :
+        new String[] {"Başarılı Güncelleme", "Başarısız Güncelleme", "Önümüzdeki 7 Gün"}) {
+      ctx.calendarPage().assertOzetKartiSayisal(baslik);
     }
+    ctx.calendarPage().assertOzetKartiDolu("Ortalama Süre");
 
-    @Test
-    public void donemSeciciCalisir() {
-        TestContext ctx = testHazirligi();
+    ReportManager.pass("Özet kartları doğru görüntüleniyor.");
+  }
 
-        ctx.calendarPage().assertDonemSecili("30d");
+  /** Başarılı Güncelleme kartının bugünkü manuel güncellemeyi saydığını (en az 1) doğrular. */
+  @Test
+  public void ozetKartiBugunuIcerir() {
+    TestContext ctx = testHazirligi();
 
-        for (String donem : new String[]{"7d", "90d", "1y", "30d"}) {
-            ctx.calendarFlow().donemSecme(donem);
+    ctx.calendarPage().assertOzetKartiEnAz1("Başarılı Güncelleme");
 
-            ctx.calendarPage().assertDonemSecili(donem);
-            for (String diger : new String[]{"7d", "30d", "90d", "1y"}) {
-                if (!diger.equals(donem)) {
-                    ctx.calendarPage().assertDonemSeciliDegil(diger);
-                }
-            }
-        }
+    ReportManager.pass("Özet kartı bugünkü güncellemeyi içeriyor.");
+  }
 
-        ReportManager.pass("Dönem seçici doğru çalışıyor.");
-    }
+  // ------------------------------------------------------------------
+  // Takvim
+  // ------------------------------------------------------------------
 
-    @Test
-    public void ozetKartlariGoruntulenir() {
-        TestContext ctx = testHazirligi();
+  /** Takvimde bugünün başarılı güncelleme ile işaretlendiğini doğrular. */
+  @Test
+  public void takvimBugunuBasariliGosterir() {
+    TestContext ctx = testHazirligi();
 
-        for (String baslik : new String[]{"Başarılı Güncelleme", "Başarısız Güncelleme", "Önümüzdeki 7 Gün"}) {
-            ctx.calendarPage().assertOzetKartiSayisal(baslik);
-        }
-        ctx.calendarPage().assertOzetKartiDolu("Ortalama Süre");
+    int bugun = LocalDate.now(ZoneId.of("Europe/Istanbul")).getDayOfMonth();
 
-        ReportManager.pass("Özet kartları doğru görüntüleniyor.");
-    }
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarPage().assertBugunBasariliVar(bugun);
 
-    @Test
-    public void ozetKartiBugunkuGuncellemeyiIcerir() {
-        TestContext ctx = testHazirligi();
+    ReportManager.pass("Takvim bugünü başarılı güncelleme ile gösteriyor.");
+  }
 
-        ctx.calendarPage().assertOzetKartiEnAz1("Başarılı Güncelleme");
+  /** Seçili günün listesinde ortak veri setinin güncelleme kaydının göründüğünü doğrular. */
+  @Test
+  public void gunListesindeKayitGorunur() {
+    TestContext ctx = testHazirligi();
 
-        ReportManager.pass("Özet kartı bugünkü güncellemeyi içeriyor.");
-    }
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    Assert.assertTrue(
+        ctx.calendarPage().gunDetayindaKayitVarMi(hazirVeriSeti),
+        "Seçili günün listesinde güncelleme kaydı yok: " + hazirVeriSeti);
 
-    // ------------------------------------------------------------------
-    // Takvim
-    // ------------------------------------------------------------------
+    ReportManager.pass("Seçili günün listesinde güncelleme kaydı görünüyor.");
+  }
 
-    @Test
-    public void takvimBugunuBasariliGuncellemeIleGosterir() {
-        TestContext ctx = testHazirligi();
+  // ------------------------------------------------------------------
+  // Güncelleme Planı
+  // ------------------------------------------------------------------
 
-        int bugun = LocalDate.now(ZoneId.of("Europe/Istanbul")).getDayOfMonth();
+  /** Güncelleme Planında veri setinin Manuel sıklık ve v2 sürümle göründüğünü doğrular. */
+  @Test
+  public void planTablosundaVeriSetiGorunur() {
+    TestContext ctx = testHazirligi();
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarPage().assertBugunBasariliGuncellemeVar(bugun);
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarFlow().planAramaYapma(hazirVeriSeti);
 
-        ReportManager.pass("Takvim bugünü başarılı güncelleme ile gösteriyor.");
-    }
+    Assert.assertTrue(
+        ctx.calendarPage().planListesindeVarMi(hazirVeriSeti),
+        "Veri seti plan tablosunda görünmüyor.");
 
-    @Test
-    public void gunListesindeKayitGorunur() {
-        TestContext ctx = testHazirligi();
+    SoftAssert soft = new SoftAssert();
+    soft.assertEquals(
+        ctx.calendarPage().planSikligiAlma(hazirVeriSeti), "Manuel", "Plan sıklığı Manuel değil.");
+    soft.assertEquals(
+        ctx.calendarPage().planSonGuncellemeSurumuAlma(hazirVeriSeti),
+        "v2",
+        "Plan tablosundaki sürüm v2 değil (manuel güncelleme plana yansımadı).");
+    soft.assertAll();
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        Assert.assertTrue(ctx.calendarPage().gunDetayindaKayitVarMi(hazirVeriSeti),
-                "Seçili günün listesinde güncelleme kaydı yok: " + hazirVeriSeti);
+    ReportManager.pass("Veri seti plan tablosunda doğru bilgilerle görünüyor.");
+  }
 
-        ReportManager.pass("Seçili günün listesinde güncelleme kaydı görünüyor.");
-    }
+  // ------------------------------------------------------------------
+  // İşlem Geçmişi
+  // ------------------------------------------------------------------
 
-    // ------------------------------------------------------------------
-    // Güncelleme Planı
-    // ------------------------------------------------------------------
+  /**
+   * İşlem Geçmişinde güncelleme kaydının Başarılı, Manuel ve v2 bilgileriyle oluştuğunu doğrular.
+   */
+  @Test
+  public void gecmisKaydiDogruOlusur() {
+    TestContext ctx = testHazirligi();
 
-    @Test
-    public void planTablosundaVeriSetiGorunur() {
-        TestContext ctx = testHazirligi();
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarFlow().gecmisiFiltrele(hazirVeriSeti);
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarFlow().planAramaYapma(hazirVeriSeti);
+    Assert.assertTrue(
+        ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Güncelleme geçmişte görünmüyor.");
 
-        Assert.assertTrue(ctx.calendarPage().planListesindeVarMi(hazirVeriSeti),
-                "Veri seti plan tablosunda görünmüyor.");
+    SoftAssert soft = new SoftAssert();
+    soft.assertEquals(
+        ctx.calendarPage().gecmisSonucuAlma(hazirVeriSeti),
+        "Başarılı",
+        "Geçmiş sonucu Başarılı değil.");
+    soft.assertEquals(
+        ctx.calendarPage().gecmisTetikleyenAlma(hazirVeriSeti),
+        "Manuel",
+        "Tetikleyen Manuel değil.");
+    soft.assertEquals(
+        ctx.calendarPage().gecmisSurumuAlma(hazirVeriSeti),
+        "v2",
+        "Geçmişteki sürüm v2 değil (manuel güncelleme sürümü artırmadı).");
+    soft.assertTrue(
+        ctx.calendarPage().gecmisKayitSayisiAlma(hazirVeriSeti).matches("\\d+"),
+        "Geçmişteki kayıt sayısı sayısal değil.");
+    soft.assertAll();
 
-        SoftAssert soft = new SoftAssert();
-        soft.assertEquals(ctx.calendarPage().planSikligiAlma(hazirVeriSeti), "Manuel",
-                "Plan sıklığı Manuel değil.");
-        soft.assertEquals(ctx.calendarPage().planSonGuncellemeSurumuAlma(hazirVeriSeti), "v2",
-                "Plan tablosundaki sürüm v2 değil (manuel güncelleme plana yansımadı).");
-        soft.assertAll();
+    ReportManager.pass("Güncelleme geçmişi kaydı doğru bilgilerle oluşmuş.");
+  }
 
-        ReportManager.pass("Veri seti plan tablosunda doğru bilgilerle görünüyor.");
-    }
+  /**
+   * İşlem Geçmişi sonuç filtresinin (Başarılı, Başarısız, Tümü) kayıtları doğru süzdüğünü doğrular.
+   */
+  @Test
+  public void gecmisSonucFiltresiCalisir() {
+    TestContext ctx = testHazirligi();
 
-    // ------------------------------------------------------------------
-    // İşlem Geçmişi
-    // ------------------------------------------------------------------
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarFlow().gecmisiFiltrele(hazirVeriSeti);
 
-    @Test
-    public void gecmisKaydiDogruBilgilerleOlusur() {
-        TestContext ctx = testHazirligi();
+    ctx.calendarFlow().gecmisSonucFiltresiSecme("SUCCEEDED");
+    Assert.assertTrue(
+        ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Başarılı filtresinde kayıt görünmüyor.");
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarFlow().gecmisiFiltrele(hazirVeriSeti);
+    ctx.calendarFlow().gecmisSonucFiltresiSecme("FAILED");
+    ctx.calendarPage().assertGecmisteKayitYok(hazirVeriSeti);
 
-        Assert.assertTrue(ctx.calendarPage().gecmisteVarMi(hazirVeriSeti),
-                "Güncelleme geçmişte görünmüyor.");
+    ctx.calendarFlow().gecmisSonucFiltresiSecme("ALL");
+    Assert.assertTrue(
+        ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Tümü filtresinde kayıt görünmüyor.");
 
-        SoftAssert soft = new SoftAssert();
-        soft.assertEquals(ctx.calendarPage().gecmisSonucuAlma(hazirVeriSeti), "Başarılı",
-                "Geçmiş sonucu Başarılı değil.");
-        soft.assertEquals(ctx.calendarPage().gecmisTetikleyenAlma(hazirVeriSeti), "Manuel",
-                "Tetikleyen Manuel değil.");
-        soft.assertEquals(ctx.calendarPage().gecmisSurumuAlma(hazirVeriSeti), "v2",
-                "Geçmişteki sürüm v2 değil (manuel güncelleme sürümü artırmadı).");
-        soft.assertTrue(ctx.calendarPage().gecmisKayitSayisiAlma(hazirVeriSeti).matches("\\d+"),
-                "Geçmişteki kayıt sayısı sayısal değil.");
-        soft.assertAll();
+    ReportManager.pass("Geçmiş sonuç filtresi doğru çalışıyor.");
+  }
 
-        ReportManager.pass("Güncelleme geçmişi kaydı doğru bilgilerle oluşmuş.");
-    }
+  // ------------------------------------------------------------------
+  // Güncelleme Ayrıntısı çekmecesi
+  // ------------------------------------------------------------------
 
-    @Test
-    public void gecmisSonucFiltresiCalisir() {
-        TestContext ctx = testHazirligi();
+  /** Güncelleme Ayrıntısı çekmecesindeki sonuç, tetikleyen, sürüm ve akış bilgilerini doğrular. */
+  @Test
+  public void detayCekmecesiBilgileriDogru() {
+    TestContext ctx = testHazirligi();
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarFlow().gecmisiFiltrele(hazirVeriSeti);
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
 
-        ctx.calendarFlow().gecmisSonucFiltresiSecme("SUCCEEDED");
-        Assert.assertTrue(ctx.calendarPage().gecmisteVarMi(hazirVeriSeti),
-                "Başarılı filtresinde kayıt görünmüyor.");
+    SoftAssert soft = new SoftAssert();
+    soft.assertEquals(
+        ctx.calendarPage().detayVeriSetiAdiAlma(),
+        hazirVeriSeti,
+        "Çekmecede farklı veri seti görüntüleniyor.");
+    soft.assertEquals(
+        ctx.calendarPage().detaySonucAlma(), "Başarılı", "Güncelleme sonucu Başarılı değil.");
+    soft.assertTrue(
+        ctx.calendarPage().detayAlanDegeriAlma("Tetikleyen").startsWith("Manuel"),
+        "Tetikleyen Manuel değil.");
+    soft.assertEquals(
+        ctx.calendarPage().detayAlanDegeriAlma("Oluşan sürüm"), "v2", "Oluşan sürüm v2 değil.");
+    soft.assertTrue(
+        ctx.calendarPage().detayAlanDegeriAlma("İşlenen kayıt").matches("\\d+"),
+        "İşlenen kayıt sayısal değil.");
+    soft.assertEquals(
+        ctx.calendarPage().detayAlanDegeriAlma("Deneme"), "1", "Deneme sayısı 1 değil.");
 
-        ctx.calendarFlow().gecmisSonucFiltresiSecme("FAILED");
-        ctx.calendarPage().assertGecmisteKayitYok(hazirVeriSeti);
+    String akis = ctx.calendarPage().detayAkisMetniAlma();
+    soft.assertTrue(akis.contains("Tamamlandı"), "Akışta 'Tamamlandı' adımı yok.");
+    soft.assertTrue(akis.contains("Aktarıldı"), "Akışta portala 'Aktarıldı' adımı yok.");
+    soft.assertAll();
 
-        ctx.calendarFlow().gecmisSonucFiltresiSecme("ALL");
-        Assert.assertTrue(ctx.calendarPage().gecmisteVarMi(hazirVeriSeti),
-                "Tümü filtresinde kayıt görünmüyor.");
+    ReportManager.pass("Güncelleme ayrıntısı bilgileri doğru.");
+  }
 
-        ReportManager.pass("Geçmiş sonuç filtresi doğru çalışıyor.");
-    }
+  /**
+   * Ayrıntı çekmecesindeki Veri setine git bağlantısının doğru detay sayfasını açtığını doğrular.
+   */
+  @Test
+  public void veriSetineGitDogruSayfa() {
+    TestContext ctx = testHazirligi();
 
-    // ------------------------------------------------------------------
-    // Güncelleme Ayrıntısı çekmecesi
-    // ------------------------------------------------------------------
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
+    ctx.calendarFlow().detaydanVeriSetineGitme();
 
-    @Test
-    public void detayCekmecesiBilgileriDogru() {
-        TestContext ctx = testHazirligi();
+    ctx.calendarPage().assertDetayBaslik(hazirVeriSeti);
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
+    ReportManager.pass("Veri setine git doğru detay sayfasını açıyor.");
+  }
 
-        SoftAssert soft = new SoftAssert();
-        soft.assertEquals(ctx.calendarPage().detayVeriSetiAdiAlma(), hazirVeriSeti,
-                "Çekmecede farklı veri seti görüntüleniyor.");
-        soft.assertEquals(ctx.calendarPage().detaySonucAlma(), "Başarılı",
-                "Güncelleme sonucu Başarılı değil.");
-        soft.assertTrue(ctx.calendarPage().detayAlanDegeriAlma("Tetikleyen").startsWith("Manuel"),
-                "Tetikleyen Manuel değil.");
-        soft.assertEquals(ctx.calendarPage().detayAlanDegeriAlma("Oluşan sürüm"), "v2",
-                "Oluşan sürüm v2 değil.");
-        soft.assertTrue(ctx.calendarPage().detayAlanDegeriAlma("İşlenen kayıt").matches("\\d+"),
-                "İşlenen kayıt sayısal değil.");
-        soft.assertEquals(ctx.calendarPage().detayAlanDegeriAlma("Deneme"), "1",
-                "Deneme sayısı 1 değil.");
+  /** Veri seti detayının Versiyonlar sekmesinde v2'nin Aktif, v1'in Arşiv olduğunu doğrular. */
+  @Test
+  public void detaydaYeniVersiyonVar() {
+    TestContext ctx = testHazirligi();
 
-        String akis = ctx.calendarPage().detayAkisMetniAlma();
-        soft.assertTrue(akis.contains("Tamamlandı"), "Akışta 'Tamamlandı' adımı yok.");
-        soft.assertTrue(akis.contains("Aktarıldı"), "Akışta portala 'Aktarıldı' adımı yok.");
-        soft.assertAll();
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
+    ctx.calendarFlow().detaydanVeriSetineGitme();
 
-        ReportManager.pass("Güncelleme ayrıntısı bilgileri doğru.");
-    }
+    ctx.calendarPage().assertDetayBaslik(hazirVeriSeti);
 
-    @Test
-    public void detayVeriSetineGitDogruSayfayiAcar() {
-        TestContext ctx = testHazirligi();
+    ctx.calendarFlow().detaySekmesineGecme("Versiyonlar");
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
-        ctx.calendarFlow().detaydanVeriSetineGitme();
+    SoftAssert soft = new SoftAssert();
+    soft.assertEquals(ctx.calendarPage().versiyonDurumuAlma("v2"), "Aktif", "v2 Aktif değil.");
+    soft.assertEquals(
+        ctx.calendarPage().versiyonDurumuAlma("v1"), "Arşiv", "v1 Arşiv durumuna geçmedi.");
+    soft.assertAll();
 
-        ctx.calendarPage().assertDetayBaslik(hazirVeriSeti);
+    ReportManager.pass("Güncelleme yeni versiyon oluşturmuş: v2 Aktif, v1 Arşiv.");
+  }
 
-        ReportManager.pass("Veri setine git doğru detay sayfasını açıyor.");
-    }
+  /** Güncelleme Ayrıntısı çekmecesinin kapatılabildiğini doğrular. */
+  @Test
+  public void detayCekmecesiKapatilabilir() {
+    TestContext ctx = testHazirligi();
 
-    @Test
-    public void detaySayfasindaGuncellemeYeniVersiyonOlusturmus() {
-        TestContext ctx = testHazirligi();
+    ReportManager.info("Veri seti: " + hazirVeriSeti);
+    ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
+    ctx.calendarFlow().detayiKapatma();
+    ctx.calendarPage().assertDetayCekmecesiKapali();
 
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
-        ctx.calendarFlow().detaydanVeriSetineGitme();
-
-        ctx.calendarPage().assertDetayBaslik(hazirVeriSeti);
-
-        ctx.calendarFlow().detaySekmesineGecme("Versiyonlar");
-
-        SoftAssert soft = new SoftAssert();
-        soft.assertEquals(ctx.calendarPage().versiyonDurumuAlma("v2"), "Aktif", "v2 Aktif değil.");
-        soft.assertEquals(ctx.calendarPage().versiyonDurumuAlma("v1"), "Arşiv", "v1 Arşiv durumuna geçmedi.");
-        soft.assertAll();
-
-        ReportManager.pass("Güncelleme yeni versiyon oluşturmuş: v2 Aktif, v1 Arşiv.");
-    }
-
-    @Test
-    public void detayCekmecesiKapatilabilir() {
-        TestContext ctx = testHazirligi();
-
-        ReportManager.info("Veri seti: " + hazirVeriSeti);
-        ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
-        ctx.calendarFlow().detayiKapatma();
-        ctx.calendarPage().assertDetayCekmecesiKapali();
-
-        ReportManager.pass("Güncelleme ayrıntısı çekmecesi kapatıldı.");
-    }
+    ReportManager.pass("Güncelleme ayrıntısı çekmecesi kapatıldı.");
+  }
 }

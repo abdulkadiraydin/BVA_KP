@@ -6,56 +6,57 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Ardışık hata eşiğini geçen testler için bilgilendirme maili gönderir.
- * Mailde test bilgileri, son hata ve hata anındaki ekran görüntüsü yer alır.
+ * Ardışık hata eşiğini geçen testler için bilgilendirme maili gönderir. Mailde test bilgileri, son
+ * hata ve hata anındaki ekran görüntüsü yer alır.
  */
 public final class TestFailureAlertMailService {
 
-    private static final DateTimeFormatter TARIH_FORMATI =
-            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+  private static final DateTimeFormatter TARIH_FORMATI =
+      DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
-    private TestFailureAlertMailService() {
-    }
+  private TestFailureAlertMailService() {}
 
-    public static void hataBilgilendirmeMailiGonder(
-            String className,
-            String testName,
-            int failureCount,
-            Throwable throwable,
-            Path screenshotPath) {
+  /** Art arda kırılan test için hata bilgisi ve ekran görüntüsüyle alarm maili gönderir. */
+  public static void hataBilgilendirmeMailiGonder(
+      String className,
+      String testName,
+      int failureCount,
+      Throwable throwable,
+      Path screenshotPath) {
 
-        String tarih = LocalDateTime.now().format(TARIH_FORMATI);
+    String tarih = LocalDateTime.now().format(TARIH_FORMATI);
 
-        String hataDetayi = throwable != null && throwable.getMessage() != null
-                ? throwable.getMessage()
-                : "Hata detayı bulunamadı.";
+    String hataDetayi =
+        throwable != null && throwable.getMessage() != null
+            ? throwable.getMessage()
+            : "Hata detayı bulunamadı.";
 
-        String konu = "[UYARI] " + testName + " - Test Otomasyon Durumunda Hata Alınması";
+    String konu = "[UYARI] " + testName + " - Test Otomasyon Durumunda Hata Alınması";
 
-        String mesaj = MAIL_SABLONU.formatted(
-                htmlEscape(testName),
-                failureCount,
-                htmlEscape(className),
-                htmlEscape(testName),
-                failureCount,
-                tarih,
-                htmlEscape(hataDetayi),
-                screenshotBolumu(screenshotPath)
-        );
+    String mesaj =
+        MAIL_SABLONU.formatted(
+            htmlEscape(testName),
+            failureCount,
+            htmlEscape(className),
+            htmlEscape(testName),
+            failureCount,
+            tarih,
+            htmlEscape(hataDetayi),
+            screenshotBolumu(screenshotPath));
 
-        MailService.inlineGorselliMailGonder(konu, mesaj, screenshotPath, null);
-    }
+    MailService.inlineGorselliMailGonder(konu, mesaj, screenshotPath, null);
+  }
 
-    /**
-     * Ekran görüntüsü varsa mail gövdesinde gösterir, yoksa bilgi notu ekler.
-     *
-     * <p>Bu metin formatted() içinden geçmez, ana şablona değer olarak eklenir;
-     * bu yüzden yüzde işareti tek (%) yazılır.
-     */
-    private static String screenshotBolumu(Path screenshotPath) {
+  /**
+   * Ekran görüntüsü varsa mail gövdesinde gösterir, yoksa bilgi notu ekler.
+   *
+   * <p>Bu metin formatted() içinden geçmez, ana şablona değer olarak eklenir; bu yüzden yüzde
+   * işareti tek (%) yazılır.
+   */
+  private static String screenshotBolumu(Path screenshotPath) {
 
-        if (screenshotPath == null || !Files.exists(screenshotPath)) {
-            return """
+    if (screenshotPath == null || !Files.exists(screenshotPath)) {
+      return """
                     <tr>
                         <td style="padding:0 28px 28px 28px;">
                             <div style="padding:12px; background:#f8fafc; border:1px solid #dfe3e8; color:#64748b;">
@@ -64,9 +65,9 @@ public final class TestFailureAlertMailService {
                         </td>
                     </tr>
                     """;
-        }
+    }
 
-        return """
+    return """
                 <tr>
                     <td style="padding:0 28px 28px 28px;">
                         <div style="font-size:16px; font-weight:bold; color:#1f2937; margin-bottom:10px;">
@@ -78,27 +79,29 @@ public final class TestFailureAlertMailService {
                         </div>
                     </td>
                 </tr>
-                """.replace("%s", MailService.INLINE_SCREENSHOT_ID);
-    }
+                """
+        .replace("%s", MailService.INLINE_SCREENSHOT_ID);
+  }
 
-    /** Hata mesajlarındaki HTML karakterlerinin mail tasarımını bozmasını engeller. */
-    private static String htmlEscape(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
+  /** Hata mesajlarındaki HTML karakterlerinin mail tasarımını bozmasını engeller. */
+  private static String htmlEscape(String value) {
+    if (value == null) {
+      return "";
     }
+    return value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&#39;");
+  }
 
-    /*
-     * Mail istemcileri modern CSS'i desteklemediği için tablo tabanlı, satır içi stilli HTML kullanılır.
-     * formatted() ile doldurulduğu için yüzde işaretleri %% yazılır.
-     */
-    private static final String MAIL_SABLONU = """
+  /*
+   * Mail istemcileri modern CSS'i desteklemediği için tablo tabanlı, satır içi stilli HTML kullanılır.
+   * formatted() ile doldurulduğu için yüzde işaretleri %% yazılır.
+   */
+  private static final String MAIL_SABLONU =
+      """
             <!DOCTYPE html>
             <html>
             <body style="margin:0; padding:0; background-color:#f3f4f6; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">

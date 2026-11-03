@@ -8,46 +8,50 @@ import com.microsoft.playwright.options.AriaRole;
 /**
  * Açık Veri Portalı "Kaynağı Sil" onay modalı.
  *
- * <p>Locator'lar modal içine sınırlıdır; arka plandaki her satırda bulunan
- * "Sil" butonlarıyla karışmaz.
+ * <p>Locator'lar modal içine sınırlıdır; arka plandaki her satırda bulunan "Sil" butonlarıyla
+ * karışmaz.
  */
 public class KaynakSilModal extends BasePage {
 
-    private static final int MODAL_TIMEOUT_MS = 10_000;
+  private static final int MODAL_TIMEOUT_MS = 10_000;
 
-    private final Locator modal;
-    private final Locator modalBasligi;
-    private final Locator silButonu;
+  private final Locator modal;
+  private final Locator modalBasligi;
+  private final Locator silButonu;
 
-    public KaynakSilModal(Page page) {
+  public KaynakSilModal(Page page) {
 
-        super(page);
+    super(page);
 
-        this.modal = page.getByRole(AriaRole.DIALOG);
-        this.modalBasligi = modal.getByRole(AriaRole.HEADING,
-                new Locator.GetByRoleOptions().setName("Kaynağı Sil").setExact(true));
-        this.silButonu = modal.getByRole(AriaRole.BUTTON,
-                new Locator.GetByRoleOptions().setName("Sil").setExact(true));
-    }
+    this.modal = page.getByRole(AriaRole.DIALOG);
+    this.modalBasligi =
+        modal.getByRole(
+            AriaRole.HEADING, new Locator.GetByRoleOptions().setName("Kaynağı Sil").setExact(true));
+    this.silButonu =
+        modal.getByRole(
+            AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Sil").setExact(true));
+  }
 
-    public boolean kaynakSilModalGoruntulendiMi() {
-        return gorunurMu(modalBasligi, MODAL_TIMEOUT_MS);
-    }
+  /** Kaynak Sil modalı açıksa true döner. */
+  public boolean kaynakSilModalGoruntulendiMi() {
+    return gorunurMu(modalBasligi, MODAL_TIMEOUT_MS);
+  }
 
-    /**
-     * Modal açıldıysa ve içinde silinecek kaynağın adı yazıyorsa true.
-     * Yanlış kaynağın silinmesini önlemek için onaydan önce kullanılır.
-     */
-    public boolean kaynakSilModalGoruntulendiMi(String kaynakAdi) {
-        return kaynakSilModalGoruntulendiMi()
-                && modal.getByText(kaynakAdi).isVisible();
-    }
+  /**
+   * Modal açıldıysa ve içinde silinecek kaynağın adı yazıyorsa true. Yanlış kaynağın silinmesini
+   * önlemek için onaydan önce kullanılır.
+   */
+  public boolean kaynakSilModalGoruntulendiMi(String kaynakAdi) {
+    return kaynakSilModalGoruntulendiMi() && modal.getByText(kaynakAdi).isVisible();
+  }
 
-    public void silmeOnaylama() {
-        silButonu.click();
-    }
+  /** Sil butonuna tıklayarak silmeyi onaylar. */
+  public void silmeOnaylama() {
+    silButonu.click();
+  }
 
-    public boolean kaynakSilModalKapandiMi() {
-        return gorunmuyorMu(modalBasligi, MODAL_TIMEOUT_MS);
-    }
+  /** Kaynak Sil modalı kapandıysa true döner. */
+  public boolean kaynakSilModalKapandiMi() {
+    return gorunmuyorMu(modalBasligi, MODAL_TIMEOUT_MS);
+  }
 }

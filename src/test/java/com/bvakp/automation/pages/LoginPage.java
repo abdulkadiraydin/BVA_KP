@@ -5,121 +5,128 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
 
-/**
- * Keycloak giriş ekranı ve giriş sonrası oturum durumu.
- */
+/** Keycloak giriş ekranı ve giriş sonrası oturum durumu. */
 public class LoginPage extends BasePage {
 
-    private static final int LOGIN_EKRANI_TIMEOUT_MS = 15_000;
-    private static final int BASARILI_GIRIS_TIMEOUT_MS = 20_000;
-    private static final int HATA_MESAJI_TIMEOUT_MS = 10_000;
-    private static final int OTURUM_DURUMU_TIMEOUT_MS = 30_000;
+  private static final int LOGIN_EKRANI_TIMEOUT_MS = 15_000;
+  private static final int BASARILI_GIRIS_TIMEOUT_MS = 20_000;
+  private static final int HATA_MESAJI_TIMEOUT_MS = 10_000;
+  private static final int OTURUM_DURUMU_TIMEOUT_MS = 30_000;
 
-    /** Portal açıldığında hangi ekranın geldiği. */
-    public enum OturumDurumu {
-        /** Kayıtlı oturum geçerli, doğrudan Gösterge Panosu açıldı. */
-        GOSTERGE_PANOSU,
-        /** Oturum yok veya süresi dolmuş, giriş ekranı açıldı. */
-        LOGIN_EKRANI,
-        /** Süre içinde ikisi de görünmedi. */
-        BELIRSIZ
-    }
+  /** Portal açıldığında hangi ekranın geldiği. */
+  public enum OturumDurumu {
+    /** Kayıtlı oturum geçerli, doğrudan Gösterge Panosu açıldı. */
+    GOSTERGE_PANOSU,
+    /** Oturum yok veya süresi dolmuş, giriş ekranı açıldı. */
+    LOGIN_EKRANI,
+    /** Süre içinde ikisi de görünmedi. */
+    BELIRSIZ
+  }
 
-    private final Locator kullaniciAdiAlani;
-    private final Locator sifreAlani;
-    private final Locator girisButonu;
-    private final Locator girisHataMesaji;
-    private final Locator gostergePanosu;
+  private final Locator kullaniciAdiAlani;
+  private final Locator sifreAlani;
+  private final Locator girisButonu;
+  private final Locator girisHataMesaji;
+  private final Locator gostergePanosu;
 
-    public LoginPage(Page page) {
+  public LoginPage(Page page) {
 
-        super(page);
+    super(page);
 
-        this.kullaniciAdiAlani = page.locator("#username");
-        this.sifreAlani = page.locator("#password");
-        this.girisButonu = page.locator("#kc-login").or(page.locator("form button[type='submit']"));
+    this.kullaniciAdiAlani = page.locator("#username");
+    this.sifreAlani = page.locator("#password");
+    this.girisButonu = page.locator("#kc-login").or(page.locator("form button[type='submit']"));
 
-        this.girisHataMesaji = page.getByText("Kullanıcı adı veya şifre hatalı.",
-                new Page.GetByTextOptions().setExact(true));
+    this.girisHataMesaji = page.locator("#input-error-username");
 
-        this.gostergePanosu = page.getByLabel("breadcrumb").getByRole(AriaRole.BUTTON,
+    this.gostergePanosu =
+        page.getByLabel("breadcrumb")
+            .getByRole(
+                AriaRole.BUTTON,
                 new Locator.GetByRoleOptions().setName("Gösterge Panosu").setExact(true));
+  }
+
+  // =====================================================================
+  // İşlemler
+  // =====================================================================
+
+  /** Portal adresini açarak giriş ekranına yönlendirir. */
+  public void girisSayfasiAcma() {
+    openBaseUrl();
+  }
+
+  /** Kullanıcı adı alanını doldurur. */
+  public void kullaniciAdiGirme(String kullaniciAdi) {
+    kullaniciAdiAlani.fill(kullaniciAdi);
+  }
+
+  /** Parola alanını doldurur. */
+  public void sifreGirme(String sifre) {
+    sifreAlani.fill(sifre);
+  }
+
+  /** Giriş butonuna tıklar. */
+  public void girisButonunaTiklama() {
+    girisButonu.click();
+  }
+
+  /** Kullanıcı adı ve şifreyle giriş yapar. */
+  public void girisYapma(String kullaniciAdi, String sifre) {
+    kullaniciAdiGirme(kullaniciAdi);
+    sifreGirme(sifre);
+    girisButonunaTiklama();
+  }
+
+  // =====================================================================
+  // Durum kontrolleri
+  // =====================================================================
+
+  /** Kullanıcı adı, şifre alanları ve giriş butonu görünüyorsa true. */
+  public boolean girisEkraniGoruntuleniyorMu() {
+    return gorunurMu(kullaniciAdiAlani, LOGIN_EKRANI_TIMEOUT_MS)
+        && sifreAlani.isVisible()
+        && girisButonu.isVisible();
+  }
+
+  /** Girişten sonra Gösterge Panosu görünürse true. */
+  public boolean basariliGirisYapildiMi() {
+    return gorunurMu(gostergePanosu, BASARILI_GIRIS_TIMEOUT_MS);
+  }
+
+  /** Hatalı girişte çıkan hata mesajı görünüyorsa true döner. */
+  public boolean girisHataMesajiGoruntulendiMi() {
+    return gorunurMu(girisHataMesaji, HATA_MESAJI_TIMEOUT_MS);
+  }
+
+  /** Giriş hata mesajının metnini döndürür. */
+  public String girisHataMesajiAlma() {
+    return girisHataMesaji.innerText().trim();
+  }
+
+  /**
+   * Portal açıldıktan sonra Gösterge Panosu'nun veya giriş ekranının gelmesini bekler; hangisi önce
+   * görünürse beklemeden döner.
+   *
+   * <p>Kayıtlı oturum geçerliyse pano, değilse giriş ekranı gelir. İkisi birlikte beklendiği için
+   * sayfa hızlı açıldığında boşa bekleme olmaz.
+   */
+  public OturumDurumu oturumDurumunuBekle() {
+
+    try {
+      gostergePanosu
+          .or(kullaniciAdiAlani)
+          .first()
+          .waitFor(new Locator.WaitForOptions().setTimeout(OTURUM_DURUMU_TIMEOUT_MS));
+    } catch (PlaywrightException e) {
+      return OturumDurumu.BELIRSIZ;
     }
 
-    // =====================================================================
-    // İşlemler
-    // =====================================================================
-
-    /** Portal adresini açarak giriş ekranına yönlendirir. */
-    public void girisSayfasiAcma() {
-        openBaseUrl();
+    if (gostergePanosu.isVisible()) {
+      return OturumDurumu.GOSTERGE_PANOSU;
     }
-
-    public void kullaniciAdiGirme(String kullaniciAdi) {
-        kullaniciAdiAlani.fill(kullaniciAdi);
+    if (kullaniciAdiAlani.isVisible()) {
+      return OturumDurumu.LOGIN_EKRANI;
     }
-
-    public void sifreGirme(String sifre) {
-        sifreAlani.fill(sifre);
-    }
-
-    public void girisButonunaTiklama() {
-        girisButonu.click();
-    }
-
-    /** Kullanıcı adı ve şifreyle giriş yapar. */
-    public void girisYapma(String kullaniciAdi, String sifre) {
-        kullaniciAdiGirme(kullaniciAdi);
-        sifreGirme(sifre);
-        girisButonunaTiklama();
-    }
-
-    // =====================================================================
-    // Durum kontrolleri
-    // =====================================================================
-
-    /** Kullanıcı adı, şifre alanları ve giriş butonu görünüyorsa true. */
-    public boolean girisEkraniGoruntuleniyorMu() {
-        return gorunurMu(kullaniciAdiAlani, LOGIN_EKRANI_TIMEOUT_MS)
-                && sifreAlani.isVisible()
-                && girisButonu.isVisible();
-    }
-
-    /** Girişten sonra Gösterge Panosu görünürse true. */
-    public boolean basariliGirisYapildiMi() {
-        return gorunurMu(gostergePanosu, BASARILI_GIRIS_TIMEOUT_MS);
-    }
-
-    public boolean girisHataMesajiGoruntulendiMi() {
-        return gorunurMu(girisHataMesaji, HATA_MESAJI_TIMEOUT_MS);
-    }
-
-    public String girisHataMesajiAlma() {
-        return girisHataMesaji.innerText().trim();
-    }
-
-    /**
-     * Portal açıldıktan sonra Gösterge Panosu'nun veya giriş ekranının gelmesini bekler;
-     * hangisi önce görünürse beklemeden döner.
-     *
-     * <p>Kayıtlı oturum geçerliyse pano, değilse giriş ekranı gelir. İkisi birlikte
-     * beklendiği için sayfa hızlı açıldığında boşa bekleme olmaz.
-     */
-    public OturumDurumu oturumDurumunuBekle() {
-
-        try {
-            gostergePanosu.or(kullaniciAdiAlani).first().waitFor(
-                    new Locator.WaitForOptions().setTimeout(OTURUM_DURUMU_TIMEOUT_MS));
-        } catch (PlaywrightException e) {
-            return OturumDurumu.BELIRSIZ;
-        }
-
-        if (gostergePanosu.isVisible()) {
-            return OturumDurumu.GOSTERGE_PANOSU;
-        }
-        if (kullaniciAdiAlani.isVisible()) {
-            return OturumDurumu.LOGIN_EKRANI;
-        }
-        return OturumDurumu.BELIRSIZ;
-    }
+    return OturumDurumu.BELIRSIZ;
+  }
 }

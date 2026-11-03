@@ -15,81 +15,85 @@ import org.testng.annotations.Test;
  */
 public class LoginTest extends BaseTest {
 
-    private static final String HATALI_KULLANICI_ADI = "hatali.kullaniciadi";
-    private static final String HATALI_SIFRE = "HataliSifre123!";
-    private static final String GIRIS_HATA_MESAJI = "Kullanıcı adı veya şifre hatalı.";
+  private static final String HATALI_KULLANICI_ADI = "hatali.kullaniciadi";
+  private static final String HATALI_SIFRE = "HataliSifre123!";
+  private static final String GIRIS_HATA_MESAJI = "Invalid username or password.";
 
-    /** Giriş ekranını açar ve temel alanların görüntülendiğini doğrular. */
-    private LoginPage girisEkraniniAc() {
+  /** Giriş ekranını açar ve temel alanların görüntülendiğini doğrular. */
+  private LoginPage girisEkraniniAc() {
 
-        LoginPage loginPage = new LoginPage(page());
+    LoginPage loginPage = new LoginPage(page());
 
-        ReportManager.step("Login sayfası açılıyor.");
-        loginPage.girisSayfasiAcma();
+    ReportManager.step("Login sayfası açılıyor.");
+    loginPage.girisSayfasiAcma();
 
-        Assert.assertTrue(loginPage.girisEkraniGoruntuleniyorMu(),
-                "Login ekranı gerekli alanlarla birlikte görüntülenemedi.");
+    Assert.assertTrue(
+        loginPage.girisEkraniGoruntuleniyorMu(),
+        "Login ekranı gerekli alanlarla birlikte görüntülenemedi.");
 
-        return loginPage;
-    }
+    return loginPage;
+  }
 
-    /** Login sayfasının kullanıcı adı, şifre ve giriş butonuyla açıldığını doğrular. */
-    @Test
-    public void girisSayfasiAcma() {
+  /** Login sayfasının kullanıcı adı, şifre ve giriş butonuyla açıldığını doğrular. */
+  @Test
+  public void girisSayfasiAcma() {
 
-        girisEkraniniAc();
+    girisEkraniniAc();
 
-        ReportManager.info("LOGIN SAYFASI AÇILIŞ KONTROLÜ BAŞARILI");
-    }
+    ReportManager.info("LOGIN SAYFASI AÇILIŞ KONTROLÜ BAŞARILI");
+  }
 
-    /** Geçerli kullanıcı bilgileriyle başarılı giriş yapılabildiğini doğrular. */
-    @Test
-    public void basariliGirisYapma() {
+  /** Geçerli kullanıcı bilgileriyle başarılı giriş yapılabildiğini doğrular. */
+  @Test
+  public void basariliGirisYapma() {
 
-        LoginPage loginPage = girisEkraniniAc();
+    LoginPage loginPage = girisEkraniniAc();
 
-        ReportManager.step("Geçerli kullanıcı bilgileri ile giriş yapılıyor.");
-        loginPage.girisYapma(ConfigManager.get("username"), ConfigManager.get("password"));
+    ReportManager.step("Geçerli kullanıcı bilgileri ile giriş yapılıyor.");
+    loginPage.girisYapma(ConfigManager.get("username"), ConfigManager.get("password"));
 
-        Assert.assertTrue(loginPage.basariliGirisYapildiMi(),
-                "Geçerli kullanıcı bilgileri ile giriş yapılamadı.");
+    Assert.assertTrue(
+        loginPage.basariliGirisYapildiMi(), "Geçerli kullanıcı bilgileri ile giriş yapılamadı.");
 
-        ReportManager.info("BAŞARILI GİRİŞ KONTROLÜ TAMAMLANDI");
-    }
+    ReportManager.info("BAŞARILI GİRİŞ KONTROLÜ TAMAMLANDI");
+  }
 
-    /**
-     * Hatalı giriş senaryoları: senaryo adı, kullanıcı adı, şifre.
-     * İlk değer raporlarda hangi senaryonun çalıştığını göstermek içindir.
-     */
-    @DataProvider(name = "hataliGirisBilgileri")
-    public Object[][] hataliGirisBilgileri() {
+  /**
+   * Hatalı giriş senaryoları: senaryo adı, kullanıcı adı, şifre. İlk değer raporlarda hangi
+   * senaryonun çalıştığını göstermek içindir.
+   */
+  @DataProvider(name = "hataliGirisBilgileri")
+  public Object[][] hataliGirisBilgileri() {
 
-        String gecerliKullaniciAdi = ConfigManager.get("username");
-        String gecerliSifre = ConfigManager.get("password");
+    String gecerliKullaniciAdi = ConfigManager.get("username");
+    String gecerliSifre = ConfigManager.get("password");
 
-        return new Object[][]{
-                {"Hatalı kullanıcı adı", HATALI_KULLANICI_ADI, gecerliSifre},
-                {"Hatalı şifre", gecerliKullaniciAdi, HATALI_SIFRE},
-                {"Hatalı kullanıcı adı ve şifre", HATALI_KULLANICI_ADI, HATALI_SIFRE}
-        };
-    }
+    return new Object[][] {
+      {"Hatalı kullanıcı adı", HATALI_KULLANICI_ADI, gecerliSifre},
+      {"Hatalı şifre", gecerliKullaniciAdi, HATALI_SIFRE},
+      {"Hatalı kullanıcı adı ve şifre", HATALI_KULLANICI_ADI, HATALI_SIFRE}
+    };
+  }
 
-    /** Hatalı bilgilerle giriş yapılamadığını ve doğru hata mesajının gösterildiğini doğrular. */
-    @Test(dataProvider = "hataliGirisBilgileri")
-    public void hataliBilgilerleGirisYapilamamali(String senaryo, String kullaniciAdi, String sifre) {
+  /** Hatalı bilgilerle giriş yapılamadığını ve doğru hata mesajının gösterildiğini doğrular. */
+  @Test(dataProvider = "hataliGirisBilgileri")
+  public void hataliGirisEngellenir(String senaryo, String kullaniciAdi, String sifre) {
 
-        LoginPage loginPage = girisEkraniniAc();
+    LoginPage loginPage = girisEkraniniAc();
 
-        ReportManager.step("Senaryo: " + senaryo + " ile giriş deneniyor.");
-        loginPage.girisYapma(kullaniciAdi, sifre);
+    ReportManager.step("Senaryo: " + senaryo + " ile giriş deneniyor.");
+    loginPage.girisYapma(kullaniciAdi, sifre);
 
-        Assert.assertTrue(loginPage.girisHataMesajiGoruntulendiMi(),
-                senaryo + ": hata mesajı görüntülenmedi.");
-        Assert.assertEquals(loginPage.girisHataMesajiAlma(), GIRIS_HATA_MESAJI,
-                senaryo + ": beklenen hata mesajı görüntülenmedi.");
-        Assert.assertTrue(loginPage.girisEkraniGoruntuleniyorMu(),
-                senaryo + ": başarısız girişten sonra login ekranında kalınmadı.");
+    Assert.assertTrue(
+        loginPage.girisHataMesajiGoruntulendiMi(), senaryo + ": hata mesajı görüntülenmedi.");
+    Assert.assertEquals(
+        loginPage.girisHataMesajiAlma(),
+        GIRIS_HATA_MESAJI,
+        senaryo + ": beklenen hata mesajı görüntülenmedi.");
+    Assert.assertTrue(
+        loginPage.girisEkraniGoruntuleniyorMu(),
+        senaryo + ": başarısız girişten sonra login ekranında kalınmadı.");
 
-        ReportManager.info("HATALI GİRİŞ KONTROLÜ BAŞARILI | " + senaryo);
-    }
+    ReportManager.info("HATALI GİRİŞ KONTROLÜ BAŞARILI | " + senaryo);
+  }
 }

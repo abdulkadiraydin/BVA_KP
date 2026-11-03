@@ -34,21 +34,16 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Framework Versions -->
-        <playwright.version>1.41.0</playwright.version>
-        <testng.version>7.8.0</testng.version>
+        <playwright.version>1.64.0</playwright.version>
+        <testng.version>7.12.0</testng.version>
         <allure.version>2.35.5</allure.version>
-        <extentreports.version>4.1.7</extentreports.version>
 
         <!-- Logging -->
-        <slf4j.version>2.0.9</slf4j.version>
-        <logback.version>1.4.14</logback.version>
+        <slf4j.version>2.0.20</slf4j.version>
+        <logback.version>1.6.6</logback.version>
 
-        <!-- Data / API -->
-        <jackson.version>2.16.1</jackson.version>
-        <gson.version>2.10.1</gson.version>
-        <postgresql.version>42.7.3</postgresql.version>
-        <restassured.version>5.4.0</restassured.version>
-        <assertj.version>3.24.2</assertj.version>
+        <!-- JSON -->
+        <jackson.version>2.22.4</jackson.version>
 
         <!-- Utility -->
         <dotenv.version>3.2.0</dotenv.version>
@@ -58,8 +53,9 @@
         <javax.activation.version>1.2.0</javax.activation.version>
 
         <!-- Maven Plugins -->
-        <compiler.plugin.version>3.11.0</compiler.plugin.version>
-        <surefire.plugin.version>3.2.3</surefire.plugin.version>
+        <compiler.plugin.version>3.16.0</compiler.plugin.version>
+        <!-- 3.6.0+ testng.xml'i okumuyor (TestNG'yi JUnit Platform'da çalıştırıyor); 3.5.x'te kalınmalı. -->
+        <surefire.plugin.version>3.5.4</surefire.plugin.version>
 
     </properties>
 
@@ -97,15 +93,6 @@
         </dependency>
 
 
-        <!-- Extent Reports -->
-        <dependency>
-            <groupId>com.aventstack</groupId>
-            <artifactId>extentreports</artifactId>
-            <version>${extentreports.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-
         <!-- SLF4J -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -129,51 +116,6 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-
-        <!-- Gson -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-
-        <!-- PostgreSQL JDBC -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${postgresql.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-
-        <!-- REST Assured -->
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>rest-assured</artifactId>
-            <version>${restassured.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-
-        <!-- JSON Schema Validation -->
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>${restassured.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-
-        <!-- AssertJ -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -264,6 +206,23 @@
                 </configuration>
 
 
+            </plugin>
+
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.10.2</version>
+                <configuration>
+                    <java>
+                        <includes>
+                            <include>src/**/*.java</include>
+                        </includes>
+                        <googleJavaFormat>
+                            <style>GOOGLE</style>
+                        </googleJavaFormat>
+                        <removeUnusedImports/>
+                    </java>
+                </configuration>
             </plugin>
 
         </plugins>
