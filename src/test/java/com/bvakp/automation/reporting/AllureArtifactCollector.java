@@ -173,7 +173,7 @@ public final class AllureArtifactCollector {
         };
     }
 
-    /** @AfterMethod içinde BrowserContext ve video kapandıktan sonra thread kaydı temizlenir. */
+    /** Test kapanışında ({@code @AfterMethod}), BrowserContext ve video kapandıktan sonra thread kaydını temizler. */
     public static void clearCurrentTest() {
         CURRENT_TEST_UUID.remove();
         CURRENT_TEST_CLASS.remove();

@@ -214,16 +214,14 @@ public class OpenDataCreateTest extends AvpBaseTest {
         ReportManager.info("KAYNAK DÜZENLEME BAŞARILI | " + yeniKaynakAdi);
     }
 
-    /** Oluşturulan kaynağı pozitif kriterle, bulunmayan kaynağı negatif kriterle arar. */
+    /** Oluşturulan kaynağın adıyla arandığında sonuçlarda bulunduğunu doğrular. */
     @Test
-    public void kaynakArama() {
+    public void kaynakAramaPozitif() {
 
         TestContext context = testHazirligi();
         OpenDataPage openDataPage = context.openDataPage();
 
         String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_arama_kaynak");
-        String olmayanKriter = TestDataUtil.dinamikAdOlusturma("otomasyon_bulunmayan");
-
         context.createFlow().createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon arama testi - " + kaynakAdi);
 
         ReportManager.step("Pozitif arama: " + kaynakAdi);
@@ -232,13 +230,26 @@ public class OpenDataCreateTest extends AvpBaseTest {
                 "Aranan kaynak listede bulunamadı: " + kaynakAdi);
         ekranGoruntusuEkle(context, "Kaynak Arama - Pozitif Sonuç", "kaynak_arama_pozitif");
 
+        ReportManager.info("KAYNAK ARAMA (POZİTİF) BAŞARILI | " + kaynakAdi);
+    }
+
+    /** Olmayan bir adla arandığında "kaynak bulunamadı" mesajının çıktığını doğrular. */
+    @Test
+    public void kaynakAramaNegatif() {
+
+        TestContext context = testHazirligi();
+        OpenDataPage openDataPage = context.openDataPage();
+
+        // Kaynak oluşturmaya gerek yok: benzersiz ad hiçbir kaynakla eşleşmez.
+        String olmayanKriter = TestDataUtil.dinamikAdOlusturma("otomasyon_bulunmayan");
+
         ReportManager.step("Negatif arama: " + olmayanKriter);
         openDataPage.kaynakArama(olmayanKriter);
         Assert.assertTrue(openDataPage.kaynakBulunamadiMesajiGoruntulendiMi(),
                 "Kaynak bulunamadı mesajı görüntülenemedi.");
         ekranGoruntusuEkle(context, "Kaynak Arama - Sonuç Bulunamadı", "kaynak_arama_negatif");
 
-        ReportManager.info("KAYNAK ARAMA BAŞARILI");
+        ReportManager.info("KAYNAK ARAMA (NEGATİF) BAŞARILI | " + olmayanKriter);
     }
 
     // =====================================================================

@@ -82,6 +82,8 @@ public class PublicPortalApi {
      * Veri seti aramada görünene ve verisi DataStore'a yüklenene kadar bekler.
      * Yayından hemen sonra paket aramada olsa da kaynağı birkaç saniye eksik kalabilir.
      */
+    // Bilinçli yoklama aralığı: API'de beklenecek bir sayfa/olay yok, portal 3 sn'de bir sorgulanır.
+    @SuppressWarnings("java:S2925")
     public JsonNode paketHazirOlanaKadarBekleme(String baslik, int sureSn) {
 
         long bitis = System.currentTimeMillis() + sureSn * 1000L;

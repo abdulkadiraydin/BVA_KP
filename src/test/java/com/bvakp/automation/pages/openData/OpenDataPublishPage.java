@@ -8,7 +8,6 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
 import org.testng.Assert;
-import com.bvakp.automation.model.YayinAyarlari;
 import java.util.ArrayList;
 import java.util.List;
 

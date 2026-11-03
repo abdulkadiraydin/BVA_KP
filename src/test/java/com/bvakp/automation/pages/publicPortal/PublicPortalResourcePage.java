@@ -1,4 +1,4 @@
-package com.bvakp.automation.pages.publicportal;
+package com.bvakp.automation.pages.publicPortal;
 
 import com.bvakp.automation.pages.BasePage;
 import com.bvakp.automation.reporting.ReportManager;

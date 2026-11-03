@@ -48,7 +48,7 @@ public final class HtmlReportManager {
         // UUID, aynı testin bir koşuda birden fazla çalışmasında kayıtların çakışmasını önler.
         String testId = className + "_" + testName + "_" + UUID.randomUUID();
 
-        TEST_RESULTS.put(testId, new TestResultData(className, testName, LocalDateTime.now()));
+        TEST_RESULTS.put(testId, new TestResultData(className, testName));
         TEST_ORDER.add(testId);
         CURRENT_TEST.set(testId);
     }
@@ -388,7 +388,6 @@ public final class HtmlReportManager {
 
         private final String className;
         private final String testName;
-        private final LocalDateTime startedAt;
         private final List<String> steps = new CopyOnWriteArrayList<>();
 
         private volatile String status = "CALISIYOR";
@@ -396,10 +395,9 @@ public final class HtmlReportManager {
         private volatile String errorMessage;
         private volatile Path screenshotPath;
 
-        private TestResultData(String className, String testName, LocalDateTime startedAt) {
+        private TestResultData(String className, String testName) {
             this.className = className;
             this.testName = testName;
-            this.startedAt = startedAt;
         }
     }
 }

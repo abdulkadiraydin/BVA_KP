@@ -24,7 +24,8 @@ Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI
    ```powershell
    mvn test-compile
    ```
-4. Mail gönderilecekse proje kökünde `.env.mail` dosyası oluştur (Git'e eklenmez).
+4. Test kullanıcısının parolasını `BVAKP_PASSWORD` ortam değişkeni olarak tanımla (bkz. Ayarlar).
+5. Mail gönderilecekse proje kökünde `.env.mail` dosyası oluştur (Git'e eklenmez).
 
 > Windows terminalinde Türkçe karakterler bozuk görünüyorsa PowerShell profiline
 > (`notepad $PROFILE`) şunları ekle:
@@ -49,21 +50,42 @@ Test ortamı daha yüksek paralellikte yetişemiyor (5'te tablolar yüklenmedi);
 
 ## Ayarlar
 
-Ayarlar `src/test/resources/config.properties` dosyasındadır. Bir değer şu öncelikle okunur:
+```
+src/test/resources/config/
+  config.properties              bütün ortamlarda ortak ayarlar          (Git'te)
+  ortam/test.properties          test ortamı: adresler, kullanıcı adı    (Git'te)
+  config.local.properties        kişisel ayarlar, isteğe bağlı           (Git'e girmez)
+  config.local.properties.ornek  kişisel ayar dosyası örneği
+```
 
-1. `-D` parametresi (ör. `mvn test "-Dheadless=true"`)
-2. Ortam değişkeni: `BVAKP_` ön ekiyle (ör. `BVAKP_PASSWORD`)
-3. `config.properties`
-4. Koddaki varsayılan
+Ortam `-Dortam=test` (veya `BVAKP_ORTAM`) ile seçilir; verilmezse `test` kullanılır.
+Yeni bir ortam eklemek için `ortam/<ad>.properties` dosyası oluşturmak yeterlidir.
+
+Bir değer şu öncelikle okunur:
+
+1. `-D` parametresi (ör. `mvn test "-Dheadless=false"`)
+2. Ortam değişkeni: `BVAKP_` + anahtarın büyük harfli hali, nokta yerine alt çizgi
+   (ör. `password` → `BVAKP_PASSWORD`, `base.url` → `BVAKP_BASE_URL`)
+3. `config.local.properties`
+4. `ortam/<ortam>.properties`
+5. `config.properties`
+6. Koddaki varsayılan
+
+**Parola hiçbir dosyaya yazılmaz.** Bir kez tanımlayın, ardından IntelliJ'i yeniden başlatın:
+
+```powershell
+[Environment]::SetEnvironmentVariable("BVAKP_PASSWORD", "<parola>", "User")
+```
 
 | Anahtar | Açıklama | Varsayılan |
 |---|---|---|
 | `base.url` | Kapalı portal adresi (test ortamı) | |
 | `public.data.url` | Kamuya açık portal adresi | |
-| `username`, `password` | Test kullanıcısı; parolayı ortam değişkeniyle vermek tercih edilir | |
+| `username` | Test kullanıcısı (ortam dosyasında) | |
+| `password` | Parola; yalnızca `BVAKP_PASSWORD` ortam değişkeniyle | |
 | `browser`, `headless` | Tarayıcı ve görünmez mod | |
 | `viewport.width`, `viewport.height` | Pencere boyutu | 1280 × 720 |
-| `auth.state.reuse` | Oturumu dosyada saklayıp testler arasında paylaş | `false` |
+| `auth.state.reuse` | Oturumu dosyada saklayıp testler arasında paylaş; paralel koşuda `false` kalmalı | `false` |
 | `trace.mode` | `off`, `on`, `retain-on-failure` | `retain-on-failure` |
 | `video.mode` | `off`, `on`, `retain-on-failure` | `retain-on-failure` |
 | `allure.attach.trace`, `allure.attach.video` | Trace/videoyu Allure raporuna ekle | `true` / `false` |
@@ -72,7 +94,7 @@ Ayarlar `src/test/resources/config.properties` dosyasındadır. Bir değer şu �
 | `kosu.saklama.adedi` | Saklanacak koşu sayısı; eskiler silinir (`0` = silme) | `20` |
 | `failure.tracking.enabled`, `failure.alert.threshold` | Ardışık hata sayacı ve alarm maili eşiği | |
 | `cleanup.enabled` | Koşu sonunda otomasyon kaynaklarını sil | |
-| `cleanup.allowed.hosts` | Temizliğin çalışabileceği host'lar; boşsa hiçbir yerde silmez | |
+| `cleanup.allowed.hosts` | Temizliğin çalışabileceği host'lar (ortam dosyasında); boşsa hiçbir yerde silmez | |
 | `cleanup.name.prefix` | Yalnızca bu önekle başlayan kaynaklar silinir | `otomasyon_` |
 | `cleanup.max.delete` | Bir koşuda silinebilecek en fazla kaynak | |
 
@@ -147,4 +169,9 @@ reports/
 
 ## Git'e eklenmeyenler
 
-`.env.mail`, `.automation-state/` (oturum dosyası), `target/`, `reports/`. Trace ve videolar sayfa içeriği ve ağ verisi barındırabileceği için hassas kabul edilir.
+`.env.mail`, `config.local.properties`, `.automation-state/`, `target/`, `reports/`. Trace ve videolar sayfa içeriği ve ağ verisi barındırabileceği için hassas kabul edilir.
+
+## Bilinen durumlar
+
+- `PublicOpenDataTest.kolonTipleriKorunur` kırmızıdır: kaynakta integer/date olan kolonlar kamuya açık portalda `text` olarak yayınlanıyor. Ürün hatası; düzeltilene kadar kırmızı kalması beklenir.
+- Keycloak'ta hızlı art arda girişler kullanıcıyı geçici olarak kilitleyebilir (`user_temporarily_disabled`). `AvpBaseTest` girişleri sıraya alır ve aralarında kısa bir bekleme bırakır; bu yapı değiştirilmemelidir.

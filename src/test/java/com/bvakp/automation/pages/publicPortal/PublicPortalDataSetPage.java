@@ -1,4 +1,4 @@
-package com.bvakp.automation.pages.publicportal;
+package com.bvakp.automation.pages.publicPortal;
 
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.pages.BasePage;
@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  */
 public class PublicPortalDataSetPage extends BasePage {
 
-    private static final Pattern MASKELENEN_ALANLAR = Pattern.compile("Maskelenen alanlar:\\s*(.+?)\\.?$");
+    private static final String MASKELENEN_ALANLAR_ETIKETI = "Maskelenen alanlar:";
     private static final Pattern KAYNAK_ID = Pattern.compile("/resource/([^/?#]+)");
 
     private final Locator kategori;
@@ -48,9 +48,17 @@ public class PublicPortalDataSetPage extends BasePage {
                 ".bvakp-history-row:has(.bvakp-history-kind.is-first_publish) .bvakp-history-note");
     }
 
-    /** Detay sayfasını adres adıyla (slug) doğrudan açar; aramayı test etmeyen testler içindir. */
     public void veriSetiSayfasiniAcma(String adresAdi) {
-        page.navigate(ConfigManager.get("public.data.url").replaceAll("/+$", "") + "/dataset/" + adresAdi);
+        page.navigate(tabanAdres() + "/dataset/" + adresAdi);
+    }
+
+    /** public.data.url; sondaki "/" işaretleri atılır (adres config'te "/" ile bitebilir). */
+    private static String tabanAdres() {
+        String adres = ConfigManager.get("public.data.url");
+        while (adres.endsWith("/")) {
+            adres = adres.substring(0, adres.length() - 1);
+        }
+        return adres;
     }
 
     /** Başlığı verilen adla birebir aynı olan detay sayfası açıldıysa true. */
@@ -88,11 +96,21 @@ public class PublicPortalDataSetPage extends BasePage {
             return List.of();
         }
 
-        Matcher eslesme = MASKELENEN_ALANLAR.matcher(kvkkNotu.textContent().trim());
-        if (!eslesme.find()) {
+        String not = kvkkNotu.textContent().trim();
+        int baslangic = not.indexOf(MASKELENEN_ALANLAR_ETIKETI);
+        if (baslangic < 0) {
             return List.of();
         }
-        return Arrays.stream(eslesme.group(1).split(",")).map(String::trim).toList();
+
+        String liste = not.substring(baslangic + MASKELENEN_ALANLAR_ETIKETI.length()).trim();
+        if (liste.endsWith(".")) {
+            liste = liste.substring(0, liste.length() - 1);
+        }
+
+        return Arrays.stream(liste.split(","))
+                .map(String::trim)
+                .filter(alan -> !alan.isEmpty())
+                .toList();
     }
 
     /** "Veri ve Kaynaklar" listesi: format → indirme linki (sayfadaki sırayla). */
