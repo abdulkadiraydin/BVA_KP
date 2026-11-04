@@ -21,7 +21,7 @@ public class OpenDataSetupFlow {
   private static final String SORUMLU_BIRIM = "Strateji Geliştirme Daire Başkanlığı";
   private static final String KATEGORI = "Altyapı ve Hat";
   private static final String KULLANIM_LISANSI = "Creative Commons Atıf-AynıLisans (CC BY-SA)";
-  private static final List<String> MASKELENECEK_KOLONLAR = List.of("anket_yapilan_kisi");
+  private static final List<String> MASKELENECEK_KOLONLAR = List.of("istasyon_kaynak_id");
 
   private final OpenDataCreateFlow createFlow;
   private final OpenDataPublishPage publishPage;
