@@ -17,12 +17,10 @@ import com.bvakp.automation.pages.publicPortal.PublicPortalDataSetPage;
 import com.bvakp.automation.pages.publicPortal.PublicPortalResourcePage;
 import com.bvakp.automation.pages.publicPortal.PublicPortalSearchPage;
 import com.bvakp.automation.reporting.ReportManager;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -40,6 +38,9 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
   private static final int PORTAL_INDEKS_BEKLEME_SN = 120;
   private static final int API_KAYIT_LIMITI = 1_000;
+
+  /** Portaldaki toplam kayıt sayısı; API'den bütün kayıtları almak için kullanılır. */
+  private int portalKayitSayisi;
 
   /**
    * @BeforeClass'ta yazılır, testler yalnızca okur.
@@ -86,7 +87,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
               .paketHazirOlanaKadarBekleme(tanim.ad(), PORTAL_INDEKS_BEKLEME_SN);
       adresAdi = paket.path("name").asText();
       kaynakId = PublicPortalApi.datastoreKaynakId(paket).orElseThrow();
-
+      portalKayitSayisi = PublicPortalApi.portaldan().kayitlariGetir(kaynakId, 1).toplam();
       ReportManager.info(
           "Ortak veri seti portalda | " + tanim.ad() + " | " + adresAdi + " | " + kaynakId);
       basarili = true;
@@ -159,6 +160,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
     soft.assertEquals(
         Set.copyOf(kart.formatlar()), Set.copyOf(beklenenFormatCipleri()), "Kart formatları");
     soft.assertEquals(kart.kolonSayisi(), tanim.kolonAdlari().size(), "Kart kolon sayısı");
+    soft.assertEquals(kart.satirSayisi(), portalKayitSayisi, "Kart satır sayısı");
     soft.assertAll();
 
     ctx.aramaPage().veriSetiAcma(tanim.ad());
@@ -232,6 +234,9 @@ public class PublicOpenDataTest extends AvpBaseTest {
             for (String kolon : tanim.kolonAdlari()) {
               soft.assertTrue(baslikSatiri.contains(kolon), "CSV başlığında kolon yok: " + kolon);
             }
+          }
+          if ("JSON".equals(format) && yanit.basariliMi()) {
+            jsonMaskeKontrolu(yanit.govde(), soft);
           }
         });
     soft.assertAll();
@@ -325,7 +330,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
   public void apiKayitlariMaskelidir() {
     PublicPortalApi api = PublicPortalApi.portaldan();
 
-    DatastoreSonuc sonuc = api.kayitlariGetir(kaynakId, API_KAYIT_LIMITI);
+    DatastoreSonuc sonuc = api.kayitlariGetir(kaynakId, portalKayitSayisi);
     Assert.assertEquals(
         sonuc.alanAdlari(), tanim.kolonAdlari(), "API alanları kolonlarla aynı değil.");
 
@@ -356,7 +361,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
     // Eşleşen kayıt listeden çıkarılır, böylece tekrar eden satırlar da doğru sayılır.
     List<Map<String, String>> apiSatirlari =
         new ArrayList<>(
-            api.kayitlariGetir(kaynakId, API_KAYIT_LIMITI).kayitlar().stream()
+            api.kayitlariGetir(kaynakId, portalKayitSayisi).kayitlar().stream()
                 .map(this::maskesizKolonlar)
                 .toList());
 
@@ -379,7 +384,8 @@ public class PublicOpenDataTest extends AvpBaseTest {
     Map<String, String> sonuc = new LinkedHashMap<>();
     for (String kolon : tanim.kolonAdlari()) {
       if (!tanim.maskelenenKolonlar().contains(kolon)) {
-        sonuc.put(kolon, satir.get(kolon));
+        // Önizlemede boş hücre "", API'de null gelir; ikisi aynı değerdir.
+        sonuc.put(kolon, Objects.requireNonNullElse(satir.get(kolon), ""));
       }
     }
     return sonuc;
@@ -416,5 +422,38 @@ public class PublicOpenDataTest extends AvpBaseTest {
   private static boolean metinTipiMi(String veriTipi) {
     String tip = veriTipi == null ? "" : veriTipi.toLowerCase();
     return tip.contains("char") || tip.contains("text") || tip.contains("string");
+  }
+
+  /**
+   * JSON indirme dosyasında maskelenen kolonların bütün değerlerinin maskeli olduğunu kontrol eder.
+   */
+  private void jsonMaskeKontrolu(String govde, SoftAssert soft) {
+    JsonNode dosya;
+    try {
+      dosya = new ObjectMapper().readTree(govde);
+    } catch (JsonProcessingException e) {
+      soft.fail("JSON dosyası okunamadı: " + e.getMessage());
+      return;
+    }
+
+    // Kayıtlar dizi olarak gelir; kolonun sırası "fields" listesinden bulunur.
+    List<String> alanlar = new ArrayList<>();
+    dosya.path("fields").forEach(alan -> alanlar.add(alan.path("id").asText()));
+
+    for (String kolon : tanim.maskelenenKolonlar()) {
+      int sira = alanlar.indexOf(kolon);
+      if (sira < 0) {
+        soft.fail("JSON dosyasında kolon yok: " + kolon);
+        continue;
+      }
+      long acikDeger = 0;
+      for (JsonNode kayit : dosya.path("records")) {
+        JsonNode deger = kayit.get(sira);
+        if (deger == null || deger.isNull() || !deger.asText().contains("*")) {
+          acikDeger++;
+        }
+      }
+      soft.assertEquals(acikDeger, 0L, "JSON dosyasında maskelenmemiş " + kolon + " değeri sayısı");
+    }
   }
 }

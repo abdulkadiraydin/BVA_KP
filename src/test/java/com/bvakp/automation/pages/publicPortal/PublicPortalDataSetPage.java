@@ -10,8 +10,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Kamuya açık portalda veri seti detay sayfası (/dataset/{ad}).
@@ -21,8 +19,6 @@ import java.util.regex.Pattern;
 public class PublicPortalDataSetPage extends BasePage {
 
   private static final String MASKELENEN_ALANLAR_ETIKETI = "Maskelenen alanlar:";
-  private static final Pattern KAYNAK_ID = Pattern.compile("/resource/([^/?#]+)");
-
   private final Locator kategori;
   private final Locator aciklama;
   private final Locator ozetBilgiler;
@@ -71,12 +67,6 @@ public class PublicPortalDataSetPage extends BasePage {
                 new Locator.GetByRoleOptions().setName(veriSetiAdi).setExact(true).setLevel(1)));
   }
 
-  /** URL'deki ad (slug); API'de package_show için kullanılır. */
-  public String adresAdiOkuma() {
-    String yol = page.url().replaceAll("[?#].*$", "");
-    return yol.substring(yol.lastIndexOf('/') + 1);
-  }
-
   /** Kategori metnini döndürür. */
   public String kategoriOkuma() {
     return kategori.textContent().trim();
@@ -100,7 +90,7 @@ public class PublicPortalDataSetPage extends BasePage {
   /** KVKK notundaki "Maskelenen alanlar: a, b." listesi; not yoksa boş liste. */
   public List<String> maskelenenAlanlariOkuma() {
 
-    if (!gorunurMu(kvkkNotu, 2_000)) {
+    if (!gorunurMu(kvkkNotu)) {
       return List.of();
     }
 
@@ -131,15 +121,6 @@ public class PublicPortalDataSetPage extends BasePage {
           kaynak.locator(".bvakp-resource-actions a").getAttribute("href"));
     }
     return linkler;
-  }
-
-  /** Önizle linkindeki kaynak (resource) id'si; DataStore API'de kullanılır. */
-  public String kaynakIdOkuma() {
-    Matcher eslesme = KAYNAK_ID.matcher(onizleLinki.getAttribute("href"));
-    if (!eslesme.find()) {
-      throw new IllegalStateException("Önizle linkinde kaynak id'si bulunamadı.");
-    }
-    return eslesme.group(1);
   }
 
   /** "Ek Bilgiler" tablosu: Yayımcı, Sorumlu Birim, İlk Yayın Tarihi... */

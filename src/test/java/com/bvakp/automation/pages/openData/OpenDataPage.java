@@ -356,18 +356,44 @@ public class OpenDataPage extends BasePage {
         page.getByText("Kategori zorunludur.", new Page.GetByTextOptions().setExact(true)), 10_000);
   }
 
-  /**
-   * Verilen kolona Maskele anonimleştirme kuralını uygular.
-   *
-   * @param kolonAdi maskeleme uygulanacak kolon
-   */
   public void kolonaMaskelemeKuraliUygulama(String kolonAdi) {
 
     Locator kolonSatiri = page.locator("[role='row'][data-id='" + kolonAdi + "']");
+    kolonSayfasinaGitme(kolonSatiri);
 
     kolonSatiri.locator("[data-field='__rule'] [role='combobox']").click();
 
     page.locator("li[role='option'][data-value='MASK']").click();
+  }
+
+  /** Kolon tablosunu baştan başlayarak, verilen satır görünene kadar sayfa sayfa gezer. */
+  private void kolonSayfasinaGitme(Locator kolonSatiri) {
+    page.locator("[role='grid'] [role='row'][data-id]").first().waitFor();
+
+    // Birinci sayfaya döner.
+    while (sayfaDugmesi(true).isEnabled() && kolonSatiri.count() == 0) {
+      sayfaDegistirme(sayfaDugmesi(true));
+    }
+    // Satır bulunana ya da son sayfaya gelinene kadar ilerler.
+    while (kolonSatiri.count() == 0 && sayfaDugmesi(false).isEnabled()) {
+      sayfaDegistirme(sayfaDugmesi(false));
+    }
+  }
+
+  /** Kolon tablosunun önceki (true) ya da sonraki (false) sayfa düğmesi. */
+  private Locator sayfaDugmesi(boolean onceki) {
+    Locator dugmeler =
+        page.locator(".MuiDataGrid-footerContainer .MuiTablePagination-actions button");
+    return onceki ? dugmeler.first() : dugmeler.last();
+  }
+
+  /** Düğmeye basar ve tablonun ilk satırı değişene kadar bekler. */
+  private void sayfaDegistirme(Locator dugme) {
+    String ilkSatir =
+        page.locator("[role='grid'] [role='row'][data-id]").first().getAttribute("data-id");
+    dugme.click();
+    page.locator("[role='grid'] [role='row'][data-id='" + ilkSatir + "']")
+        .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.DETACHED));
   }
 
   /** Önizlemede verilen kolon adı görünüyorsa true döner. */
@@ -440,22 +466,35 @@ public class OpenDataPage extends BasePage {
     Locator satirlar = page.locator("[role='grid'] [role='row'][data-id]");
     satirlar.first().waitFor();
 
-    List<KolonTanimi> kolonlar = new ArrayList<>();
+    // Tablo sayfalı (sayfa başına 25 satır); bütün kolonlar için sayfalar tek tek gezilir.
+    Locator sonrakiSayfa =
+        page.locator(".MuiDataGrid-footerContainer .MuiTablePagination-actions button").last();
+    Map<String, KolonTanimi> kolonlar = new LinkedHashMap<>();
 
-    for (int i = 0; i < satirlar.count(); i++) {
-      Locator satir = satirlar.nth(i);
-      Locator kuralHucresi = satir.locator("[data-field='__rule']");
+    while (true) {
+      for (Locator satir : satirlar.all()) {
+        String ad = satir.getAttribute("data-id");
+        if (!kolonlar.containsKey(ad)) {
+          Locator kuralHucresi = satir.locator("[data-field='__rule']");
+          kolonlar.put(
+              ad,
+              new KolonTanimi(
+                  ad,
+                  satir.locator("[data-field='dataType']").innerText().trim(),
+                  kuralHucresi.locator("input[aria-hidden='true']").inputValue(),
+                  kuralHucresi.locator("[role='combobox']").innerText().trim(),
+                  satir.locator("[data-field='__included'] input[type='checkbox']").isChecked()));
+        }
+      }
 
-      kolonlar.add(
-          new KolonTanimi(
-              satir.getAttribute("data-id"),
-              satir.locator("[data-field='dataType']").innerText().trim(),
-              kuralHucresi.locator("input[aria-hidden='true']").inputValue(),
-              kuralHucresi.locator("[role='combobox']").innerText().trim(),
-              satir.locator("[data-field='__included'] input[type='checkbox']").isChecked()));
+      if (!sayfaDugmesi(false).isEnabled()) {
+        break;
+      }
+      sayfaDegistirme(sayfaDugmesi(false));
     }
 
-    return kolonlar;
+    ReportManager.info("Okunan kolon sayısı: " + kolonlar.size());
+    return new ArrayList<>(kolonlar.values());
   }
 
   /**

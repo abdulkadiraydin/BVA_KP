@@ -131,7 +131,12 @@ public final class PlaywrightManager {
     try {
       Playwright playwright = Playwright.create();
       playwrightThread.set(playwright);
-      apiRequestContextThread.set(playwright.request().newContext());
+      apiRequestContextThread.set(
+          playwright
+              .request()
+              .newContext(
+                  new APIRequest.NewContextOptions()
+                      .setIgnoreHTTPSErrors(sertifikaHatalariYoksayilsinMi())));
 
     } catch (RuntimeException | Error e) {
       kaynaklariTemizle();
