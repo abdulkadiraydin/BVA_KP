@@ -5,13 +5,7 @@ import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.reporting.AllureArtifactCollector;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.VideoManager;
-import com.microsoft.playwright.APIRequestContext;
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
-import com.microsoft.playwright.Response;
-import com.microsoft.playwright.Video;
+import com.microsoft.playwright.*;
 import com.microsoft.playwright.assertions.PlaywrightAssertions;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -88,7 +82,8 @@ public final class PlaywrightManager {
       Browser.NewContextOptions contextOptions =
           new Browser.NewContextOptions()
               .setViewportSize(genislik, yukseklik)
-              .setLocale(ConfigManager.getOrDefault("browser.locale", "tr-TR"));
+              .setLocale(ConfigManager.getOrDefault("browser.locale", "tr-TR"))
+              .setIgnoreHTTPSErrors(sertifikaHatalariYoksayilsinMi());
 
       // video.mode=off ise kayıt hiç başlatılmaz.
       if (VideoManager.kayitAcikMi()) {
@@ -113,7 +108,12 @@ public final class PlaywrightManager {
       // 5xx yanıtlar (ör. nginx 503) zaman aşımıyla karışmasın diye ayrıca loglanır.
       page.onResponse(PlaywrightManager::sunucuHatasiniLoglama);
 
-      APIRequestContext apiRequestContext = playwright.request().newContext();
+      APIRequestContext apiRequestContext =
+          playwright
+              .request()
+              .newContext(
+                  new APIRequest.NewContextOptions()
+                      .setIgnoreHTTPSErrors(sertifikaHatalariYoksayilsinMi()));
       apiRequestContextThread.set(apiRequestContext);
 
     } catch (RuntimeException | Error e) {
@@ -150,6 +150,14 @@ public final class PlaywrightManager {
               + " | "
               + yanit.url());
     }
+  }
+
+  /**
+   * Test ortamındaki kendinden imzalı sertifikalar için. Yalnızca ortam dosyasında açılır; canlıda
+   * kapalı kalmalıdır.
+   */
+  private static boolean sertifikaHatalariYoksayilsinMi() {
+    return Boolean.parseBoolean(ConfigManager.getOrDefault("ignore.https.errors", "false"));
   }
 
   /** Aktif thread'e ait Playwright sayfasını döndürür. */

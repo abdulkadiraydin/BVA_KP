@@ -11,14 +11,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.testng.Assert;
+import java.util.regex.Pattern;
 
 /**
  * Açık Veri Portalı "Veri Seti Yönetimi" sekmesi: veri seti listesi, satır işlemleri (KVKK
  * onay/red, yayınla, arşivle, sil, güncelle, düzenle) ve onay popup'ları.
  *
  * <p>Statü, portal aktarımı ve versiyon gibi asenkron değişiklikler, liste belirli aralıklarla
- * yenilenerek beklenir (bkz. {@link #listedeBekle}).
+ * yenilenerek beklenir (bkz. {@link #listedeBekle}). Bekleme metotları true/false döner; doğrulama
+ * testte yapılır.
  */
 public class OpenDataPublishPage extends BasePage {
 
@@ -35,6 +36,7 @@ public class OpenDataPublishPage extends BasePage {
   private static final int SILINME_YENILEME_ARALIGI_MS = 3_000;
 
   private static final String KAYIT_BULUNAMADI = "Kayıt bulunamadı";
+  private static final String DATA_API_ETIKETI = "Data API";
 
   private final Locator publishTab;
   private final Locator aramaAlani;
@@ -301,26 +303,17 @@ public class OpenDataPublishPage extends BasePage {
         .click();
   }
 
-  /**
-   * Düzenleme ekranındaki sorumlu birim, kategori ve açıklamanın beklenen değerlerde olduğunu
-   * doğrular.
-   */
-  public void assertDuzenlemeAlanlari(String sorumluBirim, String kategori, String aciklama) {
+  /** Düzenleme ekranında görünen sorumlu birim, kategori ve açıklama. */
+  public record DuzenlemeAlanlari(String sorumluBirim, String kategori, String aciklama) {}
 
-    Assert.assertEquals(
+  /** Düzenleme ekranındaki sorumlu birim, kategori ve açıklamayı okur. */
+  public DuzenlemeAlanlari duzenlemeAlanlariniOkuma() {
+    return new DuzenlemeAlanlari(
         page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Sorumlu Birim"))
             .innerText(),
-        sorumluBirim,
-        "Sorumlu Birim alanı beklenen değerle eşleşmiyor.");
-    Assert.assertEquals(
         page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Kategori"))
             .innerText(),
-        kategori,
-        "Kategori alanı beklenen değerle eşleşmiyor.");
-    Assert.assertEquals(
-        page.locator("textarea[name='description']").inputValue(),
-        aciklama,
-        "Açıklama alanı beklenen değerle eşleşmiyor.");
+        page.locator("textarea[name='description']").inputValue());
   }
 
   /** Detay ekranında Geri Dön'e tıklar. */
@@ -329,68 +322,70 @@ public class OpenDataPublishPage extends BasePage {
   }
 
   // =====================================================================
-  // Ekran doğrulamaları
+  // Ekran kontrolleri
   // =====================================================================
 
-  /** Veri seti detay ekranının ("Genel Bilgi" sekmesi ve veri seti adı) açılmasını bekler. */
-  public void waitForDetailScreen(String dataSetName) {
-
+  /** Veri seti detay ekranı ("Genel Bilgi" sekmesi ve veri seti adı) açıldıysa true döner. */
+  public boolean detayEkraniAcikMi(String dataSetName) {
     Locator genelBilgi =
         page.getByRole(AriaRole.TAB, new Page.GetByRoleOptions().setName("Genel Bilgi"));
     Locator veriSetiAdi = page.getByText(dataSetName, new Page.GetByTextOptions().setExact(true));
-
-    if (!gorunurMu(genelBilgi) || !gorunurMu(veriSetiAdi)) {
-      throw new AssertionError("Veri seti detay ekranı açılmadı: " + dataSetName);
-    }
+    return gorunurMu(genelBilgi) && gorunurMu(veriSetiAdi);
   }
 
-  /** Veri Seti Yönetimi başlığı görünene kadar bekler; görünmezse hata verir. */
-  public void waitForVeriSetiYonetimi() {
-    Locator baslik =
-        page.getByRole(AriaRole.HEADING, new Page.GetByRoleOptions().setName("Veri Seti Yönetimi"));
-    if (!gorunurMu(baslik)) {
-      throw new AssertionError("Veri Seti Yönetimi ekranına dönülemedi.");
-    }
+  /** Detay ekranında etiketi verilen alan (ör. "Kategori") görünüyorsa true döner. */
+  public boolean detayAlaniGorunurMu(String etiket) {
+    return gorunurMu(
+        page.locator("span")
+            .filter(new Locator.FilterOptions().setHasText(Pattern.compile("^" + etiket + "$")))
+            .first());
+  }
+
+  /** Veri Seti Yönetimi başlığı görünüyorsa true döner. */
+  public boolean veriSetiYonetimiAcikMi() {
+    return gorunurMu(
+        page.getByRole(
+            AriaRole.HEADING, new Page.GetByRoleOptions().setName("Veri Seti Yönetimi")));
   }
 
   // =====================================================================
   // Asenkron değişiklikleri bekleme (liste yenilenerek)
   // =====================================================================
 
-  /** Veri setinin statü sütununun beklenen değere ulaşmasını bekler. */
-  public void waitForStatus(String dataSetName, String expectedStatus) {
-    listedeBekle(
+  /** Veri setinin statüsü beklenen değere ulaşırsa true; süre dolarsa false döner. */
+  public boolean durumaGectiMi(String dataSetName, String beklenenDurum) {
+    return listedeBekle(
         dataSetName,
         "state",
         Locator::innerText,
-        expectedStatus::equals,
-        "Statü: " + expectedStatus,
+        beklenenDurum::equals,
+        "Statü: " + beklenenDurum,
         STATU_TIMEOUT_MS,
         STATU_YENILEME_ARALIGI_MS);
   }
 
-  /** Veri setinin portal aktarım sütununun beklenen değere ulaşmasını bekler. */
-  public void waitForPortalStatus(String dataSetName, String expectedPortalStatus) {
-    listedeBekle(
+  /** Veri setinin portal aktarım durumu beklenen değere ulaşırsa true döner (ör. "Aktarıldı"). */
+  public boolean portalDurumunaGectiMi(String dataSetName, String beklenenDurum) {
+    return listedeBekle(
         dataSetName,
         "ckanSyncStatus",
         Locator::innerText,
-        expectedPortalStatus::equals,
-        "Portal aktarımı: " + expectedPortalStatus,
+        beklenenDurum::equals,
+        "Portal aktarımı: " + beklenenDurum,
         PORTAL_AKTARIM_TIMEOUT_MS,
         PORTAL_YENILEME_ARALIGI_MS);
   }
 
-  /** Veri setinin versiyon numarasının beklenen değere ulaşmasını bekler. */
-  public void waitForVersion(String dataSetName, int expectedVersion) {
-    listedeBekle(
+  /** Veri setinin versiyonu beklenen numaraya ulaşırsa true döner. */
+  public boolean versiyonaGectiMi(String dataSetName, int beklenenVersiyon) {
+    return listedeBekle(
         dataSetName,
         "currentVersionNo",
         hucre -> hucre.getAttribute("title"),
         versiyon ->
             versiyon != null
-                && String.valueOf(expectedVersion).equals(versiyon.replace("v", "").trim()),
-        "Versiyon: v" + expectedVersion,
+                && String.valueOf(beklenenVersiyon).equals(versiyon.replace("v", "").trim()),
+        "Versiyon: v" + beklenenVersiyon,
         VERSIYON_TIMEOUT_MS,
         VERSIYON_YENILEME_ARALIGI_MS);
   }
@@ -408,8 +403,8 @@ public class OpenDataPublishPage extends BasePage {
     return versiyon;
   }
 
-  /** Silinen veri setinin listeden kalkmasını ("Kayıt bulunamadı") bekler. */
-  public void waitForDataSetRemoval(String dataSetName) {
+  /** Silinen veri seti listeden kalkarsa ("Kayıt bulunamadı") true; süre dolarsa false döner. */
+  public boolean listedenKalktiMi(String dataSetName) {
 
     ReportManager.info("Veri setinin listeden kalkması bekleniyor: " + dataSetName);
 
@@ -420,27 +415,25 @@ public class OpenDataPublishPage extends BasePage {
 
       if (gorunurMu(kayitBulunamadiMesaji, 3_000)) {
         ReportManager.info("Veri seti listeden kalktı: " + dataSetName);
-        return;
+        return true;
       }
 
       page.waitForTimeout(SILINME_YENILEME_ARALIGI_MS);
     }
 
-    throw new AssertionError(
-        "Silinen veri seti "
-            + SILINME_TIMEOUT_MS / 1000
-            + " sn içinde listeden kalkmadı: "
-            + dataSetName);
+    ReportManager.warn(
+        "Veri seti " + SILINME_TIMEOUT_MS / 1000 + " sn içinde listeden kalkmadı: " + dataSetName);
+    return false;
   }
 
   /**
    * Listeyi belirli aralıklarla yenileyip veri setinin bir sütununu okur; değer koşulu sağlayınca
-   * döner, süre dolarsa son görülen değerle hata verir.
+   * true döner. Süre dolarsa son görülen değeri loga yazar ve false döner.
    *
    * <p>Aralık bilinçlidir: bekleme olmadan yenilemek sunucuyu gereksiz yere yorar ve paralel koşuda
    * diğer testleri yavaşlatır.
    */
-  private void listedeBekle(
+  private boolean listedeBekle(
       String dataSetName,
       String sutun,
       Function<Locator, String> degerOku,
@@ -467,14 +460,14 @@ public class OpenDataPublishPage extends BasePage {
 
         if (kosul.test(sonDeger)) {
           ReportManager.info("Doğrulandı | " + dataSetName + " | " + beklenenAciklama);
-          return;
+          return true;
         }
       }
 
       page.waitForTimeout(yenilemeAraligiMs);
     }
 
-    throw new AssertionError(
+    ReportManager.warn(
         "Beklenen değere "
             + timeoutMs / 1000
             + " sn içinde ulaşılamadı | "
@@ -483,6 +476,7 @@ public class OpenDataPublishPage extends BasePage {
             + beklenenAciklama
             + " | Son görülen: "
             + sonDeger);
+    return false;
   }
 
   /** Sayfayı yenileyip sekmeye döner ve veri setini tekrar arar. */
@@ -491,8 +485,6 @@ public class OpenDataPublishPage extends BasePage {
     clickPublishTab();
     searchDataSet(dataSetName);
   }
-
-  private static final String DATA_API_ETIKETI = "Data API";
 
   /**
    * "Veri Setini Yayınla" penceresindeki ayarları okur: işaretli formatlar, Data API, yayın

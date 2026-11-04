@@ -6,6 +6,7 @@ import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.TestDataUtil;
 import java.util.List;
+import org.testng.Assert;
 
 /**
  * Yayınlanmış veriyle çalışan sayfaların (Güncelleme Takvimi, kamuya açık portal) testleri için ön
@@ -68,14 +69,21 @@ public class OpenDataSetupFlow {
             KULLANIM_LISANSI,
             "Otomasyon veri seti - " + veriSetiAdi,
             MASKELENECEK_KOLONLAR);
-    publishPage.waitForStatus(veriSetiAdi, "KVKK Onayında");
+    Assert.assertTrue(
+        publishPage.durumaGectiMi(veriSetiAdi, "KVKK Onayında"),
+        "Ön koşul: veri seti KVKK Onayında olmadı.");
 
     publishFlow.approveKvkk(veriSetiAdi);
-    publishPage.waitForStatus(veriSetiAdi, "Yayın Onayında");
+    Assert.assertTrue(
+        publishPage.durumaGectiMi(veriSetiAdi, "Yayın Onayında"),
+        "Ön koşul: veri seti Yayın Onayında olmadı.");
 
     YayinAyarlari yayinAyarlari = publishFlow.publishDataSet(veriSetiAdi);
-    publishPage.waitForStatus(veriSetiAdi, "Yayında");
-    publishPage.waitForPortalStatus(veriSetiAdi, "Aktarıldı");
+    Assert.assertTrue(
+        publishPage.durumaGectiMi(veriSetiAdi, "Yayında"), "Ön koşul: veri seti Yayında olmadı.");
+    Assert.assertTrue(
+        publishPage.portalDurumunaGectiMi(veriSetiAdi, "Aktarıldı"),
+        "Ön koşul: veri seti portala aktarılmadı.");
 
     ReportManager.info(
         "Ön koşul hazır: yayında ve portala aktarıldı | "

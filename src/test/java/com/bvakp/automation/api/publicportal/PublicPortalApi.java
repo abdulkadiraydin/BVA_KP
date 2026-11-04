@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 /**
  * Kamuya açık Açık Veri Portalı'nın CKAN Action API'si (/api/3/action/...).
@@ -22,6 +23,9 @@ public class PublicPortalApi {
 
   /** Sistem alanı; veri sözlüğünde ve karşılaştırmalarda yer almaz. */
   private static final String SISTEM_ALANI = "_id";
+
+  /** Portal yoklama aralığı; API'de beklenecek bir olay olmadığı için belirli aralıkla sorulur. */
+  private static final long YOKLAMA_ARALIGI_MS = 3_000;
 
   private final ApiClient client;
 
@@ -84,12 +88,9 @@ public class PublicPortalApi {
   }
 
   /**
-   * Veri seti aramada görünene ve verisi DataStore'a yüklenene kadar bekler. Yayından hemen sonra
-   * paket aramada olsa da kaynağı birkaç saniye eksik kalabilir.
+   * Veri seti aramada görünene ve verisi DataStore'a yüklenene kadar bekler; süre dolarsa hata
+   * verir. Yayından hemen sonra paket aramada olsa da kaynağı birkaç saniye eksik kalabilir.
    */
-  // Bilinçli yoklama aralığı: API'de beklenecek bir sayfa/olay yok, portal 3 sn'de bir sorgulanır.
-  /** Paket bulunup datastore kaynağı oluşana kadar bekler; süre dolarsa hata verir. */
-  @SuppressWarnings("java:S2925")
   public JsonNode paketHazirOlanaKadarBekleme(String baslik, int sureSn) {
 
     long bitis = System.currentTimeMillis() + sureSn * 1000L;
@@ -107,12 +108,43 @@ public class PublicPortalApi {
                 + baslik
                 + (paket.isPresent() ? " (paket var, DataStore kaynağı yok)" : " (paket yok)"));
       }
-      try {
-        Thread.sleep(3_000);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException("Portal beklemesi kesildi.", e);
+      yoklamaAraligiBekleme();
+    }
+  }
+
+  /** Başlığı verilen veri seti süre içinde portal aramasında görünürse true döner. */
+  public boolean paketGorunenKadarBekleme(String baslik, int sureSn) {
+    return kosulOlanaKadarBekleme(() -> paketBaslikIleBul(baslik).isPresent(), sureSn);
+  }
+
+  /**
+   * Başlığı verilen veri seti süre içinde portal aramasından kalkarsa true döner. Arşivleme ve
+   * silme sonrası kontrol içindir.
+   */
+  public boolean paketKalkanaKadarBekleme(String baslik, int sureSn) {
+    return kosulOlanaKadarBekleme(() -> paketBaslikIleBul(baslik).isEmpty(), sureSn);
+  }
+
+  /** Koşul sağlanana kadar portalı yoklar; süre dolarsa false döner. */
+  private static boolean kosulOlanaKadarBekleme(BooleanSupplier kosul, int sureSn) {
+    long bitis = System.currentTimeMillis() + sureSn * 1000L;
+    while (!kosul.getAsBoolean()) {
+      if (System.currentTimeMillis() > bitis) {
+        return false;
       }
+      yoklamaAraligiBekleme();
+    }
+    return true;
+  }
+
+  /** İki portal sorgusu arasında bekler. */
+  @SuppressWarnings("java:S2925") // Bilinçli: portalda beklenecek bir sayfa/olay yok.
+  private static void yoklamaAraligiBekleme() {
+    try {
+      Thread.sleep(YOKLAMA_ARALIGI_MS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Portal beklemesi kesildi.", e);
     }
   }
 

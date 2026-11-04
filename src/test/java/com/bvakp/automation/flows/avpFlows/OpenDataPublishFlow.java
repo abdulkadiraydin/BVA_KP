@@ -2,7 +2,9 @@ package com.bvakp.automation.flows.avpFlows;
 
 import com.bvakp.automation.model.YayinAyarlari;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
+import com.bvakp.automation.pages.openData.OpenDataPublishPage.DuzenlemeAlanlari;
 import com.bvakp.automation.reporting.ReportManager;
+import org.testng.Assert;
 
 /**
  * Var olan bir veri seti üzerinde Veri Seti Yönetimi'ndeki tek bir iş adımını yapar: KVKK onay/red,
@@ -15,6 +17,8 @@ public class OpenDataPublishFlow {
 
   private static final String DUZENLEME_SORUMLU_BIRIM = "Yolcu Taşımacılığı Daire Başkanlığı";
   private static final String DUZENLEME_KATEGORI = "İstatistik";
+  private static final String YAYIN_ACIKLAMASI =
+      "Otomasyon testi kapsamında yayınlama işlemi gerçekleştirilmiştir.";
 
   private final OpenDataPublishPage publishPage;
 
@@ -99,7 +103,11 @@ public class OpenDataPublishFlow {
     publishPage.clickDuzenlemeKaydet();
     publishPage.bildirimBekleme("Veri seti güncellendi");
 
-    publishPage.assertDuzenlemeAlanlari(DUZENLEME_SORUMLU_BIRIM, DUZENLEME_KATEGORI, yeniAciklama);
+    DuzenlemeAlanlari alanlar = publishPage.duzenlemeAlanlariniOkuma();
+    Assert.assertEquals(
+        alanlar.sorumluBirim(), DUZENLEME_SORUMLU_BIRIM, "Ön koşul: Sorumlu Birim kaydedilmedi.");
+    Assert.assertEquals(alanlar.kategori(), DUZENLEME_KATEGORI, "Ön koşul: Kategori kaydedilmedi.");
+    Assert.assertEquals(alanlar.aciklama(), yeniAciklama, "Ön koşul: Açıklama kaydedilmedi.");
 
     ReportManager.step("Değişiklikler onaya gönderiliyor: " + dataSetName);
 
@@ -108,7 +116,8 @@ public class OpenDataPublishFlow {
     publishPage.bildirimBekleme("Veri seti onay kuyruğuna gönderildi.");
 
     publishPage.clickGeriDon();
-    publishPage.waitForVeriSetiYonetimi();
+    Assert.assertTrue(
+        publishPage.veriSetiYonetimiAcikMi(), "Ön koşul: Veri Seti Yönetimi ekranına dönülemedi.");
   }
 
   // =====================================================================
@@ -179,9 +188,6 @@ public class OpenDataPublishFlow {
     publishPage.confirmGuncelle();
     publishPage.bildirimBekleme("Güncelleme başlatıldı");
   }
-
-  private static final String YAYIN_ACIKLAMASI =
-      "Otomasyon testi kapsamında yayınlama işlemi gerçekleştirilmiştir.";
 
   /**
    * Veri setini yayınlar; yayınla butonuna basmadan önce penceredeki ayarları (formatlar, Data API,
