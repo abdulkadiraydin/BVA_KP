@@ -4,6 +4,8 @@ import com.bvakp.automation.pages.BasePage;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
+import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -16,6 +18,9 @@ import java.util.regex.Pattern;
 public class OpenDataDashboardPage extends BasePage {
 
   private static final int DASHBOARD_TIMEOUT_MS = 15_000;
+
+  /** Format legend satırı: "CSV: 119 (78%)" → 119. */
+  private static final Pattern FORMAT_SATIRI = Pattern.compile("^[A-Z]+: ([\\d.]+) \\(\\d+%\\)$");
 
   /** Seçenekleri kodda yazım hatasına karşı tek yerde tutar. */
   public enum TrendDonemi {
@@ -31,6 +36,12 @@ public class OpenDataDashboardPage extends BasePage {
 
     /** Dönem butonunun ekrandaki adı. */
     public String butonAdi() {
+      return butonAdi;
+    }
+
+    /** Raporda ve test adında HAFTALIK yerine Haftalık görünsün diye. */
+    @Override
+    public String toString() {
       return butonAdi;
     }
   }
@@ -157,6 +168,58 @@ public class OpenDataDashboardPage extends BasePage {
         && xlsxLegend.isVisible();
   }
 
+  /** Yayındaki Veri Seti kartındaki sayı. */
+  public int yayindakiVeriSetiAlma() {
+    return kartDegeri(toplamVeriSetiKarti);
+  }
+
+  /** Toplam İndirme kartındaki sayı. */
+  public int toplamIndirmeAlma() {
+    return kartDegeri(toplamIndirmeKarti);
+  }
+
+  /** API Çağrısı kartındaki sayı. */
+  public int apiCagrisiAlma() {
+    return kartDegeri(apiCagrisiKarti);
+  }
+
+  /** Benzersiz Kullanıcı kartındaki sayı. */
+  public int benzersizKullaniciAlma() {
+    return kartDegeri(benzersizKullaniciKarti);
+  }
+
+  /**
+   * Etiketi verilen kartın sayısı ("174.579" → 174579). Sayı kartın ilk yazısıdır; "+46 bu dönem"
+   * ayrı bir kutuda durur. Sayı değilse NumberFormatException ile test kırılır.
+   */
+  private int kartDegeri(Locator etiket) {
+    String deger =
+        page.locator(".MuiCard-root")
+            .filter(new Locator.FilterOptions().setHas(etiket))
+            .locator("p")
+            .first()
+            .textContent();
+    return sayiyaCevir(deger);
+  }
+
+  /** Format Dağılımı'ndaki bütün formatların indirme sayılarının toplamı. */
+  public int formatToplamiAlma() {
+    gorunurMu(csvLegend, DASHBOARD_TIMEOUT_MS);
+    int toplam = 0;
+    for (String metin : page.locator(".recharts-legend-item-text").allTextContents()) {
+      Matcher satir = FORMAT_SATIRI.matcher(metin.trim());
+      if (satir.matches()) {
+        toplam += sayiyaCevir(satir.group(1));
+      }
+    }
+    return toplam;
+  }
+
+  /** Ekrandaki Türkçe biçimli sayıyı çevirir: "174.579" → 174579. */
+  private static int sayiyaCevir(String metin) {
+    return Integer.parseInt(metin.trim().replace(".", ""));
+  }
+
   // =====================================================================
   // İndirme ve API erişim trendi
   // =====================================================================
@@ -171,28 +234,39 @@ public class OpenDataDashboardPage extends BasePage {
     trendButonu(donem).click();
   }
 
-  /**
-   * Verilen dönem butonu seçili görünüyorsa true. Seçim durumu, butonun aria-pressed özelliğinden
-   * veya Mui-selected sınıfından okunur.
-   */
+  /** Dönem butonu seçili hâle gelene kadar bekler; süre içinde seçilmezse false döner. */
   public boolean trendDonemiSeciliMi(TrendDonemi donem) {
-
-    Locator buton = trendButonu(donem);
-
-    if (!gorunurMu(buton, DASHBOARD_TIMEOUT_MS)) {
-      return false;
-    }
-
-    String ariaPressed = buton.getAttribute("aria-pressed");
-    String sinif = buton.getAttribute("class");
-
-    return "true".equals(ariaPressed) || (sinif != null && sinif.contains("Mui-selected"));
+    return gorunurMu(
+        trendButonu(donem).and(page.locator("[aria-pressed='true']")), DASHBOARD_TIMEOUT_MS);
   }
 
   /** Verilen trend döneminin butonunu döndürür. */
   private Locator trendButonu(TrendDonemi donem) {
     return page.getByRole(
         AriaRole.BUTTON, new Page.GetByRoleOptions().setName(donem.butonAdi()).setExact(true));
+  }
+
+  /**
+   * Başlığın altındaki dönem satırı verilen tarihlerle görünene kadar bekler. Günlük seçimde
+   * tarihlerin yanında saat de yazar (03.11.2026 14:05); saat kontrol edilmez.
+   */
+  public boolean donemSatiriGorunurMu(String baslangic, String bitis) {
+    Pattern satir =
+        Pattern.compile(
+            "^Dönem: "
+                + regexKacis(baslangic)
+                + "( \\d{2}:\\d{2})? – "
+                + regexKacis(bitis)
+                + "( \\d{2}:\\d{2})?$");
+    return gorunurMu(page.getByText(satir), DASHBOARD_TIMEOUT_MS);
+  }
+
+  /**
+   * Metindeki regex karakterlerini kaçırır. Pattern.quote kullanılmaz: ürettiği \Q...\E yazımı
+   * Playwright'ın tarayıcıda çalıştırdığı JavaScript regex'inde geçersizdir.
+   */
+  private static String regexKacis(String metin) {
+    return metin.replaceAll("[.*+?^${}()|\\[\\]\\\\]", "\\\\$0");
   }
 
   // =====================================================================
@@ -227,6 +301,27 @@ public class OpenDataDashboardPage extends BasePage {
   /** Kategori Dağılımı açıklaması görünüyorsa true döner. */
   public boolean kategoriMetniGorunurMu() {
     return gorunurMu(kategoriDagilimiAciklamasi, DASHBOARD_TIMEOUT_MS);
+  }
+
+  /** En Çok İndirilen listesindeki indirme sayıları, ekrandaki sırayla ("22 indirme" → 22). */
+  public List<Integer> enCokIndirilenSayilariAlma() {
+    return listeSayilari(enCokIndirilenBasligi);
+  }
+
+  /** En Çok API ile Sorgulanan listesindeki çağrı sayıları, ekrandaki sırayla. */
+  public List<Integer> enCokApiSayilariAlma() {
+    return listeSayilari(enCokApiBasligi);
+  }
+
+  /** Başlığın altındaki listede her satırın ikinci yazısındaki sayı; liste yoksa boş liste. */
+  private List<Integer> listeSayilari(Locator baslik) {
+    Locator satirlar = baslik.locator("xpath=ancestor::*[.//ol][1]//ol/li");
+    if (!gorunurMu(satirlar.first(), DASHBOARD_TIMEOUT_MS)) {
+      return List.of();
+    }
+    return satirlar.locator("p:nth-of-type(2)").allTextContents().stream()
+        .map(metin -> sayiyaCevir(metin.trim().split(" ")[0]))
+        .toList();
   }
 
   // =====================================================================

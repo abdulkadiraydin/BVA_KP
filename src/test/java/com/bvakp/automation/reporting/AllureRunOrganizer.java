@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -513,11 +514,14 @@ public final class AllureRunOrganizer {
     }
   }
 
-  /** Klasör adında kullanılamayan karakterleri temizler. */
+  /** Klasör adında kullanılamayan karakterleri sadeleştirir: "a [Haftalık]" → "a_Haftalik". */
   private static String safeName(String value) {
     if (value == null || value.isBlank()) {
       return "TestClass";
     }
-    return value.replaceAll("[^a-zA-Z0-9._-]", "_");
+    String ascii =
+        Normalizer.normalize(value.replace('ı', 'i').replace('İ', 'I'), Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "");
+    return ascii.replaceAll("[^a-zA-Z0-9._-]+", "_").replaceAll("^_|_$", "");
   }
 }

@@ -179,9 +179,18 @@ public class TestListener
     }
   }
 
-  /** Test metodunun adını döndürür. */
-  private String getTestName(ITestResult result) {
-    return result.getMethod().getMethodName();
+  /**
+   * Raporda ve kanıt klasöründe görünen test adı. DataProvider'lı testlerde ilk parametre eklenir
+   * (ör. trendDonemSecimi [Haftalık]). İlk parametre bu yüzden okunabilir bir ad olmalı; parola
+   * gibi gizli değerler ilk sıraya konmaz.
+   */
+  public static String getTestName(ITestResult result) {
+    String ad = result.getMethod().getMethodName();
+    Object[] parametreler = result.getParameters();
+    if (parametreler == null || parametreler.length == 0) {
+      return ad;
+    }
+    return ad + " [" + parametreler[0] + "]";
   }
 
   /** Test sınıfının kısa adını döndürür. */

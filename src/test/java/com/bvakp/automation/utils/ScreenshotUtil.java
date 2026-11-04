@@ -2,6 +2,7 @@ package com.bvakp.automation.utils;
 
 import com.bvakp.automation.reporting.AllureArtifactCollector;
 import com.bvakp.automation.reporting.ReportManager;
+import com.bvakp.automation.reporting.TestListener;
 import com.microsoft.playwright.Page;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,7 +71,7 @@ public final class ScreenshotUtil {
     AllureArtifactCollector.registerTestScreenshot(
         screenshotPath,
         sonuc.getTestClass().getRealClass().getSimpleName(),
-        sonuc.getMethod().getMethodName(),
+        TestListener.getTestName(sonuc),
         sanitizeFileName(ad));
   }
 
