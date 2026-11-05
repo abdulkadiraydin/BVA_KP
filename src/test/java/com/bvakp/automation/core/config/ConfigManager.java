@@ -38,7 +38,7 @@ public final class ConfigManager {
   static {
     // Sonra yüklenen dosya öncekinin aynı anahtarlarını ezer.
     dosyaYukleme("config.properties", true);
-    dosyaYukleme("ortam/" + ORTAM + ".properties", true);
+    dosyaYukleme("env/" + ORTAM + ".properties", true);
     dosyaYukleme("config.local.properties", false);
   }
 
@@ -110,9 +110,9 @@ public final class ConfigManager {
    */
   private static String ortamBelirleme() {
 
-    String ortam = System.getProperty("ortam");
+    String ortam = System.getProperty("env");
     if (bosMu(ortam)) {
-      ortam = System.getenv(ortamDegiskeniAdi("ortam"));
+      ortam = System.getenv(ortamDegiskeniAdi("env"));
     }
     ortam = bosMu(ortam) ? VARSAYILAN_ORTAM : ortam.trim().toLowerCase(Locale.ROOT);
 

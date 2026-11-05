@@ -10,15 +10,20 @@ Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI
 | | Sürüm |
 |---|---|
 | Java | 21 |
-| Maven | 3.x |
-| Playwright (Java) | 1.41 |
-| TestNG | 7.8 |
-| Allure (kütüphane) | 2.35 |
+| Maven | 3.10.0 (proje Maven Wrapper kullanmaz; Maven kurulu olmalı) |
+| Playwright (Java) | 1.64 |
+| TestNG | 7.12 |
+| Maven Surefire | 3.5.4 (3.6.0 ve üstü `testng.xml`'i okumuyor; yükseltilmemeli) |
+| Allure (kütüphane) | 2.35.5 |
 | Allure CLI | 2.24 veya üstü (tek dosyalık rapor için) |
+| Spotless / google-java-format | Kod biçimi (Google stili) |
 
 ## Kurulum
 
-1. Java 21 ve Maven kurulu olmalı: `java -version`, `mvn -version`
+1. Java 21 ve Maven 3.10.0 kurulu olmalı: `java -version`, `mvn -version`
+   - Maven'ı indirip bir klasöre açın (ör. `C:\Program Files\Apache\maven-3.10.0`).
+   - `MAVEN_HOME` ortam değişkenini bu klasör yapın, `Path`'e `%MAVEN_HOME%\bin` ekleyin.
+   - Terminali ve IntelliJ'i yeniden başlatıp `mvn -version` ile 3.10.0 göründüğünü kontrol edin.
 2. Allure CLI kurulu ve `PATH`'te olmalı: `allure --version`
 3. Bağımlılıkları indir ve derle:
    ```powershell
@@ -26,6 +31,7 @@ Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI
    ```
 4. Test kullanıcısının parolasını `BVAKP_PASSWORD` ortam değişkeni olarak tanımla (bkz. Ayarlar).
 5. Mail gönderilecekse proje kökünde `.env.mail` dosyası oluştur (Git'e eklenmez).
+6. IntelliJ'e **google-java-format** eklentisini kurup etkinleştir; Settings → Editor → General → Smart Keys → *Reformat on paste* ayarını **None** yap (bkz. Kod biçimi).
 
 > Windows terminalinde Türkçe karakterler bozuk görünüyorsa PowerShell profiline
 > (`notepad $PROFILE`) şunları ekle:
@@ -38,28 +44,40 @@ Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI
 ## Testleri çalıştırma
 
 ```powershell
-mvn test                                         # testng.xml'deki bütün sınıflar
+mvn test                                         # testng.xml (varsayılan)
+mvn test "-Dsuite.xml=smoke.xml"                 # hızlı kontrol
+mvn test "-Dsuite.xml=regresyon.xml"             # tam regresyon
 mvn test "-Dtest=PublicOpenDataTest"             # tek sınıf
 mvn test "-Dtest=LoginTest,OpenDataDashboardTest" # birkaç sınıf
 mvn test "-Dtest=PublicOpenDataTest" "-Dheadless=false"  # tarayıcıyı izleyerek
 mvn test "-Dtest=PublicOpenDataTest" "-Dtrace.mode=on"   # bütün testlerin trace'ini sakla
 ```
 
-`testng.xml` testleri `parallel="methods"`, `thread-count="3"` ile koşar.
-Test ortamı daha yüksek paralellikte yetişemiyor (5'te tablolar yüklenmedi); 3'ün üstüne çıkmayın.
+| Paket | İçerik | Ne zaman |
+|---|---|---|
+| `smoke.xml` | Her modülün ana akışı (giriş, dashboard, kaynak oluşturma, onaya gönderme, yayın, portalda arama ve maske) | Her değişiklikten sonra |
+| `regresyon.xml` | Bütün test sınıfları | Gece, sürüm öncesi, büyük değişiklik sonrası |
+| `testng.xml` | Bütün test sınıfları (`parallel="methods"`) | IntelliJ'den ve `mvn test` ile varsayılan |
+
+Paket `pom.xml`'deki `suite.xml` özelliğiyle seçilir; IntelliJ'de xml dosyasına sağ tık → *Run* de kullanılabilir.
+
+- `smoke.xml` ve `regresyon.xml` `parallel="classes"`, `thread-count="2"` ile koşar: aynı anda daha az giriş yapılır, Keycloak kilitlenmesi riski azalır.
+- Test ortamı yüksek paralellikte yetişemiyor (5'te tablolar yüklenmedi); `thread-count` 3'ün üstüne çıkarılmamalı.
+- Smoke'ta yalnızca seçilen testler koşsa da sınıfın `@BeforeClass` hazırlığı yine çalışır.
+- `<include name="...">` içindeki metot adı yanlışsa TestNG hata vermez, testi atlar; metot adı değişirse `smoke.xml` de güncellenmelidir.
 
 ## Ayarlar
 
 ```
 src/test/resources/config/
   config.properties              bütün ortamlarda ortak ayarlar          (Git'te)
-  ortam/test.properties          test ortamı: adresler, kullanıcı adı    (Git'te)
+  env/test.properties            test ortamı: adresler, kullanıcı adı    (Git'te)
   config.local.properties        kişisel ayarlar, isteğe bağlı           (Git'e girmez)
   config.local.properties.ornek  kişisel ayar dosyası örneği
 ```
 
-Ortam `-Dortam=test` (veya `BVAKP_ORTAM`) ile seçilir; verilmezse `test` kullanılır.
-Yeni bir ortam eklemek için `ortam/<ad>.properties` dosyası oluşturmak yeterlidir.
+Ortam `-Denv=test` (veya `BVAKP_ENV`) ile seçilir; verilmezse `test` kullanılır.
+Yeni bir ortam eklemek için `env/<ad>.properties` dosyası oluşturmak yeterlidir.
 
 Bir değer şu öncelikle okunur:
 
@@ -67,7 +85,7 @@ Bir değer şu öncelikle okunur:
 2. Ortam değişkeni: `BVAKP_` + anahtarın büyük harfli hali, nokta yerine alt çizgi
    (ör. `password` → `BVAKP_PASSWORD`, `base.url` → `BVAKP_BASE_URL`)
 3. `config.local.properties`
-4. `ortam/<ortam>.properties`
+4. `env/<ortam>.properties`
 5. `config.properties`
 6. Koddaki varsayılan
 
@@ -83,7 +101,9 @@ Bir değer şu öncelikle okunur:
 | `public.data.url` | Kamuya açık portal adresi | |
 | `username` | Test kullanıcısı (ortam dosyasında) | |
 | `password` | Parola; yalnızca `BVAKP_PASSWORD` ortam değişkeniyle | |
-| `browser`, `headless` | Tarayıcı ve görünmez mod | |
+| `browser`, `headless` | Tarayıcı ve görünmez mod (CI'da `headless=true`) | |
+| `browser.locale` | Tarayıcı dili; sayı ve tarih biçimini belirler (`3.529`) | `tr-TR` |
+| `ignore.https.errors` | Sertifika hatalarını yok say (kamuya açık portal self-signed sertifika kullanıyor). **Yalnızca `env/test.properties`'te** `true`; canlı ortamda açılmamalı | `false` |
 | `viewport.width`, `viewport.height` | Pencere boyutu | 1280 × 720 |
 | `auth.state.reuse` | Oturumu dosyada saklayıp testler arasında paylaş; paralel koşuda `false` kalmalı | `false` |
 | `trace.mode` | `off`, `on`, `retain-on-failure` | `retain-on-failure` |
@@ -97,6 +117,17 @@ Bir değer şu öncelikle okunur:
 | `cleanup.allowed.hosts` | Temizliğin çalışabileceği host'lar (ortam dosyasında); boşsa hiçbir yerde silmez | |
 | `cleanup.name.prefix` | Yalnızca bu önekle başlayan kaynaklar silinir | `otomasyon_` |
 | `cleanup.max.delete` | Bir koşuda silinebilecek en fazla kaynak | |
+
+## Kod biçimi
+
+Kod Google Java stiliyle biçimlenir (Spotless + google-java-format: 2 boşluk girinti, 4 boşluk devam satırı, 100 karakter satır).
+
+```powershell
+mvn spotless:apply   # bütün dosyaları biçimle, kullanılmayan importları sil
+mvn spotless:check   # biçim hatası varsa build'i kırar (commit/CI öncesi)
+```
+
+IntelliJ'de google-java-format eklentisi açıkken `Ctrl+Alt+L` aynı biçimi uygular.
 
 ## Proje yapısı
 
@@ -122,6 +153,7 @@ src/test/java/com/bvakp/automation/
   utils/             Ekran görüntüsü, video, ZIP, test verisi yardımcıları
 scripts/
   Generate-AllureReport.ps1   Koşu sonunda Allure raporunu ve history'yi üretir
+testng.xml, smoke.xml, regresyon.xml   TestNG paketleri (bkz. Testleri çalıştırma)
 ```
 
 ## Yazım kuralları
@@ -133,6 +165,8 @@ scripts/
 - **Test verisi:** Oluşturulan her kaynak ve veri setinin adı `otomasyon_` ile başlar ve zaman damgası içerir (`TestDataUtil.dinamikAdOlusturma`).
 - **Ortak veri:** Aynı veri setini kullanan sınıflar onu `@BeforeClass`'ta bir kez hazırlar (ör. `OpenDataUpdateCalendarTest`, `PublicOpenDataTest`). Bu testler veriyi yalnızca okur ve paralel çalışabilir. Veriyi değiştiren bir test kendi verisini oluşturmalıdır.
 - **API testleri:** Yalnızca API çağıran testler `@ApiTesti` ile işaretlenir. Bu testlerde tarayıcı açılmaz, `page()` null döner; kanıt Allure'daki istek/yanıt ekleridir.
+- **DataProvider:** İlk parametre okunabilir bir senaryo adı olmalıdır; rapordaki test adına eklenir (ör. `trendDonemSecimi [Haftalık]`). İlk parametre **hiçbir zaman parola olmamalıdır**.
+- **Javadoc:** Her sınıf ve public metodun kısa bir Javadoc açıklaması bulunur.
 - **Yorumlar ve loglar:** Kısa tutulur; yorum "ne"yi değil "neden"i anlatır.
 
 ## Raporlar
@@ -170,8 +204,3 @@ reports/
 ## Git'e eklenmeyenler
 
 `.env.mail`, `config.local.properties`, `.automation-state/`, `target/`, `reports/`. Trace ve videolar sayfa içeriği ve ağ verisi barındırabileceği için hassas kabul edilir.
-
-## Bilinen durumlar
-
-- `PublicOpenDataTest.kolonTipleriKorunur` kırmızıdır: kaynakta integer/date olan kolonlar kamuya açık portalda `text` olarak yayınlanıyor. Ürün hatası; düzeltilene kadar kırmızı kalması beklenir.
-- Keycloak'ta hızlı art arda girişler kullanıcıyı geçici olarak kilitleyebilir (`user_temporarily_disabled`). `AvpBaseTest` girişleri sıraya alır ve aralarında kısa bir bekleme bırakır; bu yapı değiştirilmemelidir.
