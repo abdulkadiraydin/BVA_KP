@@ -1,6 +1,5 @@
 package com.bvakp.automation.pages.publicPortal;
 
-import com.bvakp.automation.pages.BasePage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -15,7 +14,7 @@ import java.util.Map;
  * <p>Tablo önizlemesi iframe içinde olduğu için okunmaz; kayıt değerleri API ile doğrulanır.
  * Bölümler aynı sayfada olduğundan okumalar sekme açmadan da çalışır.
  */
-public class PublicPortalResourcePage extends BasePage {
+public class PublicPortalResourcePage extends PublicPortalBasePage {
 
   private final Locator baslik;
   private final Locator formatlar;

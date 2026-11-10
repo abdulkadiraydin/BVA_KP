@@ -41,6 +41,16 @@ public class PublicPortalApi {
   // =====================================================================
   // Ham çağrılar
   // =====================================================================
+  /**
+   * Kullanıcının API anahtar listesini, verilen anahtarla kimlik doğrulayarak ister. Anahtar
+   * geçerliyse başarılı, iptal edilmişse yetki hatası döner.
+   */
+  public ApiYanit anahtarIleAnahtarListesiGetir(String apiAnahtari, String kullaniciAdi) {
+    return client.get(
+            ACTION + "api_token_list",
+            Map.of("user_id", kullaniciAdi),
+            Map.of("Authorization", apiAnahtari));
+  }
 
   /**
    * @param idVeyaAd veri setinin id'si veya URL'deki adı (slug)

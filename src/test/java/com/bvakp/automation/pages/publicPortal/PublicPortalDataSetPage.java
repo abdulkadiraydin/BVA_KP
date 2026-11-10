@@ -1,7 +1,5 @@
 package com.bvakp.automation.pages.publicPortal;
 
-import com.bvakp.automation.core.config.ConfigManager;
-import com.bvakp.automation.pages.BasePage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -16,7 +14,7 @@ import java.util.Map;
  *
  * <p>Değerler okunur, doğrulama testte yapılır.
  */
-public class PublicPortalDataSetPage extends BasePage {
+public class PublicPortalDataSetPage extends PublicPortalBasePage {
 
   private static final String MASKELENEN_ALANLAR_ETIKETI = "Maskelenen alanlar:";
   private final Locator kategori;
@@ -46,16 +44,7 @@ public class PublicPortalDataSetPage extends BasePage {
 
   /** Veri setinin detay sayfasını adres adıyla (/dataset/<ad>) açar. */
   public void veriSetiSayfasiniAcma(String adresAdi) {
-    page.navigate(tabanAdres() + "/dataset/" + adresAdi);
-  }
-
-  /** public.data.url; sondaki "/" işaretleri atılır (adres config'te "/" ile bitebilir). */
-  private static String tabanAdres() {
-    String adres = ConfigManager.get("public.data.url");
-    while (adres.endsWith("/")) {
-      adres = adres.substring(0, adres.length() - 1);
-    }
-    return adres;
+    adresAcma("/dataset/" + adresAdi);
   }
 
   /** Başlığı verilen adla birebir aynı olan detay sayfası açıldıysa true. */

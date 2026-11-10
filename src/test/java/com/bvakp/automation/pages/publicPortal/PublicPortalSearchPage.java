@@ -1,7 +1,5 @@
 package com.bvakp.automation.pages.publicPortal;
 
-import com.bvakp.automation.core.config.ConfigManager;
-import com.bvakp.automation.pages.BasePage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -16,7 +14,7 @@ import java.util.List;
  * <p>Arama bulanık eşleşir (benzer adlı onlarca sonuç gelir); bu yüzden kart her zaman başlığı
  * birebir aynı olana göre seçilir, ilk sonuca göre değil.
  */
-public class PublicPortalSearchPage extends BasePage {
+public class PublicPortalSearchPage extends PublicPortalBasePage {
 
   private final Locator aramaKutusu;
   private final Locator sonucSayisi;
@@ -30,9 +28,9 @@ public class PublicPortalSearchPage extends BasePage {
     this.sonucKartlari = page.locator("li.bvakp-card");
   }
 
-  /** Config'teki public.data.url adresini açar. */
+  /** Portalın ana sayfasını açar. */
   public void portaliAcma() {
-    page.navigate(ConfigManager.get("public.data.url"));
+    adresAcma("/");
     ReportManager.info("Kamuya açık portal açıldı");
   }
 
