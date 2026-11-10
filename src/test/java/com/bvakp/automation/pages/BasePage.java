@@ -39,6 +39,11 @@ public abstract class BasePage {
     return page.title();
   }
 
+  /** Sayfanın bağlı olduğu Playwright Page'i döndürür (ör. kullanıcı değiştirmek için). */
+  public Page getPage() {
+    return page;
+  }
+
   /**
    * Ekranda çıkan bildirimin (toast) görünmesini bekler.
    *

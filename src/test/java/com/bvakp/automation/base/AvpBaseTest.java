@@ -1,6 +1,8 @@
 package com.bvakp.automation.base;
 
 import com.bvakp.automation.core.auth.AvpAuthStateManager;
+import com.bvakp.automation.core.auth.AvpOturum;
+import com.bvakp.automation.core.auth.Rol;
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.LoginPage;
@@ -18,16 +20,6 @@ public abstract class AvpBaseTest extends BaseTest {
   private static final int MAKSIMUM_NAVIGASYON_DENEMESI = 2;
 
   /**
-   * Keycloak brute force koruması, aynı kullanıcıyla 1 sn'den kısa aralıklı girişleri şüpheli sayıp
-   * kullanıcıyı geçici kilitliyor (user_temporarily_disabled). Testler paralel çalışır; girişler
-   * sırayla ve aralarında en az bu süre bırakılarak yapılır.
-   */
-  private static final long GIRISLER_ARASI_MIN_SURE_MS = 1_500;
-
-  private static final Object GIRIS_KILIDI = new Object();
-  private static long sonGirisZamaniMs = 0;
-
-  /**
    * Kayıtlı oturum dosyasının kullanılıp kullanılmayacağını belirler.
    *
    * <p>false (varsayılan) ise her test kendi girişini yapar. Paralel koşuda oturum dosyasını
@@ -38,11 +30,8 @@ public abstract class AvpBaseTest extends BaseTest {
     return Boolean.parseBoolean(ConfigManager.getOrDefault("auth.state.reuse", "false"));
   }
 
-  /**
-   * Portalı açar; kayıtlı oturum geçerliyse doğrudan devam eder, değilse kullanıcı bilgileriyle
-   * giriş yapıp oturumu kaydeder.
-   */
-  protected void avpOturumuHazirlama() {
+  /** Portalı açar ve verilen rolün kullanıcısıyla oturum hazırlar. */
+  protected void avpOturumuHazirlama(Rol rol) {
 
     ReportManager.step("AVP portalı açılıyor.");
     avpPortaliniAcma();
@@ -50,27 +39,17 @@ public abstract class AvpBaseTest extends BaseTest {
     LoginPage loginPage = new LoginPage(page());
 
     switch (loginPage.oturumDurumunuBekle()) {
-      case GOSTERGE_PANOSU -> ReportManager.info("Geçerli oturum kullanıldı.");
+      case GOSTERGE_PANOSU -> {
+        // Kayıtlı oturumun kime ait olduğu bilinmez; istenen rolle yeniden giriş yapılır.
+        ReportManager.info("Kayıtlı oturum bulundu, istenen rolle giriş yapılıyor.");
+        AvpOturum.aktifKullaniciSifirlama();
+        AvpOturum.rolIleGirisYapma(page(), rol);
+      }
 
       case LOGIN_EKRANI -> {
         ReportManager.step("Kullanıcı bilgileri ile giriş yapılıyor.");
-
-        synchronized (GIRIS_KILIDI) {
-          girisAraliginiBekle();
-
-          loginPage.girisYapma(ConfigManager.get("username"), ConfigManager.get("password"));
-          sonGirisZamaniMs = System.currentTimeMillis();
-
-          if (!loginPage.basariliGirisYapildiMi()) {
-            throw new IllegalStateException(
-                "AVP kullanıcı girişi başarısız. Gösterge Panosu görüntülenemedi. "
-                    + "Keycloak brute force kilidi olabilir (Events: user_temporarily_disabled).");
-          }
-
-          AvpAuthStateManager.authStateKaydetme(PlaywrightManager.getContext());
-        }
-
-        ReportManager.info("AVP girişi başarılı, oturum kaydedildi.");
+        AvpOturum.girisYapma(page(), rol);
+        AvpAuthStateManager.authStateKaydetme(PlaywrightManager.getContext());
       }
 
       case BELIRSIZ ->
@@ -116,24 +95,6 @@ public abstract class AvpBaseTest extends BaseTest {
     String mesaj = e.getMessage();
     return mesaj != null
         && (mesaj.contains("ERR_NETWORK_CHANGED") || mesaj.contains("ERR_ABORTED"));
-  }
-
-  /**
-   * Bir önceki girişten bu yana en az GIRISLER_ARASI_MIN_SURE_MS geçmesini bekler.
-   *
-   * <p>Bilinçli sabit bekleme: bir olayın hazır olmasını değil, Keycloak'un hızlı giriş kuralına
-   * (aynı kullanıcıyla 1 sn'den kısa aralıklı girişler kilitlenir) uyumu sağlar.
-   */
-  @SuppressWarnings("java:S2925")
-  private static void girisAraliginiBekle() {
-    long bekle = GIRISLER_ARASI_MIN_SURE_MS - (System.currentTimeMillis() - sonGirisZamaniMs);
-    if (bekle > 0) {
-      try {
-        Thread.sleep(bekle);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
-    }
   }
 
   /** Suite sonunda, cleanup.enabled açıksa testlerin oluşturduğu kaynakları temizler. */

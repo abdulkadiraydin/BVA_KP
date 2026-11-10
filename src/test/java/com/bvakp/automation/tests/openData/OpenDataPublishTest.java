@@ -2,6 +2,7 @@ package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.api.publicportal.PublicPortalApi;
 import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.core.auth.Rol;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
 import com.bvakp.automation.flows.avpFlows.OpenDataPublishFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -43,7 +44,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
   /** Oturumu açar, Açık Veri Portalına geçer ve testin kullanacağı nesneleri oluşturur. */
   private TestContext testHazirligi() {
 
-    avpOturumuHazirlama();
+    avpOturumuHazirlama(Rol.HAZIRLAYAN);
     new OpenDataPage(page()).acikVeriPortalinaGitme();
 
     OpenDataPublishPage publishPage = new OpenDataPublishPage(page());

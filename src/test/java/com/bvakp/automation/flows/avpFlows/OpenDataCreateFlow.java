@@ -1,6 +1,8 @@
 package com.bvakp.automation.flows.avpFlows;
 
 import com.bvakp.automation.components.KaynakEkleModal;
+import com.bvakp.automation.core.auth.AvpOturum;
+import com.bvakp.automation.core.auth.Rol;
 import com.bvakp.automation.model.KolonTanimi;
 import com.bvakp.automation.model.VeriSetiTanimi;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -15,21 +17,33 @@ import org.testng.Assert;
  *
  * <p>Testlerin ön koşulu olarak kullanılır. Kaynak oluşturmanın ve veri setini onaya göndermenin
  * ayrıntılı testleri OpenDataCreateTest'tedir; o testler bu flow'u kullanmaz.
+ *
+ * <p>Bütün adımlar hazırlayan rolünün kullanıcısıyla yapılır (bkz. {@link Rol}).
  */
 public class OpenDataCreateFlow {
 
+  private final Page page;
   private final OpenDataPage openDataPage;
   private final KaynakEkleModal kaynakEkleModal;
 
   public OpenDataCreateFlow(Page page) {
+    this.page = page;
     this.openDataPage = new OpenDataPage(page);
     this.kaynakEkleModal = new KaynakEkleModal(page);
+  }
+
+  /** Gerekirse hazırlayan kullanıcıya geçer; kullanıcı değişirse Açık Veri Portalı'na döner. */
+  private void hazirlayanIleDevamEtme() {
+    if (AvpOturum.rolIleGirisYapma(page, Rol.HAZIRLAYAN)) {
+      openDataPage.acikVeriPortalinaGitme();
+    }
   }
 
   /** Kaynak Ekle formunu doldurarak yeni kaynak oluşturur ve listede göründüğünü doğrular. */
   public void createSource(String kaynakAdi, String tabloAdi, String aciklama) {
 
     ReportManager.step("Ön koşul: kaynak oluşturuluyor | " + kaynakAdi + " | Tablo: " + tabloAdi);
+    hazirlayanIleDevamEtme();
 
     openDataPage.kaynakEklemeEkraniniAcma();
     Assert.assertTrue(
@@ -81,6 +95,7 @@ public class OpenDataCreateFlow {
             + veriSetiAdi
             + " | Maskelenecek: "
             + maskelenecekKolonlar);
+    hazirlayanIleDevamEtme();
 
     openDataPage.kaynakSecme(kaynakAdi);
     openDataPage.veriSetiIleriGitme();

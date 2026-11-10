@@ -86,6 +86,7 @@ public class LoginTest extends BaseTest {
 
     Assert.assertTrue(
         loginPage.girisHataMesajiGoruntulendiMi(), senaryo + ": hata mesajı görüntülenmedi.");
+
     Assert.assertEquals(
         loginPage.girisHataMesajiAlma(),
         GIRIS_HATA_MESAJI,

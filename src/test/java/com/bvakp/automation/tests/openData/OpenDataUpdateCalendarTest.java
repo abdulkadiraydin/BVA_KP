@@ -2,6 +2,7 @@ package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.api.publicportal.PublicPortalApi;
 import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.core.auth.Rol;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
 import com.bvakp.automation.flows.avpFlows.OpenDataPublishFlow;
@@ -67,7 +68,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
   /** Oturumu açar, Açık Veri Portalına geçer ve test nesnelerini döndürür. */
   private TestContext nesneleriOlusturma() {
 
-    avpOturumuHazirlama();
+    avpOturumuHazirlama(Rol.HAZIRLAYAN);
     new OpenDataPage(page()).acikVeriPortalinaGitme();
 
     OpenDataPublishPage publishPage = new OpenDataPublishPage(page());

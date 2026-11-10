@@ -1,6 +1,7 @@
 package com.bvakp.automation.tests.openData;
 
 import com.bvakp.automation.base.AvpBaseTest;
+import com.bvakp.automation.core.auth.Rol;
 import com.bvakp.automation.pages.openData.OpenDataDashboardPage;
 import com.bvakp.automation.pages.openData.OpenDataDashboardPage.TrendDonemi;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -26,7 +27,7 @@ public class OpenDataDashboardTest extends AvpBaseTest {
   /** Oturumu hazırlar ve Portal Dashboard sekmesini açar. */
   private OpenDataDashboardPage dashboardAc() {
 
-    avpOturumuHazirlama();
+    avpOturumuHazirlama(Rol.HAZIRLAYAN);
 
     ReportManager.step("Açık Veri Portalı → Portal Dashboard açılıyor.");
     new OpenDataPage(page()).acikVeriPortalinaGitme();

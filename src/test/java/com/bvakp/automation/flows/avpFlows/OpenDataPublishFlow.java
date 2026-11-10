@@ -1,6 +1,9 @@
 package com.bvakp.automation.flows.avpFlows;
 
+import com.bvakp.automation.core.auth.AvpOturum;
+import com.bvakp.automation.core.auth.Rol;
 import com.bvakp.automation.model.YayinAyarlari;
+import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage.DuzenlemeAlanlari;
 import com.bvakp.automation.reporting.ReportManager;
@@ -12,6 +15,9 @@ import org.testng.Assert;
  *
  * <p>Her metot işlemi yapar ve işlemin bildirimini bekler; sonrasında oluşan statü değişikliğini
  * doğrulamak testin işidir.
+ *
+ * <p>Her işlem kendi rolünün kullanıcısıyla yapılır (bkz. {@link Rol}). Bütün roller aynı
+ * kullanıcıysa kullanıcı değişmez.
  */
 public class OpenDataPublishFlow {
 
@@ -26,6 +32,17 @@ public class OpenDataPublishFlow {
     this.publishPage = publishPage;
   }
 
+  /**
+   * Gerekirse kullanıcıyı rolün kullanıcısına değiştirir ve Veri Seti Yönetimi sekmesini açar.
+   * Kullanıcı değişirse sayfa Gösterge Panosu'na döndüğü için önce Açık Veri Portalı'na gidilir.
+   */
+  private void rolIleVeriSetiYonetiminiAcma(Rol rol) {
+    if (AvpOturum.rolIleGirisYapma(publishPage.getPage(), rol)) {
+      new OpenDataPage(publishPage.getPage()).acikVeriPortalinaGitme();
+    }
+    publishPage.clickPublishTab();
+  }
+
   // =====================================================================
   // KVKK ve yayın onay süreçleri
   // =====================================================================
@@ -35,6 +52,7 @@ public class OpenDataPublishFlow {
 
     ReportManager.step("KVKK onayı veriliyor: " + dataSetName);
 
+    rolIleVeriSetiYonetiminiAcma(Rol.KVKK);
     publishPage.clickKvkkOnayla(dataSetName);
     publishPage.enterKvkkAciklama("Otomasyon testi kapsamında KVKK onayı verilmiştir.");
     publishPage.confirmKvkkOnay();
@@ -46,6 +64,7 @@ public class OpenDataPublishFlow {
 
     ReportManager.step("KVKK reddediliyor: " + dataSetName);
 
+    rolIleVeriSetiYonetiminiAcma(Rol.KVKK);
     publishPage.clickKvkkReddet(dataSetName);
     publishPage.enterKvkkRedAciklama("Otomasyon testi kapsamında KVKK reddi verilmiştir.");
     publishPage.confirmKvkkRed();
@@ -57,7 +76,7 @@ public class OpenDataPublishFlow {
 
     ReportManager.step("Yayın reddediliyor: " + dataSetName);
 
-    publishPage.clickPublishTab();
+    rolIleVeriSetiYonetiminiAcma(Rol.YAYIN);
     publishPage.clickYayinReddet(dataSetName);
     publishPage.enterYayinRedAciklama("Otomasyon testi kapsamında yayın reddedilmiştir.");
     publishPage.confirmYayinRed();
@@ -73,7 +92,8 @@ public class OpenDataPublishFlow {
    * gönderir.
    */
   public void editKvkkPendingDataSet(String dataSetName) {
-    veriSetiniDuzenleVeOnayaGonder(dataSetName, "Güncellenmiş test veri seti açıklaması");
+    veriSetiniDuzenleVeOnayaGonder(
+        dataSetName, "Güncellenmiş test veri seti açıklaması", Rol.HAZIRLAYAN);
   }
 
   /**
@@ -82,18 +102,18 @@ public class OpenDataPublishFlow {
    */
   public void editPublicationPendingDataSet(String dataSetName) {
     veriSetiniDuzenleVeOnayaGonder(
-        dataSetName, "Yayın reddi sonrası güncellenmiş test veri seti açıklaması");
+        dataSetName, "Yayın reddi sonrası güncellenmiş test veri seti açıklaması", Rol.HAZIRLAYAN);
   }
 
   /**
-   * Sorumlu birim, kategori ve açıklamayı değiştirir, kaydeder, değerleri doğrular, değişikliği
-   * onaya gönderir ve listeye geri döner.
+   * Sorumlu birim, kategori ve açıklamayı verilen rolün kullanıcısıyla değiştirir, kaydeder,
+   * değerleri doğrular, değişikliği onaya gönderir ve listeye geri döner.
    */
-  private void veriSetiniDuzenleVeOnayaGonder(String dataSetName, String yeniAciklama) {
+  private void veriSetiniDuzenleVeOnayaGonder(String dataSetName, String yeniAciklama, Rol rol) {
 
     ReportManager.step("Veri seti düzenleniyor: " + dataSetName);
 
-    publishPage.clickPublishTab();
+    rolIleVeriSetiYonetiminiAcma(rol);
     publishPage.clickDuzenle(dataSetName);
 
     publishPage.selectDropdown("Sorumlu Birim", DUZENLEME_SORUMLU_BIRIM);
@@ -129,28 +149,28 @@ public class OpenDataPublishFlow {
 
     ReportManager.step("Veri seti arşivleniyor: " + dataSetName);
 
-    publishPage.clickPublishTab();
+    rolIleVeriSetiYonetiminiAcma(Rol.YAYIN);
     publishPage.clickArsivle(dataSetName);
     publishPage.confirmArsivle();
     publishPage.bildirimBekleme("Veri seti arşivlendi");
   }
 
-  /** Yayınlanmadan önce veri setini siler. */
+  /** Yayınlanmadan önce (KVKK Onayında) veri setini siler. */
   public void deleteBeforePublication(String dataSetName) {
-    veriSetiniSil(dataSetName);
+    veriSetiniSil(dataSetName, Rol.KVKK);
   }
 
   /** Arşivlendikten sonra veri setini siler. */
   public void deleteAfterPublication(String dataSetName) {
-    veriSetiniSil(dataSetName);
+    veriSetiniSil(dataSetName, Rol.YAYIN);
   }
 
-  /** Veri setini siler ve bildirimi bekler. */
-  private void veriSetiniSil(String dataSetName) {
+  /** Veri setini verilen rolün kullanıcısıyla siler ve bildirimi bekler. */
+  private void veriSetiniSil(String dataSetName, Rol rol) {
 
     ReportManager.step("Veri seti siliniyor: " + dataSetName);
 
-    publishPage.clickPublishTab();
+    rolIleVeriSetiYonetiminiAcma(rol);
     publishPage.clickSil(dataSetName);
     publishPage.confirmSil();
     publishPage.bildirimBekleme("Veri seti silindi");
@@ -183,7 +203,7 @@ public class OpenDataPublishFlow {
 
     ReportManager.step("Veri seti manuel güncelleniyor: " + dataSetName);
 
-    publishPage.clickPublishTab();
+    rolIleVeriSetiYonetiminiAcma(Rol.YAYIN);
     publishPage.clickGuncelle(dataSetName);
     publishPage.confirmGuncelle();
     publishPage.bildirimBekleme("Güncelleme başlatıldı");
@@ -197,6 +217,7 @@ public class OpenDataPublishFlow {
 
     ReportManager.step("Veri seti yayınlanıyor: " + dataSetName);
 
+    rolIleVeriSetiYonetiminiAcma(Rol.YAYIN);
     publishPage.clickYayinla(dataSetName);
     publishPage.enterYayinAciklama(YAYIN_ACIKLAMASI);
 
