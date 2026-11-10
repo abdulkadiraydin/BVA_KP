@@ -11,5 +11,4 @@
             <class name="com.bvakp.automation.tests.openData.PublicOpenDataTest"/>
         </classes>
     </test>
-
 </suite>

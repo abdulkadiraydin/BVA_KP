@@ -2,7 +2,7 @@ package com.bvakp.automation.flows.avpFlows;
 
 import com.bvakp.automation.components.KaynakEkleModal;
 import com.bvakp.automation.core.auth.AvpOturum;
-import com.bvakp.automation.core.auth.Rol;
+import com.bvakp.automation.core.auth.PortalRol;
 import com.bvakp.automation.model.KolonTanimi;
 import com.bvakp.automation.model.VeriSetiTanimi;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -18,7 +18,7 @@ import org.testng.Assert;
  * <p>Testlerin ön koşulu olarak kullanılır. Kaynak oluşturmanın ve veri setini onaya göndermenin
  * ayrıntılı testleri OpenDataCreateTest'tedir; o testler bu flow'u kullanmaz.
  *
- * <p>Bütün adımlar hazırlayan rolünün kullanıcısıyla yapılır (bkz. {@link Rol}).
+ * <p>Bütün adımlar hazırlayan rolünün kullanıcısıyla yapılır (bkz. {@link PortalRol}).
  */
 public class OpenDataCreateFlow {
 
@@ -34,7 +34,7 @@ public class OpenDataCreateFlow {
 
   /** Gerekirse hazırlayan kullanıcıya geçer; kullanıcı değişirse Açık Veri Portalı'na döner. */
   private void hazirlayanIleDevamEtme() {
-    if (AvpOturum.rolIleGirisYapma(page, Rol.HAZIRLAYAN)) {
+    if (AvpOturum.rolIleGirisYapma(page, PortalRol.HAZIRLAYAN)) {
       openDataPage.acikVeriPortalinaGitme();
     }
   }

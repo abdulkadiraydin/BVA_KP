@@ -1,7 +1,7 @@
 package com.bvakp.automation.tests.publicPortal;
 
 import com.bvakp.automation.base.BaseTest;
-import com.bvakp.automation.core.auth.PortalRol;
+import com.bvakp.automation.core.auth.OpenPortalRol;
 import com.bvakp.automation.pages.publicPortal.PublicPortalLoginPage;
 import com.bvakp.automation.reporting.ReportManager;
 import org.testng.Assert;
@@ -10,7 +10,7 @@ import org.testng.annotations.Test;
 /**
  * Kamuya açık portalın (CKAN) giriş, çıkış ve girişsiz erişim testleri.
  *
- * <p>Testler talep rolünün ({@link PortalRol#TALEP}) kullanıcısıyla çalışır. BaseTest'ten
+ * <p>Testler talep rolünün ({@link OpenPortalRol#TALEP}) kullanıcısıyla çalışır. BaseTest'ten
  * türer: her test temiz bir tarayıcıyla, giriş yapılmamış olarak başlar. Hatalı
  * giriş tek senaryodur; art arda hatalı girişler kullanıcıyı kilitleyebilir.
  */
@@ -38,10 +38,10 @@ public class PublicPortalLoginTest extends BaseTest {
   public void basariliGirisYapma() {
 
     PublicPortalLoginPage loginPage = girisEkraniniAcma();
-    String kullanici = PortalRol.TALEP.kullaniciAdi();
+    String kullanici = OpenPortalRol.TALEP.kullaniciAdi();
 
     ReportManager.step("Giriş yapılıyor: " + kullanici);
-    loginPage.girisYapma(kullanici, PortalRol.TALEP.parola());
+    loginPage.girisYapma(kullanici, OpenPortalRol.TALEP.parola());
 
     Assert.assertTrue(
         loginPage.girisYapildiMi(kullanici), "Giriş yapılamadı; hesap menüsü görünmedi.");
@@ -56,7 +56,7 @@ public class PublicPortalLoginTest extends BaseTest {
     PublicPortalLoginPage loginPage = girisEkraniniAcma();
 
     ReportManager.step("Hatalı şifreyle giriş deneniyor.");
-    loginPage.girisYapma(PortalRol.TALEP.kullaniciAdi(), HATALI_SIFRE);
+    loginPage.girisYapma(OpenPortalRol.TALEP.kullaniciAdi(), HATALI_SIFRE);
 
     Assert.assertEquals(
         loginPage.girisHataMesajiAlma(), GIRIS_HATA_MESAJI, "Giriş hata mesajı farklı.");
@@ -70,9 +70,9 @@ public class PublicPortalLoginTest extends BaseTest {
   public void cikisYapma() {
 
     PublicPortalLoginPage loginPage = new PublicPortalLoginPage(page());
-    String kullanici = PortalRol.TALEP.kullaniciAdi();
+    String kullanici = OpenPortalRol.TALEP.kullaniciAdi();
 
-    loginPage.rolIleGirisYapma(PortalRol.TALEP);
+    loginPage.rolIleGirisYapma(OpenPortalRol.TALEP);
     Assert.assertTrue(loginPage.girisYapildiMi(kullanici), "Ön koşul: giriş yapılamadı.");
 
     ReportManager.step("Çıkış yapılıyor.");

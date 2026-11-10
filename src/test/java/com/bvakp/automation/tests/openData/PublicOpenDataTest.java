@@ -5,7 +5,7 @@ import com.bvakp.automation.api.publicportal.DatastoreSonuc;
 import com.bvakp.automation.api.publicportal.PublicPortalApi;
 import com.bvakp.automation.base.ApiTesti;
 import com.bvakp.automation.base.AvpBaseTest;
-import com.bvakp.automation.core.auth.Rol;
+import com.bvakp.automation.core.auth.PortalRol;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
 import com.bvakp.automation.flows.avpFlows.OpenDataPublishFlow;
@@ -73,7 +73,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
     boolean basarili = false;
 
     try {
-      avpOturumuHazirlama(Rol.HAZIRLAYAN);
+      avpOturumuHazirlama(PortalRol.HAZIRLAYAN);
 
       new OpenDataPage(page()).acikVeriPortalinaGitme();
 

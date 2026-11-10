@@ -4,7 +4,7 @@ import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.components.KaynakDuzenleModal;
 import com.bvakp.automation.components.KaynakEkleModal;
 import com.bvakp.automation.components.KaynakSilModal;
-import com.bvakp.automation.core.auth.Rol;
+import com.bvakp.automation.core.auth.PortalRol;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
@@ -45,7 +45,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
    */
   private TestContext testHazirligi() {
 
-    avpOturumuHazirlama(Rol.HAZIRLAYAN);
+    avpOturumuHazirlama(PortalRol.HAZIRLAYAN);
 
     Page aktifPage = page();
     OpenDataPage openDataPage = new OpenDataPage(aktifPage);

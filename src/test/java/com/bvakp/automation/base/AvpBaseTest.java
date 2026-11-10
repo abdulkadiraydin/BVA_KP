@@ -2,7 +2,7 @@ package com.bvakp.automation.base;
 
 import com.bvakp.automation.core.auth.AvpAuthStateManager;
 import com.bvakp.automation.core.auth.AvpOturum;
-import com.bvakp.automation.core.auth.Rol;
+import com.bvakp.automation.core.auth.PortalRol;
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.LoginPage;
@@ -31,7 +31,7 @@ public abstract class AvpBaseTest extends BaseTest {
   }
 
   /** Portalı açar ve verilen rolün kullanıcısıyla oturum hazırlar. */
-  protected void avpOturumuHazirlama(Rol rol) {
+  protected void avpOturumuHazirlama(PortalRol rol) {
 
     ReportManager.step("AVP portalı açılıyor.");
     avpPortaliniAcma();

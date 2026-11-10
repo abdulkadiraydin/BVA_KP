@@ -1,6 +1,6 @@
 package com.bvakp.automation.pages.publicPortal;
 
-import com.bvakp.automation.core.auth.PortalRol;
+import com.bvakp.automation.core.auth.OpenPortalRol;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
@@ -61,7 +61,7 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
   }
 
   /** Oturumu kapatıp (çerezleri silerek) verilen rolün kullanıcısıyla giriş yapar. */
-  public void rolIleGirisYapma(PortalRol rol) {
+  public void rolIleGirisYapma(OpenPortalRol rol) {
     page.context().clearCookies();
     anaSayfaAcma();
     girisEkraniniAcma();

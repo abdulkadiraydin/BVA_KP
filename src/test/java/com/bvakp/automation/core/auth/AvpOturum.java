@@ -24,7 +24,7 @@ public final class AvpOturum {
   private AvpOturum() {}
 
   /** Giriş ekranı açıkken verilen rolün kullanıcısıyla giriş yapar. */
-  public static void girisYapma(Page page, Rol rol) {
+  public static void girisYapma(Page page, PortalRol rol) {
 
     LoginPage loginPage = new LoginPage(page);
 
@@ -53,7 +53,7 @@ public final class AvpOturum {
    *
    * @return kullanıcı değiştiyse true; sayfa Gösterge Panosu'na döner
    */
-  public static boolean rolIleGirisYapma(Page page, Rol rol) {
+  public static boolean rolIleGirisYapma(Page page, PortalRol rol) {
 
     if (rol.kullaniciAdi().equals(AKTIF_KULLANICI.get())) {
       return false;

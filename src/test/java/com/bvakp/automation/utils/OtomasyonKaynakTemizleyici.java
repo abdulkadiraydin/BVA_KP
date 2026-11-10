@@ -1,7 +1,7 @@
 package com.bvakp.automation.utils;
 
 import com.bvakp.automation.base.AvpBaseTest;
-import com.bvakp.automation.core.auth.Rol;
+import com.bvakp.automation.core.auth.PortalRol;
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -101,7 +101,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
     ReportManager.info(
         "OTOMASYON KAYNAK TEMİZLİĞİ BAŞLADI | Ön ek: '" + onEk + "' | Üst sınır: " + maksimumSilme);
 
-    avpOturumuHazirlama(Rol.HAZIRLAYAN);
+    avpOturumuHazirlama(PortalRol.HAZIRLAYAN);
 
     Page aktifPage = page();
     OpenDataPage openDataPage = new OpenDataPage(aktifPage);
