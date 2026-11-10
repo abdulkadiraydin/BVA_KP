@@ -1,8 +1,10 @@
 package com.bvakp.automation.pages.publicPortal;
 
-import com.bvakp.automation.core.auth.OpenPortalRol;
+import com.bvakp.automation.core.auth.PublicPortalRol;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
+import java.util.regex.Pattern;
 
 /**
  * Kamuya açık portalın giriş ekranı (/user/login) ve sağ üstteki hesap menüsü (Hesabım, Yönetim,
@@ -13,30 +15,35 @@ import com.microsoft.playwright.Page;
  */
 public class PublicPortalLoginPage extends PublicPortalBasePage {
 
+  private static final String HESAP_MENUSU = "Hesap menüsü: ";
+
   private final Locator girisLinki;
   private final Locator kullaniciAdiAlani;
   private final Locator sifreAlani;
   private final Locator girisButonu;
   private final Locator hataMesaji;
   private final Locator hesapMenusu;
-  private final Locator hesapAdi;
   private final Locator yonetimLinki;
   private final Locator cikisButonu;
   private final Locator talepOlusturLinki;
 
   public PublicPortalLoginPage(Page page) {
     super(page);
-    this.girisLinki = page.locator("a.bvakp-topbar-login");
-    this.kullaniciAdiAlani = page.locator("#field-login");
-    this.sifreAlani = page.locator("#field-password");
-    this.girisButonu = page.locator("form.bvakp-login-form button[type='submit']");
-    this.hataMesaji = page.locator(".bvakp-auth-alert.is-error");
-    this.hesapMenusu = page.locator("#bvakpAccountToggle");
-    this.hesapAdi = hesapMenusu.locator(".bvakp-account-label");
-    this.yonetimLinki = page.locator(".bvakp-account-menu a[href$='/ckan-admin/']");
-    this.cikisButonu = page.locator(".bvakp-account-menu form[action$='/user/_logout'] button");
+    this.girisLinki = link("Giriş Yap");
+    this.kullaniciAdiAlani =
+        page.getByLabel("E-posta", new Page.GetByLabelOptions().setExact(true));
+    this.sifreAlani = page.getByLabel("Şifre", new Page.GetByLabelOptions().setExact(true));
+    this.girisButonu = buton("Giriş Yap");
+    this.hataMesaji = page.getByRole(AriaRole.ALERT);
+    // Hesap menüsü düğmesinin adı "Hesap menüsü: <kullanıcı>" biçimindedir.
+    this.hesapMenusu =
+        page.getByRole(
+            AriaRole.BUTTON,
+            new Page.GetByRoleOptions().setName(Pattern.compile("^" + HESAP_MENUSU)));
+    this.yonetimLinki = link("Yönetim");
+    this.cikisButonu = buton("Çıkış Yap");
     // Ana sayfanın altındaki "Aradığınız veriyi bulamadınız mı?" alanı.
-    this.talepOlusturLinki = page.locator("section.bvakp-cta a");
+    this.talepOlusturLinki = link("Veri Talebi Oluştur");
   }
 
   // =====================================================================
@@ -61,7 +68,7 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
   }
 
   /** Oturumu kapatıp (çerezleri silerek) verilen rolün kullanıcısıyla giriş yapar. */
-  public void rolIleGirisYapma(OpenPortalRol rol) {
+  public void rolIleGirisYapma(PublicPortalRol rol) {
     page.context().clearCookies();
     anaSayfaAcma();
     girisEkraniniAcma();
@@ -96,7 +103,10 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
 
   /** Sağ üstte verilen kullanıcının hesap menüsü görünüyorsa true döner. */
   public boolean girisYapildiMi(String kullaniciAdi) {
-    return gorunurMu(hesapMenusu) && kullaniciAdi.equals(hesapAdi.innerText().trim());
+    return gorunurMu(
+        page.getByRole(
+            AriaRole.BUTTON,
+            new Page.GetByRoleOptions().setName(HESAP_MENUSU + kullaniciAdi).setExact(true)));
   }
 
   /** Hesap menüsü kalkıp "Giriş Yap" linki göründüyse true döner. */
@@ -120,5 +130,15 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
   /** Şu anki adres. */
   public String adresAlma() {
     return page.url();
+  }
+
+  /** Görünen adı birebir eşleşen link. */
+  private Locator link(String ad) {
+    return page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName(ad).setExact(true));
+  }
+
+  /** Görünen adı birebir eşleşen düğme. */
+  private Locator buton(String ad) {
+    return page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName(ad).setExact(true));
   }
 }

@@ -47,9 +47,9 @@ public class PublicPortalApi {
    */
   public ApiYanit anahtarIleAnahtarListesiGetir(String apiAnahtari, String kullaniciAdi) {
     return client.get(
-            ACTION + "api_token_list",
-            Map.of("user_id", kullaniciAdi),
-            Map.of("Authorization", apiAnahtari));
+        ACTION + "api_token_list",
+        Map.of("user_id", kullaniciAdi),
+        Map.of("Authorization", apiAnahtari));
   }
 
   /**

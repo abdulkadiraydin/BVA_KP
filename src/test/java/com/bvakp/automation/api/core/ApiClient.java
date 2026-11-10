@@ -42,13 +42,19 @@ public class ApiClient {
     return new ApiClient(context, tabanUrl);
   }
 
+  /** Parametresiz GET isteği. */
+  public ApiYanit get(String yol) {
+    return get(yol, Map.of());
+  }
+
+  /** GET isteği; parametreler sorgu dizesine eklenir (URL kodlamasını Playwright yapar). */
   public ApiYanit get(String yol, Map<String, ?> sorguParametreleri) {
     return get(yol, sorguParametreleri, Map.of());
   }
 
   /** Başlık eklenmiş GET isteği (ör. Authorization). Başlık değerleri log'a ve rapora yazılmaz. */
   public ApiYanit get(
-          String yol, Map<String, ?> sorguParametreleri, Map<String, String> basliklar) {
+      String yol, Map<String, ?> sorguParametreleri, Map<String, String> basliklar) {
     RequestOptions secenekler = RequestOptions.create();
     sorguParametreleri.forEach((ad, deger) -> secenekler.setQueryParam(ad, String.valueOf(deger)));
     basliklar.forEach(secenekler::setHeader);

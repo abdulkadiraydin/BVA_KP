@@ -4,17 +4,17 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.SelectOption;
+import java.util.regex.Pattern;
 
 /**
  * Kamuya açık portalda hesap şablonundaki sayfalar: Hesabım (veri talebi formu, Taleplerim, API
  * Anahtarları) ve Yönetim › Veri Talepleri.
  *
- * <p>Hepsi aynı şablonu ve sekme yapısını kullandığı için tek sayfa nesnesindedir. Yönetim
- * bölümünü yalnız sistem yöneticisi (onay rolü) görür.
+ * <p>Hepsi aynı şablonu ve sekme yapısını kullandığı için tek sayfa nesnesindedir. Yönetim bölümünü
+ * yalnız sistem yöneticisi (onay rolü) görür.
  */
 public class PublicPortalAccountPage extends PublicPortalBasePage {
 
-  private final Locator profilAdi;
   private final Locator sekmeler;
 
   // Veri talebi formu (modal)
@@ -41,29 +41,50 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
 
   public PublicPortalAccountPage(Page page) {
     super(page);
-    this.profilAdi = page.locator("h1.bvakp-profile-name");
-    this.sekmeler = page.locator("nav.bvakp-account-tabs");
+    // Hesabım'da "Hesap bölümleri", Yönetim'de "Yönetim bölümleri" adlı sekme menüsü.
+    this.sekmeler =
+        page.getByRole(
+            AriaRole.NAVIGATION,
+            new Page.GetByRoleOptions().setName(Pattern.compile("^(Hesap|Yönetim) bölümleri$")));
 
-    this.talepOlusturButonu = page.locator(".bvakp-profile-actions a.bvakp-request-open");
-    this.talepFormu = page.locator("#bvakp-request-dialog");
-    this.talepBaslikAlani = talepFormu.locator("#field-request-title");
-    this.talepAmacAlani = talepFormu.locator("#field-request-purpose");
-    this.talepKategoriSecimi = talepFormu.locator("#field-request-group");
-    this.talepHerkeseAcikKutusu = talepFormu.locator("#field-request-public");
-    this.talepGonderButonu = talepFormu.locator("button.bvakp-request-submit");
-    this.talepVazgecButonu = talepFormu.locator(".bvakp-request-actions .bvakp-btn-ghost");
+    this.talepOlusturButonu = link("Veri Talebi Oluştur");
+    this.talepFormu =
+        page.getByRole(
+            AriaRole.DIALOG,
+            new Page.GetByRoleOptions().setName("Veri Talebi Oluştur").setExact(true));
+    this.talepBaslikAlani = talepFormu.getByLabel("Hangi veriye ihtiyacınız var?");
+    this.talepAmacAlani = talepFormu.getByLabel("Ne için kullanacaksınız?");
+    this.talepKategoriSecimi =
+        talepFormu.getByLabel("Kategori", new Locator.GetByLabelOptions().setExact(true));
+    this.talepHerkeseAcikKutusu = talepFormu.getByLabel("Talebim herkese açık listelensin");
+    this.talepGonderButonu = buton(talepFormu, "Talebi Gönder");
+    this.talepVazgecButonu = buton(talepFormu, "Vazgeç");
 
-    this.anahtarAdiAlani = page.locator("#field-token-name");
-    this.anahtarOlusturButonu = page.locator("form.bvakp-token-form button[value='create']");
+    this.anahtarAdiAlani =
+        page.getByLabel("Anahtar adı", new Page.GetByLabelOptions().setExact(true));
+    this.anahtarOlusturButonu =
+        page.getByRole(
+            AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Anahtar oluştur").setExact(true));
     // "API anahtarı oluşturuldu: <code>…</code>" bildirimi; değer yalnız bir kez gösterilir.
-    this.olusanAnahtarDegeri = page.locator("span:has-text('API anahtarı oluşturuldu') code");
-    this.anahtarSatirlari = page.locator("ul.bvakp-token-list > li.bvakp-token");
-    this.onayPenceresiOnayButonu = page.locator("#bvakp-confirm .bvakp-confirm-ok");
+    this.olusanAnahtarDegeri = page.getByText("API anahtarı oluşturuldu").locator("code");
+    this.anahtarSatirlari = bolum("Anahtarlarınız").getByRole(AriaRole.LISTITEM);
+    // "Emin misiniz?" penceresinde Vazgeç dışındaki düğme (adı işleme göre değişir).
+    this.onayPenceresiOnayButonu =
+        page.getByRole(
+                AriaRole.DIALOG,
+                new Page.GetByRoleOptions().setName("Emin misiniz?").setExact(true))
+            .getByRole(AriaRole.BUTTON)
+            .filter(new Locator.FilterOptions().setHasNotText("Vazgeç"));
 
-    Locator yonetimFiltreleri = page.locator("form.bvakp-admin-filters");
-    this.yonetimAramaAlani = yonetimFiltreleri.locator("input[name='q']");
-    this.yonetimGorunurlukSecimi = yonetimFiltreleri.locator("#field-request-visibility");
-    this.yonetimUygulaButonu = yonetimFiltreleri.locator("button[type='submit']");
+    this.yonetimAramaAlani =
+        page.getByRole(
+            AriaRole.SEARCHBOX,
+            new Page.GetByRoleOptions().setName("Taleplerde ara").setExact(true));
+    this.yonetimGorunurlukSecimi =
+        page.getByLabel("Görünürlük", new Page.GetByLabelOptions().setExact(true));
+    this.yonetimUygulaButonu =
+        page.getByRole(
+            AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Uygula").setExact(true));
   }
 
   // =====================================================================
@@ -75,9 +96,12 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     adresAcma("/user/" + kullaniciAdi);
   }
 
-  /** Hesabım sayfası verilen kullanıcıyla açıksa true döner. */
+  /** Hesabım sayfası verilen kullanıcıyla açıksa (başlıkta kullanıcı adı) true döner. */
   public boolean hesabimAcikMi(String kullaniciAdi) {
-    return gorunurMu(profilAdi) && kullaniciAdi.equals(profilAdi.innerText().trim());
+    return gorunurMu(
+        page.getByRole(
+            AriaRole.HEADING,
+            new Page.GetByRoleOptions().setName(kullaniciAdi).setExact(true).setLevel(1)));
   }
 
   /**
@@ -157,13 +181,13 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
    */
   public boolean talepBasligiDuzMetinMi(String isaret, String hamBaslik) {
     Locator satir =
-        page.locator("ul.bvakp-my-requests-list > li")
+        page.getByRole(AriaRole.LISTITEM)
             .filter(new Locator.FilterOptions().setHasText(isaret))
             .first();
     if (!gorunurMu(satir)) {
       return false;
     }
-    Locator baslik = satir.locator("h2");
+    Locator baslik = satir.getByRole(AriaRole.HEADING, new Locator.GetByRoleOptions().setLevel(2));
     return baslik.locator("*").count() == 0 && hamBaslik.equals(baslik.innerText().trim());
   }
 
@@ -201,7 +225,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
 
   /** Anahtarı "İptal et" ile iptal eder ve onay penceresini onaylar. */
   public void anahtarIptalEtme(String anahtarAdi) {
-    anahtarSatiri(anahtarAdi).locator("button.bvakp-token-revoke").click();
+    buton(anahtarSatiri(anahtarAdi), "İptal et").click();
     onayPenceresiOnayButonu.click();
   }
 
@@ -230,9 +254,9 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     yonetimUygulaButonu.click();
   }
 
-  /** Yönetim listesinde talebi oluşturan kullanıcının adı. */
+  /** Yönetim listesinde talebi oluşturan kullanıcının adı (profil linki). */
   public String talepSahibiOkuma(String baslik) {
-    return talepSatiri(baslik).locator(".bvakp-admin-requester a").first().innerText().trim();
+    return talepSatiri(baslik).locator("a[href^='/user/']").first().innerText().trim();
   }
 
   /** Talebi onaylar. Onay ekranı belli olunca yazılacak. */
@@ -245,12 +269,25 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     throw new UnsupportedOperationException("Talep red ekranı henüz belli değil: " + baslik);
   }
 
-  /** Adı birebir eşleşen anahtar satırı. */
+  // =====================================================================
+  // Yardımcılar
+  // =====================================================================
+
+  /** "Anahtarlarınız" listesinde adı birebir eşleşen anahtar satırı. */
   private Locator anahtarSatiri(String anahtarAdi) {
     return anahtarSatirlari.filter(
         new Locator.FilterOptions()
-            .setHas(
-                page.locator(".bvakp-token-name")
-                    .getByText(anahtarAdi, new Locator.GetByTextOptions().setExact(true))));
+            .setHas(page.getByText(anahtarAdi, new Page.GetByTextOptions().setExact(true))));
+  }
+
+  /** Görünen adı birebir eşleşen link. */
+  private Locator link(String ad) {
+    return page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName(ad).setExact(true));
+  }
+
+  /** Verilen bölgede görünen adı birebir eşleşen düğme. */
+  private static Locator buton(Locator bolge, String ad) {
+    return bolge.getByRole(
+        AriaRole.BUTTON, new Locator.GetByRoleOptions().setName(ad).setExact(true));
   }
 }

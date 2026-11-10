@@ -3,7 +3,7 @@ package com.bvakp.automation.tests.publicPortal;
 import com.bvakp.automation.api.core.ApiYanit;
 import com.bvakp.automation.api.publicportal.PublicPortalApi;
 import com.bvakp.automation.base.BaseTest;
-import com.bvakp.automation.core.auth.OpenPortalRol;
+import com.bvakp.automation.core.auth.PublicPortalRol;
 import com.bvakp.automation.pages.publicPortal.PublicPortalAccountPage;
 import com.bvakp.automation.pages.publicPortal.PublicPortalLoginPage;
 import com.bvakp.automation.reporting.ReportManager;
@@ -16,10 +16,10 @@ import org.testng.annotations.Test;
 /**
  * Kamuya açık portalda Hesabım testleri: veri talebi, talep yönetimi ve API anahtarları.
  *
- * <p>Onay testleri dışındaki bütün testler talep rolüyle ({@link OpenPortalRol#TALEP}) çalışır; onay
- * testlerinde yönetici rolüne ({@link OpenPortalRol#ONAY}) geçilir. Her test kendi verisini oluşturur (talep başlıkları ve
- * anahtar adları "otomasyon_" ile başlar). Oluşturulan API anahtarları test sonunda iptal edilir;
- * anahtar değeri hiçbir zaman log'a ve rapora yazılmaz.
+ * <p>Onay testleri dışındaki bütün testler talep rolüyle ({@link PublicPortalRol#TALEP}) çalışır;
+ * onay testlerinde yönetici rolüne ({@link PublicPortalRol#ONAY}) geçilir. Her test kendi verisini
+ * oluşturur (talep başlıkları ve anahtar adları "otomasyon_" ile başlar). Oluşturulan API
+ * anahtarları test sonunda iptal edilir; anahtar değeri hiçbir zaman log'a ve rapora yazılmaz.
  */
 public class PublicPortalAccountTest extends BaseTest {
 
@@ -35,10 +35,10 @@ public class PublicPortalAccountTest extends BaseTest {
 
     PublicPortalLoginPage loginPage = new PublicPortalLoginPage(page());
     PublicPortalAccountPage hesapPage = new PublicPortalAccountPage(page());
-    String kullanici = OpenPortalRol.TALEP.kullaniciAdi();
+    String kullanici = PublicPortalRol.TALEP.kullaniciAdi();
 
     ReportManager.step("Açık portala giriş yapılıyor: " + kullanici);
-    loginPage.rolIleGirisYapma(OpenPortalRol.TALEP);
+    loginPage.rolIleGirisYapma(PublicPortalRol.TALEP);
     Assert.assertTrue(loginPage.girisYapildiMi(kullanici), "Ön koşul: giriş yapılamadı.");
 
     hesapPage.hesabimAcma(kullanici);
@@ -242,7 +242,7 @@ public class PublicPortalAccountTest extends BaseTest {
 
       ApiYanit yanit =
           PublicPortalApi.portaldan()
-              .anahtarIleAnahtarListesiGetir(anahtar, OpenPortalRol.TALEP.kullaniciAdi());
+              .anahtarIleAnahtarListesiGetir(anahtar, PublicPortalRol.TALEP.kullaniciAdi());
       Assert.assertTrue(
           PublicPortalApi.apiBasariliMi(yanit),
           "Anahtarla API çağrısı başarısız | Durum: " + yanit.durumKodu());
@@ -259,7 +259,7 @@ public class PublicPortalAccountTest extends BaseTest {
 
     TestContext ctx = hesabimAcikHazirlik();
     String anahtarAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_anahtar");
-    String kullanici = OpenPortalRol.TALEP.kullaniciAdi();
+    String kullanici = PublicPortalRol.TALEP.kullaniciAdi();
     PublicPortalApi api = PublicPortalApi.portaldan();
 
     String anahtar = anahtarOlusturma(ctx, anahtarAdi);

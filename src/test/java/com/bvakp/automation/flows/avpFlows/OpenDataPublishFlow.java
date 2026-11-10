@@ -102,14 +102,17 @@ public class OpenDataPublishFlow {
    */
   public void editPublicationPendingDataSet(String dataSetName) {
     veriSetiniDuzenleVeOnayaGonder(
-        dataSetName, "Yayın reddi sonrası güncellenmiş test veri seti açıklaması", PortalRol.HAZIRLAYAN);
+        dataSetName,
+        "Yayın reddi sonrası güncellenmiş test veri seti açıklaması",
+        PortalRol.HAZIRLAYAN);
   }
 
   /**
    * Sorumlu birim, kategori ve açıklamayı verilen rolün kullanıcısıyla değiştirir, kaydeder,
    * değerleri doğrular, değişikliği onaya gönderir ve listeye geri döner.
    */
-  private void veriSetiniDuzenleVeOnayaGonder(String dataSetName, String yeniAciklama, PortalRol rol) {
+  private void veriSetiniDuzenleVeOnayaGonder(
+      String dataSetName, String yeniAciklama, PortalRol rol) {
 
     ReportManager.step("Veri seti düzenleniyor: " + dataSetName);
 

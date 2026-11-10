@@ -7,16 +7,17 @@ import com.microsoft.playwright.options.AriaRole;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
- * Kamuya açık portalda kaynak (önizleme) sayfası: Tablo, Veri Sözlüğü ve API bölümleri.
+ * Kamuya açık portalda kaynak (önizleme) sayfası (/dataset/{ad}/resource/{id}): Tablo, Veri Sözlüğü
+ * ve API bölümleri. Veri seti detayındaki "Önizle" ile açılır.
  *
  * <p>Tablo önizlemesi iframe içinde olduğu için okunmaz; kayıt değerleri API ile doğrulanır.
  * Bölümler aynı sayfada olduğundan okumalar sekme açmadan da çalışır.
  */
 public class PublicPortalResourcePage extends PublicPortalBasePage {
 
-  private final Locator baslik;
   private final Locator formatlar;
   private final Locator sekmeler;
   private final Locator toplamKayit;
@@ -27,19 +28,32 @@ public class PublicPortalResourcePage extends PublicPortalBasePage {
 
   public PublicPortalResourcePage(Page page) {
     super(page);
-    this.baslik = page.locator("h1.bvakp-resource-title");
-    this.formatlar = page.locator(".bvakp-detail-head .bvakp-chips .bvakp-fmt");
-    this.sekmeler = page.locator("nav.bvakp-tabs");
-    this.toplamKayit = page.locator(".bvakp-table-hint strong");
-    this.sozlukSatirlari = page.locator(".bvakp-dict-table tbody tr");
-    this.apiAdresi = page.locator("#api .bvakp-api-url");
-    this.apiKaynakId = page.locator("#api .bvakp-api-rid");
-    this.apiAlanlari = page.locator("#api .bvakp-api-field");
+    this.formatlar = page.locator("header.bvakp-detail-head .bvakp-fmt");
+    this.sekmeler =
+        page.getByRole(
+            AriaRole.NAVIGATION, new Page.GetByRoleOptions().setName("Kaynak bölümleri"));
+    this.toplamKayit = page.getByText(Pattern.compile("^Toplam [\\d.]+ kayıt$"));
+
+    // Başlık satırında (ALAN, TİP, AÇIKLAMA) hücre yoktur; yalnız veri satırları alınır.
+    this.sozlukSatirlari =
+        bolum("Veri Sözlüğü")
+            .getByRole(AriaRole.ROW)
+            .filter(new Locator.FilterOptions().setHas(page.getByRole(AriaRole.CELL)));
+
+    // API bölümü; sekmedeki "API" linki de bu bölüme (#api) gider.
+    Locator api = page.locator("#api");
+    this.apiAdresi = api.locator(".bvakp-api-url");
+    this.apiKaynakId = api.locator(".bvakp-api-rid");
+    this.apiAlanlari = api.locator(".bvakp-api-field");
   }
 
   /** Kaynak sayfası açık ve başlık veri seti adıyla aynıysa true döner. */
   public boolean kaynakSayfasiGoruntulendiMi(String veriSetiAdi) {
-    return gorunurMu(baslik) && veriSetiAdi.equals(baslik.textContent().trim());
+    return gorunurMu(
+        page.getByRole(AriaRole.MAIN)
+            .getByRole(
+                AriaRole.HEADING,
+                new Locator.GetByRoleOptions().setName(veriSetiAdi).setExact(true).setLevel(1)));
   }
 
   /** Sekmeye tıklar: "Tablo", "Veri Sözlüğü" veya "API". */
@@ -55,7 +69,7 @@ public class PublicPortalResourcePage extends PublicPortalBasePage {
     return formatlar.allTextContents().stream().map(String::trim).toList();
   }
 
-  /** Tablo sekmesindeki "Toplam 49 kayıt" değeri. */
+  /** Tablo sekmesindeki "Toplam 3.529 kayıt" değeri. */
   public int toplamKayitSayisiOkuma() {
     return Integer.parseInt(toplamKayit.textContent().replaceAll("\\D", ""));
   }
@@ -65,9 +79,8 @@ public class PublicPortalResourcePage extends PublicPortalBasePage {
 
     Map<String, String> alanlar = new LinkedHashMap<>();
     for (Locator satir : sozlukSatirlari.all()) {
-      alanlar.put(
-          satir.locator(".bvakp-dict-name").textContent().trim(),
-          satir.locator(".bvakp-type").textContent().trim());
+      Locator hucreler = satir.getByRole(AriaRole.CELL);
+      alanlar.put(hucreler.nth(0).textContent().trim(), hucreler.nth(1).textContent().trim());
     }
     return alanlar;
   }

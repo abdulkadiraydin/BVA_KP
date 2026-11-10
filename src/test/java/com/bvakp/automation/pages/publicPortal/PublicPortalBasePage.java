@@ -4,10 +4,11 @@ import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.pages.BasePage;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
 
 /**
- * Kamuya açık portal (CKAN) sayfalarının ortak temeli: portal adresi ve sayfalar arasında aynı
- * olan veri talebi listesi (Hesabım › Taleplerim ve Yönetim › Veri Talepleri).
+ * Kamuya açık portal (CKAN) sayfalarının ortak temeli: portal adresi ve sayfalar arasında aynı olan
+ * veri talebi listesi (Hesabım › Taleplerim ve Yönetim › Veri Talepleri).
  */
 public abstract class PublicPortalBasePage extends BasePage {
 
@@ -29,18 +30,33 @@ public abstract class PublicPortalBasePage extends BasePage {
     page.navigate(tabanAdres() + yol);
   }
 
+  /**
+   * Başlığı verilen sayfa bölümü (ör. "Ek Bilgiler", "Veri Sözlüğü"); başlık birebir eşleşir.
+   * Portal sayfaları başlıklı bölümlerden oluşur; değerler önce bölümle daraltılarak aranır.
+   */
+  protected Locator bolum(String baslik) {
+    return page.locator("section")
+        .filter(
+            new Locator.FilterOptions()
+                .setHas(
+                    page.getByRole(
+                        AriaRole.HEADING,
+                        new Page.GetByRoleOptions().setName(baslik).setExact(true))));
+  }
+
   // =====================================================================
   // Veri talebi listesi (Taleplerim ve Yönetim'de aynı yapı)
   // =====================================================================
 
-  /** Başlığı birebir eşleşen talep satırı. */
+  /** Başlığı (seviye 2) birebir eşleşen talep satırı. */
   protected Locator talepSatiri(String baslik) {
-    return page.locator("ul.bvakp-my-requests-list > li")
+    return page.getByRole(AriaRole.LISTITEM)
         .filter(
             new Locator.FilterOptions()
                 .setHas(
-                    page.locator("h2")
-                        .getByText(baslik, new Locator.GetByTextOptions().setExact(true))));
+                    page.getByRole(
+                        AriaRole.HEADING,
+                        new Page.GetByRoleOptions().setName(baslik).setExact(true).setLevel(2))));
   }
 
   /** Talep listede görünüyorsa true döner. */

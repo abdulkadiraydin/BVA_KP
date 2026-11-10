@@ -12,11 +12,14 @@ import java.util.Map;
 /**
  * Kamuya açık portalda veri seti detay sayfası (/dataset/{ad}).
  *
- * <p>Değerler okunur, doğrulama testte yapılır.
+ * <p>Sayfa başlıklı bölümlerden oluşur ("Bu veri seti hakkında", "Veri ve Kaynaklar", "Ek
+ * Bilgiler", "Değişiklik Geçmişi", "Lisans"); değerler önce bölüm başlığıyla, sonra bölümün içinde
+ * aranır. Değerler okunur, doğrulama testte yapılır.
  */
 public class PublicPortalDataSetPage extends PublicPortalBasePage {
 
   private static final String MASKELENEN_ALANLAR_ETIKETI = "Maskelenen alanlar:";
+
   private final Locator kategori;
   private final Locator aciklama;
   private final Locator ozetBilgiler;
@@ -29,17 +32,28 @@ public class PublicPortalDataSetPage extends PublicPortalBasePage {
 
   public PublicPortalDataSetPage(Page page) {
     super(page);
-    this.kategori = page.locator("main.bvakp-detail .bvakp-chip-cat");
-    this.aciklama = page.locator(".bvakp-about .bvakp-prose");
-    this.ozetBilgiler = page.locator(".bvakp-about-facts span");
-    this.kvkkNotu = page.locator(".bvakp-about-privacy");
-    this.kaynaklar = page.locator("li.bvakp-resource");
-    this.onizleLinki = page.locator(".bvakp-panel-head a[href*='/resource/']");
-    this.ekBilgiSatirlari = page.locator(".bvakp-info-table tr");
-    this.lisans = page.locator(".bvakp-side-license span");
+
+    // Kategori, başlığın üstünde kategori filtresine giden linktir.
+    this.kategori = page.locator("main a[href*='/dataset/?groups=']").first();
+
+    Locator hakkinda = bolum("Bu veri seti hakkında");
+    this.aciklama = hakkinda.locator(".bvakp-prose");
+    this.ozetBilgiler = hakkinda.locator(".bvakp-about-facts span");
+    this.kvkkNotu = hakkinda.getByText(MASKELENEN_ALANLAR_ETIKETI);
+
+    Locator veriVeKaynaklar = bolum("Veri ve Kaynaklar");
+    this.kaynaklar = veriVeKaynaklar.locator("ul.bvakp-resources").getByRole(AriaRole.LISTITEM);
+    this.onizleLinki =
+        veriVeKaynaklar.getByRole(
+            AriaRole.LINK, new Locator.GetByRoleOptions().setName("Önizle").setExact(true));
+
+    this.ekBilgiSatirlari = bolum("Ek Bilgiler").getByRole(AriaRole.ROW);
+    this.lisans = bolum("Lisans").locator(".bvakp-side-license");
     this.ilkYayinNotu =
-        page.locator(
-            ".bvakp-history-row:has(.bvakp-history-kind.is-first_publish) .bvakp-history-note");
+        bolum("Değişiklik Geçmişi")
+            .getByRole(AriaRole.LISTITEM)
+            .filter(new Locator.FilterOptions().setHasText("İlk yayın"))
+            .locator(".bvakp-history-note");
   }
 
   /** Veri setinin detay sayfasını adres adıyla (/dataset/<ad>) açar. */
@@ -50,7 +64,7 @@ public class PublicPortalDataSetPage extends PublicPortalBasePage {
   /** Başlığı verilen adla birebir aynı olan detay sayfası açıldıysa true. */
   public boolean veriSetiSayfasiGoruntulendiMi(String veriSetiAdi) {
     return gorunurMu(
-        page.locator("main.bvakp-detail")
+        page.getByRole(AriaRole.MAIN)
             .getByRole(
                 AriaRole.HEADING,
                 new Locator.GetByRoleOptions().setName(veriSetiAdi).setExact(true).setLevel(1)));
@@ -107,7 +121,9 @@ public class PublicPortalDataSetPage extends PublicPortalBasePage {
     for (Locator kaynak : kaynaklar.all()) {
       linkler.put(
           kaynak.locator(".bvakp-fmt").textContent().trim(),
-          kaynak.locator(".bvakp-resource-actions a").getAttribute("href"));
+          kaynak
+              .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("İndir"))
+              .getAttribute("href"));
     }
     return linkler;
   }
@@ -118,7 +134,8 @@ public class PublicPortalDataSetPage extends PublicPortalBasePage {
     Map<String, String> bilgiler = new LinkedHashMap<>();
     for (Locator satir : ekBilgiSatirlari.all()) {
       bilgiler.put(
-          satir.locator("th").textContent().trim(), satir.locator("td").textContent().trim());
+          satir.getByRole(AriaRole.ROWHEADER).textContent().trim(),
+          satir.getByRole(AriaRole.CELL).textContent().trim());
     }
     return bilgiler;
   }
@@ -139,7 +156,7 @@ public class PublicPortalDataSetPage extends PublicPortalBasePage {
     ReportManager.info("Kaynak önizleme sayfası açıldı");
   }
 
-  /** Özet satırındaki "<strong>49</strong> satır" gibi değerden sayıyı alır. */
+  /** Özet satırındaki "<strong>3.529</strong> satır" gibi değerden sayıyı alır. */
   private int ozetSayisiOkuma(String birim) {
     String metin = ozetBilgiler.filter(new Locator.FilterOptions().setHasText(birim)).innerText();
     return Integer.parseInt(metin.replaceAll("\\D", ""));
