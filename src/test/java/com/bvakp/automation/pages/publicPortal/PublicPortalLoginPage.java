@@ -7,15 +7,12 @@ import com.microsoft.playwright.options.AriaRole;
 import java.util.regex.Pattern;
 
 /**
- * Kamuya açık portalın giriş ekranı (/user/login) ve sağ üstteki hesap menüsü (Hesabım, Yönetim,
- * Çıkış Yap).
+ * Kamuya açık portalın giriş ekranı (/user/login) ve sağ üstteki hesap menüsü (Hesabım, Çıkış Yap).
  *
  * <p>Testler {@link #rolIleGirisYapma} ile rolün kullanıcısıyla girer; rol değiştirmek için aynı
  * metot yeniden çağrılır.
  */
 public class PublicPortalLoginPage extends PublicPortalBasePage {
-
-  private static final String HESAP_MENUSU = "Hesap menüsü: ";
 
   private final Locator girisLinki;
   private final Locator kullaniciAdiAlani;
@@ -23,7 +20,7 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
   private final Locator girisButonu;
   private final Locator hataMesaji;
   private final Locator hesapMenusu;
-  private final Locator yonetimLinki;
+  private final Locator hesabimLinki;
   private final Locator cikisButonu;
   private final Locator talepOlusturLinki;
 
@@ -31,16 +28,23 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     super(page);
     this.girisLinki = link("Giriş Yap");
     this.kullaniciAdiAlani =
-        page.getByLabel("E-posta", new Page.GetByLabelOptions().setExact(true));
+        page.getByLabel("E-posta veya kullanıcı adı", new Page.GetByLabelOptions().setExact(true));
     this.sifreAlani = page.getByLabel("Şifre", new Page.GetByLabelOptions().setExact(true));
     this.girisButonu = buton("Giriş Yap");
     this.hataMesaji = page.getByRole(AriaRole.ALERT);
-    // Hesap menüsü düğmesinin adı "Hesap menüsü: <kullanıcı>" biçimindedir.
+    // Düğmenin adı "<görünen ad>, Hesap menüsü"; görünen ad kullanıcı adından farklı olabilir.
     this.hesapMenusu =
         page.getByRole(
-            AriaRole.BUTTON,
-            new Page.GetByRoleOptions().setName(Pattern.compile("^" + HESAP_MENUSU)));
-    this.yonetimLinki = link("Yönetim");
+            AriaRole.BUTTON, new Page.GetByRoleOptions().setName(Pattern.compile("Hesap menüsü")));
+    // Menü kapalıyken gizlidir; yalnız adresi (/user/<kullanıcı adı>) okunur.
+    this.hesabimLinki =
+        page.getByRole(
+                AriaRole.LINK,
+                new Page.GetByRoleOptions()
+                    .setName("Hesabım")
+                    .setExact(true)
+                    .setIncludeHidden(true))
+            .first();
     this.cikisButonu = buton("Çıkış Yap");
     // Ana sayfanın altındaki "Aradığınız veriyi bulamadınız mı?" alanı.
     this.talepOlusturLinki = link("Veri Talebi Oluştur");
@@ -75,14 +79,9 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     girisYapma(rol.kullaniciAdi(), rol.parola());
   }
 
-  /** Hesap menüsünden Yönetim'e gider (yalnız sistem yöneticisinde görünür). */
-  public void yonetimeGitme() {
-    hesapMenusu.click();
-    yonetimLinki.click();
-  }
-
   /** Hesap menüsünü açıp Çıkış Yap'a tıklar. */
   public void cikisYapma() {
+    sayfaHazirOlanaKadarBekleme();
     hesapMenusu.click();
     cikisButonu.click();
   }
@@ -101,25 +100,18 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     return gorunurMu(kullaniciAdiAlani) && sifreAlani.isVisible();
   }
 
-  /** Sağ üstte verilen kullanıcının hesap menüsü görünüyorsa true döner. */
+  /**
+   * Hesap menüsü görünüyor ve "Hesabım" linki verilen kullanıcının sayfasına gidiyorsa giriş
+   * yapılmıştır. Ekranda görünen ad kullanıcı adından farklı olabileceği için adrese bakılır.
+   */
   public boolean girisYapildiMi(String kullaniciAdi) {
-    return gorunurMu(
-        page.getByRole(
-            AriaRole.BUTTON,
-            new Page.GetByRoleOptions().setName(HESAP_MENUSU + kullaniciAdi).setExact(true)));
+    return gorunurMu(hesapMenusu)
+        && ("/user/" + kullaniciAdi).equals(hesabimLinki.getAttribute("href"));
   }
 
   /** Hesap menüsü kalkıp "Giriş Yap" linki göründüyse true döner. */
   public boolean cikisYapildiMi() {
     return gorunurMu(girisLinki) && !hesapMenusu.isVisible();
-  }
-
-  /** Hesap menüsünde "Yönetim" bağlantısı varsa (sistem yöneticisi) true döner. */
-  public boolean yonetimMenusuVarMi() {
-    hesapMenusu.click();
-    boolean var = gorunurMu(yonetimLinki, 3_000);
-    hesapMenusu.click();
-    return var;
   }
 
   /** Giriş hatası mesajının metni; mesaj yoksa boş metin. */
@@ -131,6 +123,10 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
   public String adresAlma() {
     return page.url();
   }
+
+  // =====================================================================
+  // Yardımcılar
+  // =====================================================================
 
   /** Görünen adı birebir eşleşen link. */
   private Locator link(String ad) {

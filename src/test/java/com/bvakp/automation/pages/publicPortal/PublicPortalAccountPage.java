@@ -4,14 +4,16 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.SelectOption;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 /**
  * Kamuya açık portalda hesap şablonundaki sayfalar: Hesabım (veri talebi formu, Taleplerim, API
- * Anahtarları) ve Yönetim › Veri Talepleri.
+ * Anahtarları) ve talep detayı (yönetici işlemleri).
  *
- * <p>Hepsi aynı şablonu ve sekme yapısını kullandığı için tek sayfa nesnesindedir. Yönetim bölümünü
- * yalnız sistem yöneticisi (onay rolü) görür.
+ * <p>Hepsi aynı şablonu kullandığı için tek sayfa nesnesindedir. Talep detayındaki Onayla / Reddet
+ * / Karşılandı işlemlerini yalnız sistem yöneticisi (onay rolü) görür.
  */
 public class PublicPortalAccountPage extends PublicPortalBasePage {
 
@@ -26,6 +28,8 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   private final Locator talepHerkeseAcikKutusu;
   private final Locator talepGonderButonu;
   private final Locator talepVazgecButonu;
+  private final Locator robotDogrulamaKutusu;
+  private final Locator robotDogrulandiEtiketi;
 
   // API anahtarları
   private final Locator anahtarAdiAlani;
@@ -34,20 +38,29 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   private final Locator anahtarSatirlari;
   private final Locator onayPenceresiOnayButonu;
 
-  // Yönetim › Veri Talepleri
-  private final Locator yonetimAramaAlani;
-  private final Locator yonetimGorunurlukSecimi;
-  private final Locator yonetimUygulaButonu;
+  // Talep detayı (yönetici işlemleri)
+  private final Locator talepDetayDurumu;
+  private final Locator talepGuncellendiMesaji;
+  private final Locator yoneticiIslemleri;
+  private final Locator karsilayanVeriSetiAlani;
+  private final Locator veriSetiSecenekleri;
 
   public PublicPortalAccountPage(Page page) {
     super(page);
-    // Hesabım'da "Hesap bölümleri", Yönetim'de "Yönetim bölümleri" adlı sekme menüsü.
     this.sekmeler =
         page.getByRole(
             AriaRole.NAVIGATION,
-            new Page.GetByRoleOptions().setName(Pattern.compile("^(Hesap|Yönetim) bölümleri$")));
+            new Page.GetByRoleOptions().setName("Hesap bölümleri").setExact(true));
 
-    this.talepOlusturButonu = link("Veri Talebi Oluştur");
+    // Ana sayfa ve Veri Talepleri'nde "Veri Talebi Oluştur", Hesabım'da "Veri talebi oluşturun"
+    // kartı; ikisi de aynı formu açar. Playwright regex'te yalnız CASE_INSENSITIVE, DOTALL ve
+    // MULTILINE bayraklarını kabul eder.
+    this.talepOlusturButonu =
+        page.getByRole(
+                AriaRole.LINK,
+                new Page.GetByRoleOptions()
+                    .setName(Pattern.compile("^Veri talebi oluştur", Pattern.CASE_INSENSITIVE)))
+            .first();
     this.talepFormu =
         page.getByRole(
             AriaRole.DIALOG,
@@ -59,6 +72,14 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     this.talepHerkeseAcikKutusu = talepFormu.getByLabel("Talebim herkese açık listelensin");
     this.talepGonderButonu = buton(talepFormu, "Talebi Gönder");
     this.talepVazgecButonu = buton(talepFormu, "Vazgeç");
+    // ALTCHA doğrulaması: kutuya tıklanınca tarayıcı bir hesaplama yapar (birkaç saniye), sonra
+    // etiket "Doğrulandı" olur. Doğrulanmadan form gönderilmez.
+    this.robotDogrulamaKutusu =
+        talepFormu.getByRole(
+            AriaRole.CHECKBOX,
+            new Locator.GetByRoleOptions().setName("Ben robot değilim").setExact(true));
+    this.robotDogrulandiEtiketi =
+        talepFormu.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true));
 
     this.anahtarAdiAlani =
         page.getByLabel("Anahtar adı", new Page.GetByLabelOptions().setExact(true));
@@ -76,15 +97,25 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
             .getByRole(AriaRole.BUTTON)
             .filter(new Locator.FilterOptions().setHasNotText("Vazgeç"));
 
-    this.yonetimAramaAlani =
+    // Talep detayının başlığındaki durum etiketi (ör. "Onay bekliyor", "Kapanmış · Reddedildi").
+    this.talepDetayDurumu = page.getByRole(AriaRole.MAIN).locator("header .bvakp-history-kind");
+    this.talepGuncellendiMesaji =
+        page.getByRole(AriaRole.STATUS)
+            .filter(new Locator.FilterOptions().setHasText("Talep güncellendi."));
+    // Onayla / Reddet / Karşılandı düğmeleri bu bölgededir. Onay penceresinde de "Onayla" düğmesi
+    // olduğu için düğmeler bölgeyle daraltılır.
+    this.yoneticiIslemleri =
         page.getByRole(
-            AriaRole.SEARCHBOX,
-            new Page.GetByRoleOptions().setName("Taleplerde ara").setExact(true));
-    this.yonetimGorunurlukSecimi =
-        page.getByLabel("Görünürlük", new Page.GetByLabelOptions().setExact(true));
-    this.yonetimUygulaButonu =
+            AriaRole.REGION,
+            new Page.GetByRoleOptions().setName("Yönetici işlemleri").setExact(true));
+    this.karsilayanVeriSetiAlani =
         page.getByRole(
-            AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Uygula").setExact(true));
+            AriaRole.COMBOBOX,
+            new Page.GetByRoleOptions().setName("Talebi karşılayan veri seti").setExact(true));
+    // Kutuya tıklanınca açılan listede her veri seti bir düğmedir.
+    this.veriSetiSecenekleri =
+        page.getByRole(AriaRole.LIST, new Page.GetByRoleOptions().setName("Veri setleri"))
+            .getByRole(AriaRole.BUTTON);
   }
 
   // =====================================================================
@@ -96,18 +127,15 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     adresAcma("/user/" + kullaniciAdi);
   }
 
-  /** Hesabım sayfası verilen kullanıcıyla açıksa (başlıkta kullanıcı adı) true döner. */
+  /**
+   * Hesabım sayfası verilen kullanıcıyla açıksa true döner. Başlıkta görünen ad kullanıcı adından
+   * farklı olabileceği için adrese ve hesap sekmelerine bakılır.
+   */
   public boolean hesabimAcikMi(String kullaniciAdi) {
-    return gorunurMu(
-        page.getByRole(
-            AriaRole.HEADING,
-            new Page.GetByRoleOptions().setName(kullaniciAdi).setExact(true).setLevel(1)));
+    return gorunurMu(sekmeler) && page.url().endsWith("/user/" + kullaniciAdi);
   }
 
-  /**
-   * Sekmeye geçer. Hesabım: "Genel Bakış", "Taleplerim", "API Anahtarları"; Yönetim: "Sistem
-   * Yöneticileri", "Veri Talepleri".
-   */
+  /** Hesabım'da sekmeye geçer: "Genel Bakış", "Taleplerim", "API Anahtarları". */
   public void sekmeAcma(String sekmeAdi) {
     sekmeler
         .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName(sekmeAdi).setExact(true))
@@ -120,6 +148,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
 
   /** "Veri Talebi Oluştur" ile talep formunu açar. */
   public void talepFormunuAcma() {
+    sayfaHazirOlanaKadarBekleme();
     talepOlusturButonu.click();
   }
 
@@ -152,9 +181,21 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     talepHerkeseAcikKutusu.setChecked(herkeseAcik);
   }
 
-  /** "Talebi Gönder"e tıklar. */
+  /** Robot doğrulamasını tamamlayıp "Talebi Gönder"e tıklar. */
   public void talebiGonderme() {
+    robotDogrulamasiniTamamlama();
     talepGonderButonu.click();
+  }
+
+  /**
+   * ALTCHA doğrulamasını başlatır (gerekirse) ve "Doğrulandı" olana kadar bekler. Form odaklanınca
+   * doğrulama kendiliğinden başlamış olabilir; o durumda kutuya tekrar tıklanmaz.
+   */
+  private void robotDogrulamasiniTamamlama() {
+    if (robotDogrulamaKutusu.isVisible()) {
+      robotDogrulamaKutusu.click();
+    }
+    robotDogrulandiEtiketi.waitFor(new Locator.WaitForOptions().setTimeout(30_000));
   }
 
   /** "Vazgeç"e tıklar. */
@@ -173,22 +214,17 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   }
 
   /**
-   * Başlığında HTML etiketi bulunan talebin listede düz metin gösterilip gösterilmediği.
-   *
-   * @param isaret başlıkta geçen ve satırı bulmaya yarayan benzersiz metin
-   * @param hamBaslik forma girilen başlık (etiketleriyle)
-   * @return başlık etiketleriyle birlikte metin olarak görünüyorsa true; HTML işlendiyse false
+   * Başlığında {@code isaret} geçen talebin listedeki başlığının HTML'i. Başlık link olarak
+   * gösterildiği için {@code <a>} içerir; HTML'in işlenip işlenmediği bu metinden anlaşılır.
    */
-  public boolean talepBasligiDuzMetinMi(String isaret, String hamBaslik) {
+  public String talepBasligiHtmlOkuma(String isaret) {
     Locator satir =
         page.getByRole(AriaRole.LISTITEM)
             .filter(new Locator.FilterOptions().setHasText(isaret))
             .first();
-    if (!gorunurMu(satir)) {
-      return false;
-    }
-    Locator baslik = satir.getByRole(AriaRole.HEADING, new Locator.GetByRoleOptions().setLevel(2));
-    return baslik.locator("*").count() == 0 && hamBaslik.equals(baslik.innerText().trim());
+    return satir
+        .getByRole(AriaRole.HEADING, new Locator.GetByRoleOptions().setLevel(2))
+        .innerHTML();
   }
 
   // =====================================================================
@@ -225,6 +261,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
 
   /** Anahtarı "İptal et" ile iptal eder ve onay penceresini onaylar. */
   public void anahtarIptalEtme(String anahtarAdi) {
+    sayfaHazirOlanaKadarBekleme();
     buton(anahtarSatiri(anahtarAdi), "İptal et").click();
     onayPenceresiOnayButonu.click();
   }
@@ -235,38 +272,82 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   }
 
   // =====================================================================
-  // Yönetim › Veri Talepleri (yalnız onay rolü)
+  // Talep detayı (Onayla / Reddet / Karşılandı yalnız onay rolünde görünür)
   // =====================================================================
 
-  /** Yönetim › Veri Talepleri sayfasını adresle açar. */
-  public void yonetimVeriTalepleriniAcma() {
-    adresAcma("/ckan-admin/veri-talepleri");
+  /** "Onay bekliyor" sekmesinde başlıkla arar ve talebin detayını açar. */
+  public void onayBekleyenTalebiAcma(String baslik) {
+    adresAcma("/datarequest?status=pending&q=" + URLEncoder.encode(baslik, StandardCharsets.UTF_8));
+    link(baslik).click();
+  }
+
+  /** Açık olan talep detayındaki durum etiketi (ör. "Açık", "Kapanmış · Karşılandı"). */
+  public String talepDetayDurumuOkuma() {
+    return talepDetayDurumu.innerText().trim();
+  }
+
+  /** İşlemden sonra "Talep güncellendi." bildirimi görünüyorsa true döner. */
+  public boolean talepGuncellendiMesajiGorunurMu() {
+    return gorunurMu(talepGuncellendiMesaji);
+  }
+
+  /** Açık olan talep detayında Onayla'ya tıklar ve onay penceresini onaylar. */
+  public void talebiOnaylama() {
+    sayfaHazirOlanaKadarBekleme();
+    buton(yoneticiIslemleri, "Onayla").click();
+    onayPenceresiOnayButonu.click();
+  }
+
+  /** Açık olan talep detayında Reddet'e tıklar ve onay penceresini onaylar. */
+  public void talebiReddetme() {
+    sayfaHazirOlanaKadarBekleme();
+    buton(yoneticiIslemleri, "Reddet").click();
+    onayPenceresiOnayButonu.click();
   }
 
   /**
-   * Yönetim'de talepleri başlık/amaçta arar ve görünürlüğe göre süzer.
+   * Açık olan talebi, listede ilk sunulan veri setiyle karşılandı olarak kapatır.
    *
-   * @param gorunurluk "Tüm talepler", "Herkese açık" veya "Gizli"
+   * @return seçilen veri setinin adı (Ek Bilgiler'deki "Kabul edilen veri seti" ile karşılaştırmak
+   *     için)
    */
-  public void yonetimdeTalepArama(String aramaMetni, String gorunurluk) {
-    yonetimAramaAlani.fill(aramaMetni);
-    yonetimGorunurlukSecimi.selectOption(new SelectOption().setLabel(gorunurluk));
-    yonetimUygulaButonu.click();
+  public String talebiKarsilandiOlarakKapatma() {
+    sayfaHazirOlanaKadarBekleme();
+    yoneticiIslemleri
+        .getByRole(
+            AriaRole.LINK, new Locator.GetByRoleOptions().setName("Karşılandı").setExact(true))
+        .click();
+    karsilayanVeriSetiAlani.click();
+
+    Locator secenek = veriSetiSecenekleri.first();
+    String veriSetiAdi = secenek.innerText().trim();
+    secenek.click();
+
+    buton(yoneticiIslemleri, "Karşılandı olarak kapat").click();
+    onayPenceresiOnayButonu.click();
+    return veriSetiAdi;
   }
 
-  /** Yönetim listesinde talebi oluşturan kullanıcının adı (profil linki). */
-  public String talepSahibiOkuma(String baslik) {
-    return talepSatiri(baslik).locator("a[href^='/user/']").first().innerText().trim();
+  /** Ek Bilgiler'deki "Kabul edilen veri seti" değeri (yoksa "Hiçbiri"). */
+  public String kabulEdilenVeriSetiOkuma() {
+    return bolum("Ek Bilgiler")
+        .getByRole(AriaRole.ROW)
+        .filter(
+            new Locator.FilterOptions()
+                .setHas(
+                    page.getByRole(
+                        AriaRole.ROWHEADER,
+                        new Page.GetByRoleOptions()
+                            .setName("Kabul edilen veri seti")
+                            .setExact(true))))
+        .getByRole(AriaRole.CELL)
+        .innerText()
+        .trim();
   }
 
-  /** Talebi onaylar. Onay ekranı belli olunca yazılacak. */
-  public void talepOnaylama(String baslik) {
-    throw new UnsupportedOperationException("Talep onay ekranı henüz belli değil: " + baslik);
-  }
-
-  /** Talebi reddeder. Red ekranı belli olunca yazılacak. */
-  public void talepReddetme(String baslik) {
-    throw new UnsupportedOperationException("Talep red ekranı henüz belli değil: " + baslik);
+  /** Talep detayında yönetici işlemleri (Reddet) görünmüyorsa true döner. */
+  public boolean talepYonetimIslemleriGizliMi() {
+    return gorunmuyorMu(buton(yoneticiIslemleri, "Reddet"));
   }
 
   // =====================================================================

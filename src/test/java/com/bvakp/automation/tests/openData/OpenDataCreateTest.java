@@ -26,11 +26,11 @@ import org.testng.asserts.SoftAssert;
  */
 public class OpenDataCreateTest extends AvpBaseTest {
 
-  private static final String KAYNAK_TABLOSU = "d_istasyon";
-  private static final String SORUMLU_BIRIM = "Strateji Geliştirme Daire Başkanlığı";
-  private static final String KATEGORI = "Altyapı ve Hat";
-  private static final String KULLANIM_LISANSI = "Creative Commons Atıf-AynıLisans (CC BY-SA)";
-  private static final String MASKELENECEK_KOLON = "istasyon";
+  private static final String KAYNAK_TABLOSU = "d_hat";
+  private static final String SORUMLU_BIRIM = "Bilgi Teknolojileri Daire Başkanlığı";
+  private static final String KATEGORI = "Yük Taşımacılığı";
+  private static final String KULLANIM_LISANSI = "Creative Commons Atıf (CC BY)";
+  private static final String MASKELENECEK_KOLON = "hat";
 
   /** Tek bir testin kullandığı Page, Page Object'ler ve flow. */
   private record TestContext(
@@ -567,7 +567,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
     ReportManager.step(
         "Sorumlu Birim ve Kategori seçiliyor, Veri Seti Adı boşken Önizle seçiliyor.");
     openDataPage.sorumluBirimSecme(SORUMLU_BIRIM);
-    openDataPage.kategoriSecme("Yolcu Taşımacılığı");
+    openDataPage.kategoriSecme(KATEGORI);
     openDataPage.veriSetiAdiGirme("");
     Assert.assertEquals(openDataPage.veriSetiAdiAlma(), "", "Veri Seti Adı alanı boşaltılamadı.");
     openDataPage.veriSetiOnizleme();
@@ -606,7 +606,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
     ReportManager.step("Katalog bilgileri dolduruluyor ve önizlemeye geçiliyor.");
     openDataPage.veriSetiAdiGirme(veriSetiAdi);
     openDataPage.sorumluBirimSecme(SORUMLU_BIRIM);
-    openDataPage.kategoriSecme("Yolcu Taşımacılığı");
+    openDataPage.kategoriSecme(KATEGORI);
     openDataPage.veriSetiOnizleme();
 
     ReportManager.step("Önizlemede maskeleme doğrulanıyor.");

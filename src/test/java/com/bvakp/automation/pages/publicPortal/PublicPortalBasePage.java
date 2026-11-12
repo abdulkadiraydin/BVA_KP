@@ -5,10 +5,11 @@ import com.bvakp.automation.pages.BasePage;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.LoadState;
 
 /**
- * Kamuya açık portal (CKAN) sayfalarının ortak temeli: portal adresi ve sayfalar arasında aynı olan
- * veri talebi listesi (Hesabım › Taleplerim ve Yönetim › Veri Talepleri).
+ * Kamuya açık portal (CKAN) sayfalarının ortak temeli: portal adresi, başlıklı bölümler ve sayfalar
+ * arasında aynı olan veri talebi listesi (Hesabım › Taleplerim, Veri Talepleri).
  */
 public abstract class PublicPortalBasePage extends BasePage {
 
@@ -31,6 +32,14 @@ public abstract class PublicPortalBasePage extends BasePage {
   }
 
   /**
+   * Sayfanın script'leri yüklenene kadar bekler. Menü, onay penceresi ve talep formu JS ile açılır;
+   * JS hazır olmadan tıklanırsa menü açılmaz ya da form onay sormadan gönderilir.
+   */
+  protected void sayfaHazirOlanaKadarBekleme() {
+    page.waitForLoadState(LoadState.LOAD);
+  }
+
+  /**
    * Başlığı verilen sayfa bölümü (ör. "Ek Bilgiler", "Veri Sözlüğü"); başlık birebir eşleşir.
    * Portal sayfaları başlıklı bölümlerden oluşur; değerler önce bölümle daraltılarak aranır.
    */
@@ -45,7 +54,7 @@ public abstract class PublicPortalBasePage extends BasePage {
   }
 
   // =====================================================================
-  // Veri talebi listesi (Taleplerim ve Yönetim'de aynı yapı)
+  // Veri talebi listesi (Taleplerim ve Veri Talepleri'nde aynı yapı)
   // =====================================================================
 
   /** Başlığı (seviye 2) birebir eşleşen talep satırı. */
@@ -69,12 +78,12 @@ public abstract class PublicPortalBasePage extends BasePage {
     return gorunmuyorMu(talepSatiri(baslik));
   }
 
-  /** Talep satırındaki durum etiketi (ör. "Alındı"). */
+  /** Talep satırındaki durum etiketi (ör. "Onay bekliyor", "Açık"). */
   public String talepDurumuOkuma(String baslik) {
     return talepSatiri(baslik).locator(".bvakp-history-kind").innerText().trim();
   }
 
-  /** Talep satırındaki alt bilgi: tarih · (kategori ·) destek sayısı · görünürlük. */
+  /** Talep satırındaki alt bilgi: sahip · (kategori ·) zaman · yorum sayısı (· Gizli). */
   public String talepBilgisiOkuma(String baslik) {
     return talepSatiri(baslik)
         .locator(".bvakp-my-request-meta")

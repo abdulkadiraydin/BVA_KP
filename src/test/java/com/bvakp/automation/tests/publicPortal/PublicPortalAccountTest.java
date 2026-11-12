@@ -9,15 +9,14 @@ import com.bvakp.automation.pages.publicPortal.PublicPortalLoginPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.utils.TestDataUtil;
 import org.testng.Assert;
-import org.testng.SkipException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /**
  * Kamuya açık portalda Hesabım testleri: veri talebi, talep yönetimi ve API anahtarları.
  *
- * <p>Onay testleri dışındaki bütün testler talep rolüyle ({@link PublicPortalRol#TALEP}) çalışır;
- * onay testlerinde yönetici rolüne ({@link PublicPortalRol#ONAY}) geçilir. Her test kendi verisini
+ * <p>Talepler talep rolüyle ({@link PublicPortalRol#TALEP}) oluşturulur; onaylama, karşılama ve
+ * reddetme için yönetici rolüne ({@link PublicPortalRol#ONAY}) geçilir. Her test kendi verisini
  * oluşturur (talep başlıkları ve anahtar adları "otomasyon_" ile başlar). Oluşturulan API
  * anahtarları test sonunda iptal edilir; anahtar değeri hiçbir zaman log'a ve rapora yazılmaz.
  */
@@ -25,7 +24,10 @@ public class PublicPortalAccountTest extends BaseTest {
 
   private static final String TALEP_AMACI = "Otomasyon testi kapsamında oluşturulan talep.";
   private static final String TALEP_KATEGORISI = "Ulaşım";
-  private static final String TALEP_ALINDI = "Alındı";
+  private static final String TALEP_ONAY_BEKLIYOR = "Onay bekliyor";
+  private static final String TALEP_ACIK = "Açık";
+  private static final String TALEP_KARSILANDI = "Kapanmış · Karşılandı";
+  private static final String TALEP_REDDEDILDI = "Kapanmış · Reddedildi";
 
   /** Tek bir testin kullandığı sayfa nesneleri. */
   private record TestContext(PublicPortalLoginPage loginPage, PublicPortalAccountPage hesapPage) {}
@@ -51,7 +53,7 @@ public class PublicPortalAccountTest extends BaseTest {
   // Veri talebi
   // =====================================================================
 
-  /** Oluşturulan talebin Taleplerim'de "Alındı" durumunda ve herkese açık göründüğünü doğrular. */
+  /** Yeni talebin Taleplerim'de "Onay bekliyor" durumunda ve herkese açık göründüğünü doğrular. */
   @Test
   public void talepOlusturma() {
 
@@ -66,7 +68,7 @@ public class PublicPortalAccountTest extends BaseTest {
     Assert.assertTrue(
         ctx.hesapPage().talepListedeMi(baslik), "Talep Taleplerim'de bulunamadı: " + baslik);
     Assert.assertEquals(
-        ctx.hesapPage().talepDurumuOkuma(baslik), TALEP_ALINDI, "Talep durumu farklı.");
+        ctx.hesapPage().talepDurumuOkuma(baslik), TALEP_ONAY_BEKLIYOR, "Talep durumu farklı.");
     Assert.assertTrue(
         ctx.hesapPage().talepBilgisiOkuma(baslik).contains("Herkese açık"),
         "Talep herkese açık görünmüyor: " + ctx.hesapPage().talepBilgisiOkuma(baslik));
@@ -139,7 +141,7 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.pass("Vazgeçilen talep oluşturulmadı.");
   }
 
-  /** Başlıktaki HTML etiketlerinin işlenmeden düz metin olarak gösterildiğini doğrular. */
+  /** Başlıktaki HTML etiketlerinin işlenmeden (kaçırılıp ya da silinip) gösterildiğini doğrular. */
   @Test
   public void talepBasligindakiHtmlIslenmez() {
 
@@ -150,11 +152,12 @@ public class PublicPortalAccountTest extends BaseTest {
     talepGonderme(ctx, hamBaslik, true);
     ctx.hesapPage().sekmeAcma("Taleplerim");
 
-    Assert.assertTrue(
-        ctx.hesapPage().talepBasligiDuzMetinMi(isaret, hamBaslik),
-        "Talep başlığındaki HTML işlendi ya da talep bulunamadı: " + isaret);
+    // Başlık link olarak gösterildiği için HTML'de <a> bulunur; aranan, gerçek bir <b> etiketi.
+    String html = ctx.hesapPage().talepBasligiHtmlOkuma(isaret);
+    Assert.assertFalse(
+        html.toLowerCase().contains("<b>"), "Talep başlığındaki HTML işlendi: " + html);
 
-    ReportManager.pass("Talep başlığındaki HTML düz metin olarak gösterildi.");
+    ReportManager.pass("Talep başlığındaki HTML işlenmedi: " + html);
   }
 
   /** Talep formunu açar, doldurur ve gönderir. */
@@ -167,22 +170,78 @@ public class PublicPortalAccountTest extends BaseTest {
   }
 
   // =====================================================================
-  // Talep yönetimi (onay kullanıcısı gelince yazılacak)
+  // Talep yönetimi
   //
-  // Akış: rolIleGirisYapma(TALEP) → talep oluştur → rolIleGirisYapma(ONAY) → yonetimeGitme()
-  // → Veri Talepleri → onayla/reddet → rolIleGirisYapma(TALEP) → Taleplerim'de durum.
+  // Talep oluşturulunca "Onay bekliyor" durumuna düşer. Yönetici (onay rolü) talebi onaylayınca
+  // "Açık" olur; sonra bir veri setiyle karşılandı olarak kapatılır ya da reddedilir.
   // =====================================================================
 
-  /** Yöneticinin talebi onayladığını ve kullanıcının durumu gördüğünü doğrular. */
+  /** Yöneticinin bekleyen talebi onaylayıp bir veri setiyle karşılandı kapattığını doğrular. */
   @Test
-  public void talepOnaylama() {
-    throw new SkipException("Talep onay ekranı henüz belli değil; onay kullanıcısı bekleniyor.");
+  public void talepOnaylanipKarsilanir() {
+
+    TestContext ctx = hesabimAcikHazirlik();
+    String baslik = TestDataUtil.dinamikAdOlusturma("otomasyon_talep");
+    talepGonderme(ctx, baslik, true);
+
+    onayKullanicisiylaTalebiAcma(ctx, baslik);
+
+    ReportManager.step("Talep onaylanıyor: " + baslik);
+    ctx.hesapPage().talebiOnaylama();
+    Assert.assertTrue(
+        ctx.hesapPage().talepGuncellendiMesajiGorunurMu(), "Onaydan sonra bildirim görünmedi.");
+    Assert.assertEquals(
+        ctx.hesapPage().talepDetayDurumuOkuma(), TALEP_ACIK, "Onaylanan talebin durumu farklı.");
+
+    ReportManager.step("Talep karşılandı olarak kapatılıyor: " + baslik);
+    String veriSeti = ctx.hesapPage().talebiKarsilandiOlarakKapatma();
+    Assert.assertTrue(
+        ctx.hesapPage().talepGuncellendiMesajiGorunurMu(), "Kapatmadan sonra bildirim görünmedi.");
+    Assert.assertEquals(
+        ctx.hesapPage().talepDetayDurumuOkuma(),
+        TALEP_KARSILANDI,
+        "Karşılanan talebin durumu farklı.");
+    Assert.assertEquals(
+        ctx.hesapPage().kabulEdilenVeriSetiOkuma(), veriSeti, "Kabul edilen veri seti farklı.");
+
+    ReportManager.pass("Talep onaylandı ve karşılandı olarak kapatıldı: " + veriSeti);
   }
 
-  /** Yöneticinin talebi reddettiğini ve kullanıcının durumu gördüğünü doğrular. */
+  /** Yöneticinin bekleyen talebi reddettiğini ve talebin kapandığını doğrular. */
   @Test
   public void talepReddetme() {
-    throw new SkipException("Talep red ekranı henüz belli değil; onay kullanıcısı bekleniyor.");
+
+    TestContext ctx = hesabimAcikHazirlik();
+    String baslik = TestDataUtil.dinamikAdOlusturma("otomasyon_talep");
+    talepGonderme(ctx, baslik, true);
+
+    onayKullanicisiylaTalebiAcma(ctx, baslik);
+
+    ReportManager.step("Talep reddediliyor: " + baslik);
+    ctx.hesapPage().talebiReddetme();
+    Assert.assertTrue(
+        ctx.hesapPage().talepGuncellendiMesajiGorunurMu(), "Redden sonra bildirim görünmedi.");
+    Assert.assertEquals(
+        ctx.hesapPage().talepDetayDurumuOkuma(),
+        TALEP_REDDEDILDI,
+        "Reddedilen talebin durumu farklı.");
+
+    ReportManager.pass("Talep reddedildi: " + baslik);
+  }
+
+  /** Onay rolüne geçer ve "Onay bekliyor" listesinden talebin detayını açar. */
+  private void onayKullanicisiylaTalebiAcma(TestContext ctx, String baslik) {
+    ReportManager.step("Onay kullanıcısına geçiliyor: " + PublicPortalRol.ONAY.kullaniciAdi());
+    ctx.loginPage().rolIleGirisYapma(PublicPortalRol.ONAY);
+    Assert.assertTrue(
+        ctx.loginPage().girisYapildiMi(PublicPortalRol.ONAY.kullaniciAdi()),
+        "Ön koşul: onay kullanıcısıyla giriş yapılamadı.");
+
+    ctx.hesapPage().onayBekleyenTalebiAcma(baslik);
+    Assert.assertEquals(
+        ctx.hesapPage().talepDetayDurumuOkuma(),
+        TALEP_ONAY_BEKLIYOR,
+        "Ön koşul: talep onay beklemiyor.");
   }
 
   // =====================================================================

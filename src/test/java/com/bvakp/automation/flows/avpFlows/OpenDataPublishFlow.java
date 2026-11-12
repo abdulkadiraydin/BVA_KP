@@ -22,7 +22,7 @@ import org.testng.Assert;
 public class OpenDataPublishFlow {
 
   private static final String DUZENLEME_SORUMLU_BIRIM = "Yolcu Taşımacılığı Daire Başkanlığı";
-  private static final String DUZENLEME_KATEGORI = "İstatistik";
+  private static final String DUZENLEME_KATEGORI = "Yolcu İstatistikleri";
   private static final String YAYIN_ACIKLAMASI =
       "Otomasyon testi kapsamında yayınlama işlemi gerçekleştirilmiştir.";
 

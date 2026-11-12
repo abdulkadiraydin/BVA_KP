@@ -22,11 +22,11 @@ import org.testng.annotations.Test;
  */
 public class OpenDataPublishTest extends AvpBaseTest {
 
-  private static final String KAYNAK_TABLOSU = "d_istasyon";
-  private static final String SORUMLU_BIRIM = "Strateji Geliştirme Daire Başkanlığı";
-  private static final String KATEGORI = "Altyapı ve Hat";
-  private static final String KULLANIM_LISANSI = "Creative Commons Atıf-AynıLisans (CC BY-SA)";
-  private static final List<String> MASKELENECEK_KOLONLAR = List.of("istasyon_kaynak_id");
+  private static final String KAYNAK_TABLOSU = "d_hat";
+  private static final String SORUMLU_BIRIM = "Bilgi Teknolojileri Daire Başkanlığı";
+  private static final String KATEGORI = "Yük Taşımacılığı";
+  private static final String KULLANIM_LISANSI = "Creative Commons Atıf (CC BY)";
+  private static final List<String> MASKELENECEK_KOLONLAR = List.of("hat");
 
   /** Detay ekranının Genel Bilgi sekmesinde bulunması gereken alanlar. */
   private static final List<String> DETAY_ALANLARI =

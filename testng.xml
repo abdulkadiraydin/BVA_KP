@@ -8,7 +8,7 @@
 
     <test name="BVA Tests">
         <classes>
-            <class name="com.bvakp.automation.tests.openData.PublicOpenDataTest"/>
+            <class name="com.bvakp.automation.tests.publicPortal.PublicPortalAccountTest"/>
         </classes>
     </test>
 </suite>

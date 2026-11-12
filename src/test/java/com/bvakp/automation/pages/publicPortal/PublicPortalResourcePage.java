@@ -32,7 +32,7 @@ public class PublicPortalResourcePage extends PublicPortalBasePage {
     this.sekmeler =
         page.getByRole(
             AriaRole.NAVIGATION, new Page.GetByRoleOptions().setName("Kaynak bölümleri"));
-    this.toplamKayit = page.getByText(Pattern.compile("^Toplam [\\d.]+ kayıt$"));
+    this.toplamKayit = page.getByText(Pattern.compile("Toplam\\s+[\\d.]+\\s+kayıt"));
 
     // Başlık satırında (ALAN, TİP, AÇIKLAMA) hücre yoktur; yalnız veri satırları alınır.
     this.sozlukSatirlari =
