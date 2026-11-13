@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven'
+    }
+
     environment {
         // Jenkins'e özel ayarlar
         BVAKP_HEADLESS                     = 'true'
@@ -16,7 +20,13 @@ pipeline {
     }
 
     stages {
-        stage('Testleri çalıştır') {
+        stage('Smoke suite hazırla') {
+            steps {
+                // pom her zaman testng.xml'i çalıştırıyor; Jenkins'in kopyasında smoke.xml ile değiştiriyoruz
+                bat 'copy /Y smoke.xml testng.xml'
+            }
+        }
+        stage('Smoke testleri çalıştır') {
             steps {
                 bat 'mvn clean test'
             }
