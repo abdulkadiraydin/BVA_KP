@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 
-<suite name="BVA Suite"
-       verbose="1"
-       parallel="methods"
-       thread-count="3">
+<!--
+  Bütün test sınıfları, metot düzeyinde paralel (3 thread).
+  Test ortamı 3'ten fazla paralel koşuya yetişemiyor (5'te tablolar yüklenmedi); artırmayın.
+  AVP girişleri AvpOturum'da sıraya alındığı için Keycloak kilitlenmez.
+  Çalıştırma: mvn test "-Dsuite.xml=paralel.xml"
+-->
+<suite name="BVA KP - Paralel" parallel="methods" thread-count="5" verbose="1">
 
-    <test name="BVA Tests">
+    <test name="Kapalı portal (AVP)">
         <classes>
+            <class name="com.bvakp.automation.tests.LoginTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataDashboardTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataCreateTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataPublishTest"/>
+            <class name="com.bvakp.automation.tests.openData.OpenDataUpdateCalendarTest"/>
+        </classes>
+    </test>
+
+    <test name="Açık portal (CKAN)">
+        <classes>
+            <class name="com.bvakp.automation.tests.publicPortal.PublicOpenDataTest"/>
+            <class name="com.bvakp.automation.tests.publicPortal.PublicPortalLoginTest"/>
             <class name="com.bvakp.automation.tests.publicPortal.PublicPortalAccountTest"/>
         </classes>
     </test>
+
 </suite>

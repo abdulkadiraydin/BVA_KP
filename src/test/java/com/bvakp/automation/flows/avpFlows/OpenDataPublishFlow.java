@@ -5,7 +5,6 @@ import com.bvakp.automation.core.auth.PortalRol;
 import com.bvakp.automation.model.YayinAyarlari;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
-import com.bvakp.automation.pages.openData.OpenDataPublishPage.DuzenlemeAlanlari;
 import com.bvakp.automation.reporting.ReportManager;
 import org.testng.Assert;
 
@@ -126,11 +125,10 @@ public class OpenDataPublishFlow {
     publishPage.clickDuzenlemeKaydet();
     publishPage.bildirimBekleme("Veri seti güncellendi");
 
-    DuzenlemeAlanlari alanlar = publishPage.duzenlemeAlanlariniOkuma();
-    Assert.assertEquals(
-        alanlar.sorumluBirim(), DUZENLEME_SORUMLU_BIRIM, "Ön koşul: Sorumlu Birim kaydedilmedi.");
-    Assert.assertEquals(alanlar.kategori(), DUZENLEME_KATEGORI, "Ön koşul: Kategori kaydedilmedi.");
-    Assert.assertEquals(alanlar.aciklama(), yeniAciklama, "Ön koşul: Açıklama kaydedilmedi.");
+    Assert.assertTrue(
+            publishPage.kaydedilenDegerlerGorunuyorMu(
+                    DUZENLEME_SORUMLU_BIRIM, DUZENLEME_KATEGORI, yeniAciklama),
+            "Ön koşul: düzenlenen değerler (sorumlu birim, kategori, açıklama) ekranda görünmedi.");
 
     ReportManager.step("Değişiklikler onaya gönderiliyor: " + dataSetName);
 

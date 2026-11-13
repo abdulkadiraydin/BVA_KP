@@ -27,7 +27,7 @@
                     <include name="veriSetiYayinlama"/>
                 </methods>
             </class>
-            <class name="com.bvakp.automation.tests.openData.PublicOpenDataTest">
+            <class name="com.bvakp.automation.tests.publicPortal.PublicOpenDataTest">
                 <methods>
                     <include name="aramadaVeriSetiKartiGorunur"/>
                     <include name="apiKayitlariMaskelidir"/>

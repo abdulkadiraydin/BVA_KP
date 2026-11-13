@@ -466,9 +466,6 @@ public class OpenDataPage extends BasePage {
     Locator satirlar = page.locator("[role='grid'] [role='row'][data-id]");
     satirlar.first().waitFor();
 
-    // Tablo sayfalı (sayfa başına 25 satır); bütün kolonlar için sayfalar tek tek gezilir.
-    Locator sonrakiSayfa =
-        page.locator(".MuiDataGrid-footerContainer .MuiTablePagination-actions button").last();
     Map<String, KolonTanimi> kolonlar = new LinkedHashMap<>();
 
     while (true) {

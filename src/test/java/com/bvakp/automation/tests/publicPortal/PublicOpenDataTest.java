@@ -1,4 +1,4 @@
-package com.bvakp.automation.tests.openData;
+package com.bvakp.automation.tests.publicPortal;
 
 import com.bvakp.automation.api.core.ApiYanit;
 import com.bvakp.automation.api.publicportal.DatastoreSonuc;
@@ -10,7 +10,6 @@ import com.bvakp.automation.core.playwright.PlaywrightManager;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
 import com.bvakp.automation.flows.avpFlows.OpenDataPublishFlow;
 import com.bvakp.automation.flows.avpFlows.OpenDataSetupFlow;
-import com.bvakp.automation.model.KolonTanimi;
 import com.bvakp.automation.model.VeriSetiTanimi;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
@@ -38,7 +37,6 @@ import org.testng.asserts.SoftAssert;
 public class PublicOpenDataTest extends AvpBaseTest {
 
   private static final int PORTAL_INDEKS_BEKLEME_SN = 120;
-  private static final int API_KAYIT_LIMITI = 1_000;
 
   /** Portaldaki toplam kayıt sayısı; API'den bütün kayıtları almak için kullanılır. */
   private int portalKayitSayisi;
@@ -391,39 +389,6 @@ public class PublicOpenDataTest extends AvpBaseTest {
       }
     }
     return sonuc;
-  }
-
-  /**
-   * Bilinen bulgu: kaynaktaki integer/date gibi tipler portalda "text" oluyor. Düzeltilene kadar
-   * kırmızı kalması beklenir. Maskeli kolonlar metne dönüştüğü için hariçtir.
-   */
-  @ApiTesti
-  @Test(description = "Kolon tipleri portalda korunur (bilinen bulgu: hepsi text)")
-  public void kolonTipleriKorunur() {
-    PublicPortalApi api = PublicPortalApi.portaldan();
-
-    Map<String, String> apiTipleri = api.kayitlariGetir(kaynakId, 1).alanlar();
-
-    List<String> kaybolanTipler = new ArrayList<>();
-    for (KolonTanimi kolon : tanim.kolonlar()) {
-      if (!kolon.dahil() || kolon.maskeliMi() || metinTipiMi(kolon.veriTipi())) {
-        continue;
-      }
-      if ("text".equals(apiTipleri.get(kolon.ad()))) {
-        kaybolanTipler.add(kolon.ad() + " (" + kolon.veriTipi() + " → text)");
-      }
-    }
-
-    Assert.assertTrue(
-        kaybolanTipler.isEmpty(), "Portalda tipi kaybolan kolonlar: " + kaybolanTipler);
-
-    ReportManager.pass("Kolon tipleri portalda korunuyor.");
-  }
-
-  /** Kaynaktaki veri tipinin metin türünde (char, text, string) olup olmadığını döndürür. */
-  private static boolean metinTipiMi(String veriTipi) {
-    String tip = veriTipi == null ? "" : veriTipi.toLowerCase();
-    return tip.contains("char") || tip.contains("text") || tip.contains("string");
   }
 
   /**

@@ -64,10 +64,11 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     girisLinki.click();
   }
 
-  /** Kullanıcı adı ve şifreyi girip Giriş Yap'a tıklar. */
+  /** Kullanıcı adı ve şifreyi girer, robot doğrulamasını bekler ve Giriş Yap'a tıklar. */
   public void girisYapma(String kullaniciAdi, String sifre) {
     kullaniciAdiAlani.fill(kullaniciAdi);
     sifreAlani.fill(sifre);
+    robotDogrulamasiniTamamlama(page.getByRole(AriaRole.MAIN));
     girisButonu.click();
   }
 

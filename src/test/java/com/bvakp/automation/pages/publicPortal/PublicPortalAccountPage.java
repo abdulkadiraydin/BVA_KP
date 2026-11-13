@@ -183,19 +183,8 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
 
   /** Robot doğrulamasını tamamlayıp "Talebi Gönder"e tıklar. */
   public void talebiGonderme() {
-    robotDogrulamasiniTamamlama();
+    robotDogrulamasiniTamamlama(talepFormu);
     talepGonderButonu.click();
-  }
-
-  /**
-   * ALTCHA doğrulamasını başlatır (gerekirse) ve "Doğrulandı" olana kadar bekler. Form odaklanınca
-   * doğrulama kendiliğinden başlamış olabilir; o durumda kutuya tekrar tıklanmaz.
-   */
-  private void robotDogrulamasiniTamamlama() {
-    if (robotDogrulamaKutusu.isVisible()) {
-      robotDogrulamaKutusu.click();
-    }
-    robotDogrulandiEtiketi.waitFor(new Locator.WaitForOptions().setTimeout(30_000));
   }
 
   /** "Vazgeç"e tıklar. */

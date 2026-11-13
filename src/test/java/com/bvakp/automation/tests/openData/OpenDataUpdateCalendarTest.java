@@ -117,7 +117,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
       PublicPortalApi api = PublicPortalApi.portaldan();
       JsonNode paket = api.paketHazirOlanaKadarBekleme(hazirVeriSeti, PORTAL_BEKLEME_SN);
       String kaynakId = PublicPortalApi.datastoreKaynakId(paket).orElseThrow();
-      portalKayitSayisi = api.kayitlariGetir(kaynakId, 1).toplam();
+      portalKayitSayisi = portalKayitSayisiniBekleme(api, kaynakId);
 
       ReportManager.info(
           "Ortak veri seti hazır: "
@@ -130,6 +130,27 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
       // Hazırlık patlarsa trace/video saklansın diye statü HATALI olarak verilir.
       PlaywrightManager.close("ortakVeriSetiHazirlama", basarili ? "HAZIRLIK" : "HATALI");
     }
+  }
+  /**
+   * Portaldaki kayıt sayısını döndürür. Manuel güncellemeden sonra portal veriyi yeniden yüklerken
+   * toplam bir süre 0 görünür; bu yüzden sayı dolana kadar 5 saniyede bir tekrar sorulur.
+   */
+  private static int portalKayitSayisiniBekleme(PublicPortalApi api, String kaynakId) {
+    long bitis = System.currentTimeMillis() + PORTAL_BEKLEME_SN * 1_000L;
+    int toplam = api.kayitlariGetir(kaynakId, 1).toplam();
+    while (toplam == 0 && System.currentTimeMillis() < bitis) {
+      try {
+        Thread.sleep(5_000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+      toplam = api.kayitlariGetir(kaynakId, 1).toplam();
+    }
+    Assert.assertTrue(
+            toplam > 0,
+            "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.");
+    return toplam;
   }
 
   // ------------------------------------------------------------------

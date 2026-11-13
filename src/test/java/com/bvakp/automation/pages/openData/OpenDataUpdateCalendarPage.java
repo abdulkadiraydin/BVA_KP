@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 public class OpenDataUpdateCalendarPage extends BasePage {
 
   private static final int SATIR_TIMEOUT_MS = 10_000;
-  private static final int GECMIS_KAYIT_TIMEOUT_MS = 60_000;
   private static final int GECMIS_TUR_KONTROL_MS = 3_000;
   private static final int GECMIS_TUR_ARALIGI_MS = 2_000;
 

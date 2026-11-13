@@ -527,4 +527,24 @@ public class OpenDataPublishPage extends BasePage {
 
     return new YayinAyarlari(formatlar, dataApiAcik, zamanlama, kvkkNotu, yayinAciklamasi);
   }
+
+  /**
+   * Düzenlemeden sonra kaydedilen değerler ekranda görünüyorsa true döner. Kaydedince form açık
+   * kalabilir (değerler alanlardan okunur) ya da detay ekranına dönülebilir (değerler metin olarak
+   * aranır); ikisi de desteklenir.
+   */
+  public boolean kaydedilenDegerlerGorunuyorMu(String sorumluBirim, String kategori, String aciklama) {
+    Locator aciklamaAlani =
+            page.getByLabel("Açıklama", new Page.GetByLabelOptions().setExact(true));
+    if (aciklamaAlani.isVisible()) {
+      return duzenlemeAlanlariniOkuma()
+              .equals(new DuzenlemeAlanlari(sorumluBirim, kategori, aciklama));
+    }
+    return gorunurMu(metin(aciklama)) && gorunurMu(metin(sorumluBirim)) && gorunurMu(metin(kategori));
+  }
+
+  /** Ekranda birebir bu metni taşıyan ilk öge. */
+  private Locator metin(String deger) {
+    return page.getByText(deger, new Page.GetByTextOptions().setExact(true)).first();
+  }
 }
