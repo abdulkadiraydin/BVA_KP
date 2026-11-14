@@ -145,12 +145,17 @@ public class OpenDataPublishFlow {
   // Arşivleme ve silme
   // =====================================================================
 
-  /** Yayındaki veri setini arşivler ve bildirimi bekler. */
+  /** Yayındaki veri setini yayın rolüyle arşivler ve bildirimi bekler. */
   public void archiveDataSet(String dataSetName) {
+    archiveDataSet(dataSetName, PortalRol.YAYIN);
+  }
+
+  /** Yayındaki veri setini verilen rolün kullanıcısıyla arşivler ve bildirimi bekler. */
+  public void archiveDataSet(String dataSetName, PortalRol rol) {
 
     ReportManager.step("Veri seti arşivleniyor: " + dataSetName);
 
-    rolIleVeriSetiYonetiminiAcma(PortalRol.YAYIN);
+    rolIleVeriSetiYonetiminiAcma(rol);
     publishPage.clickArsivle(dataSetName);
     publishPage.confirmArsivle();
     publishPage.bildirimBekleme("Veri seti arşivlendi");
@@ -158,16 +163,16 @@ public class OpenDataPublishFlow {
 
   /** Yayınlanmadan önce (KVKK Onayında) veri setini siler. */
   public void deleteBeforePublication(String dataSetName) {
-    veriSetiniSil(dataSetName, PortalRol.KVKK);
+    deleteDataSet(dataSetName, PortalRol.KVKK);
   }
 
   /** Arşivlendikten sonra veri setini siler. */
   public void deleteAfterPublication(String dataSetName) {
-    veriSetiniSil(dataSetName, PortalRol.YAYIN);
+    deleteDataSet(dataSetName, PortalRol.YAYIN);
   }
 
   /** Veri setini verilen rolün kullanıcısıyla siler ve bildirimi bekler. */
-  private void veriSetiniSil(String dataSetName, PortalRol rol) {
+  public void deleteDataSet(String dataSetName, PortalRol rol) {
 
     ReportManager.step("Veri seti siliniyor: " + dataSetName);
 

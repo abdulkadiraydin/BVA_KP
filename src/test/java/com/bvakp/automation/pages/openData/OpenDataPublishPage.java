@@ -7,8 +7,11 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
+import com.microsoft.playwright.options.WaitForSelectorState;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -95,6 +98,55 @@ public class OpenDataPublishPage extends BasePage {
     } catch (PlaywrightException e) {
       // Sonuç gelmediyse çağıran metot kendi kontrolünde anlamlı hatayı verir.
     }
+  }
+
+  /** Listede okunan bir veri setinin adı ve statüsü (ör. "Yayında"). */
+  public record VeriSetiSatiri(String ad, String durum) {}
+
+  /**
+   * Arama alanına ön eki yazar ve bütün sonuç sayfalarını gezerek adı ön ekle (büyük/küçük harf
+   * duyarlı) başlayan veri setlerini statüleriyle döndürür. Hiç sonuç yoksa boş liste döner.
+   */
+  public List<VeriSetiSatiri> veriSetleriniListeleme(String onEk) {
+
+    aramaAlani.fill(onEk);
+
+    Locator satirlar = page.locator("[role='row'][data-id]");
+
+    // Arama sonucu gelene kadar eski (filtresiz) satırlar görünebilir; ad kontrolüyle beklenir.
+    page.waitForCondition(
+        () ->
+            kayitBulunamadiMesaji.isVisible()
+                || (satirlar.count() > 0
+                    && satirlar.locator("[data-field='name'] p").allInnerTexts().stream()
+                        .allMatch(ad -> ad.contains(onEk))),
+        new Page.WaitForConditionOptions().setTimeout(ARAMA_SONUCU_TIMEOUT_MS));
+
+    Map<String, VeriSetiSatiri> veriSetleri = new LinkedHashMap<>();
+
+    while (true) {
+      for (Locator satir : satirlar.all()) {
+        String ad = satir.locator("[data-field='name'] p").first().innerText().trim();
+        if (ad.startsWith(onEk)) {
+          String durum = satir.locator("[data-field='state']").innerText().trim();
+          veriSetleri.putIfAbsent(ad, new VeriSetiSatiri(ad, durum));
+        }
+      }
+
+      Locator sonrakiSayfa =
+          page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Go to next page"));
+      if (sonrakiSayfa.count() == 0 || !sonrakiSayfa.isEnabled()) {
+        break;
+      }
+
+      String ilkSatir = satirlar.first().getAttribute("data-id");
+      sonrakiSayfa.click();
+      page.locator("[role='row'][data-id='" + ilkSatir + "']")
+          .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.DETACHED));
+    }
+
+    ReportManager.info("Ön ekle başlayan veri seti sayısı: " + veriSetleri.size());
+    return new ArrayList<>(veriSetleri.values());
   }
 
   /** Arama alanı veri seti adını içeriyor ve tabloda tam eşleşen satır varsa true. */
@@ -401,6 +453,30 @@ public class OpenDataPublishPage extends BasePage {
 
     ReportManager.info("Veri seti versiyonu okundu: " + versiyon);
     return versiyon;
+  }
+
+  /**
+   * Veri setinin satırında Sil butonu süre içinde görünürse true döner; liste yenilenerek beklenir.
+   * Arşivleme gibi işlemlerden sonra statü değişip Sil butonu gelene kadar beklemek için
+   * kullanılır.
+   */
+  public boolean silinebilirMi(String dataSetName, int timeoutMs) {
+    return listedeBekle(
+        dataSetName,
+        "actions",
+        hucre -> silButonuVarMi(hucre) ? "Sil var" : "Sil yok",
+        "Sil var"::equals,
+        "Sil butonu",
+        timeoutMs,
+        STATU_YENILEME_ARALIGI_MS);
+  }
+
+  /** İşlemler hücresinde Sil butonu varsa true döner. */
+  private static boolean silButonuVarMi(Locator islemlerHucresi) {
+    Locator silButonu =
+        islemlerHucresi.getByRole(
+            AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Sil").setExact(true));
+    return silButonu.count() > 0;
   }
 
   /** Silinen veri seti listeden kalkarsa ("Kayıt bulunamadı") true; süre dolarsa false döner. */

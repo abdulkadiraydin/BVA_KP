@@ -15,7 +15,9 @@ public enum PortalRol {
   /** KVKK onayı verir veya reddeder. */
   KVKK("kvkk"),
   /** Yayınlar, yayını reddeder, arşivler, siler, manuel güncelleme başlatır. */
-  YAYIN("yayin");
+  YAYIN("yayin"),
+  /** Koşu sonu temizliği: eski otomasyon veri setlerini arşivler/siler, kaynakları siler. */
+  TEMIZLIK("temizlik");
 
   private final String anahtar;
 

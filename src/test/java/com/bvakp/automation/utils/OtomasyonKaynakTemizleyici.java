@@ -4,36 +4,66 @@ import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.core.auth.PortalRol;
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.core.playwright.PlaywrightManager;
+import com.bvakp.automation.flows.avpFlows.OpenDataPublishFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
+import com.bvakp.automation.pages.openData.OpenDataPublishPage;
+import com.bvakp.automation.pages.openData.OpenDataPublishPage.VeriSetiSatiri;
 import com.bvakp.automation.reporting.ReportManager;
-import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.AriaRole;
-import com.microsoft.playwright.options.WaitForSelectorState;
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Testlerin Açık Veri Portalında oluşturduğu kaynakları siler.
+ * Otomasyonun kapalı portaldaki Açık Veri Portalı'nda bıraktığı veri setlerini ve kaynakları siler.
  *
- * <p>Yalnızca adı tam olarak cleanup.name.prefix (varsayılan "otomasyon_") ile başlayan kayıtlar
- * silinir. Büyük/küçük harf duyarlıdır; açıklaması "Otomasyon ..." olan gerçek bir kayıt eşleşmez.
+ * <p>Silinecek kayıt: adı cleanup.name.prefix (varsayılan "otomasyon_") ile başlar (büyük/küçük
+ * harf duyarlı) ve adındaki tarih (TestDataUtil.dinamikAdOlusturma: ..._yyyyMMdd_HHmmss_SSS)
+ * cleanup.min.age.hours saatten eskidir. Adından tarih okunamayan kayda dokunulmaz. Böylece o
+ * sırada çalışan koşuların verisi silinmez; her koşu önceki günlerin artığını temizler.
  *
- * <p>Güvenlik: base.url'in host'u cleanup.allowed.hosts listesinde değilse hiçbir şey silinmez. Bu,
- * temizliğin yanlışlıkla canlı ortamda çalışmasını önler.
+ * <p>Sıra: önce veri setleri (Yayında olan önce arşivlenir), sonra kaynaklar (kaynak, bağlı veri
+ * seti kalmadığında silinebilir). Kayıtlar en eskiden başlanarak silinir. Silinemeyen kayıt
+ * atlanır, temizlik durmaz; sonunda özet yazılır.
  *
- * <p>Ayarlar: cleanup.enabled, cleanup.allowed.hosts, cleanup.name.prefix, cleanup.max.delete
+ * <p>Güvenlik: base.url'in host'u cleanup.allowed.hosts listesinde değilse hiçbir şey silinmez.
+ * Bütün işlemler TEMIZLIK rolünün kullanıcısıyla yapılır.
+ *
+ * <p>Ayarlar: cleanup.enabled, cleanup.allowed.hosts, cleanup.name.prefix, cleanup.min.age.hours
  */
 public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
   private static final String VARSAYILAN_ON_EK = "otomasyon_";
-  private static final int VARSAYILAN_MAKSIMUM_SILME = 200;
+  private static final int VARSAYILAN_MINIMUM_SAAT = 48;
 
-  private static final String BOS_LISTE_MESAJI =
-      "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.";
+  private static final String YAYINDA = "Yayında";
+
+  /** Sil butonu normal statüde hemen görünür; arşivden sonra statü değişimi beklenir. */
+  private static final int SIL_BUTONU_TIMEOUT_MS = 10_000;
+
+  private static final int ARSIV_SONRASI_TIMEOUT_MS = 120_000;
+
+  /**
+   * Addaki zaman damgası: otomasyon_kaynak_20261114_232219_575 → 20261114_232219. Damgadan sonra ek
+   * olabilir (ör. düzenleme testi: ..._232030_320_duzenlendi).
+   */
+  private static final Pattern AD_TARIHI = Pattern.compile("_(\\d{8}_\\d{6})_\\d{3}(?=_|$)");
+
+  private static final DateTimeFormatter AD_TARIH_BICIMI =
+      DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+
+  private static final DateTimeFormatter LOG_TARIH_BICIMI =
+      DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
   /** Manuel çalıştırma: cleanup.enabled'dan bağımsızdır, ortam kilidi yine geçerlidir. */
   public static void main(String[] args) {
@@ -52,15 +82,15 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
 
     OtomasyonKaynakTemizleyici temizleyici = new OtomasyonKaynakTemizleyici();
 
-    ReportManager.info("OTOMASYON KAYNAK TEMİZLİĞİ İÇİN YENİ PLAYWRIGHT OTURUMU AÇILIYOR");
+    ReportManager.info("OTOMASYON TEMİZLİĞİ İÇİN YENİ PLAYWRIGHT OTURUMU AÇILIYOR");
 
     try {
       // Testlerin Page'i kapanmış olabileceği için temizliğe özel oturum açılır.
       PlaywrightManager.initialize(temizleyici.authStateKullan());
-      temizleyici.otomasyonKaynaklariniTemizle();
+      temizleyici.otomasyonKayitlariniTemizle();
     } finally {
       PlaywrightManager.close("otomasyonKaynaklariniTemizleme", "TEMIZLIK");
-      ReportManager.info("OTOMASYON KAYNAK TEMİZLİĞİ PLAYWRIGHT OTURUMU KAPATILDI");
+      ReportManager.info("OTOMASYON TEMİZLİĞİ PLAYWRIGHT OTURUMU KAPATILDI");
     }
   }
 
@@ -70,8 +100,7 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
    */
   private static boolean ortamIzinliMi() {
 
-    String baseUrl = ConfigManager.get("base.url");
-    String host = URI.create(baseUrl).getHost();
+    String host = URI.create(ConfigManager.get("base.url")).getHost();
 
     Set<String> izinliHostlar =
         Arrays.stream(ConfigManager.getOrDefault("cleanup.allowed.hosts", "").split(","))
@@ -92,188 +121,237 @@ public class OtomasyonKaynakTemizleyici extends AvpBaseTest {
     return true;
   }
 
-  /** Ön ekle başlayan kaynakları en fazla izin verilen sayıda siler. */
-  private void otomasyonKaynaklariniTemizle() {
+  /** Önce veri setlerini, sonra kaynakları temizler ve özeti yazar. */
+  private void otomasyonKayitlariniTemizle() {
 
     String onEk = ConfigManager.getOrDefault("cleanup.name.prefix", VARSAYILAN_ON_EK);
-    int maksimumSilme = maksimumSilmeSayisi();
+    int minimumSaat = minimumSaat();
+    LocalDateTime sinir = LocalDateTime.now().minusHours(minimumSaat);
 
     ReportManager.info(
-        "OTOMASYON KAYNAK TEMİZLİĞİ BAŞLADI | Ön ek: '" + onEk + "' | Üst sınır: " + maksimumSilme);
+        "OTOMASYON TEMİZLİĞİ BAŞLADI | Ön ek: '"
+            + onEk
+            + "' | "
+            + minimumSaat
+            + " saatten eski kayıtlar ("
+            + sinir.format(LOG_TARIH_BICIMI)
+            + " öncesi)");
 
-    avpOturumuHazirlama(PortalRol.HAZIRLAYAN);
+    avpOturumuHazirlama(PortalRol.TEMIZLIK);
 
     Page aktifPage = page();
     OpenDataPage openDataPage = new OpenDataPage(aktifPage);
+    OpenDataPublishPage publishPage = new OpenDataPublishPage(aktifPage);
+    OpenDataPublishFlow publishFlow = new OpenDataPublishFlow(publishPage);
 
-    ReportManager.info("Açık Veri Portalına geçiliyor.");
-    openDataPage.acikVeriPortalinaGitme();
-
-    ReportManager.info("'" + onEk + "' kriteri ile kaynaklar filtreleniyor.");
-    openDataPage.kaynakArama(onEk);
-
-    aramaSonuclariniBekle(aktifPage, onEk);
-
-    int silinenKayitSayisi = 0;
-
-    while (silinenKayitSayisi < maksimumSilme) {
-
-      SilinecekKayit kayit = silinecekIlkKaydiBul(aktifPage, onEk);
-
-      if (kayit == null) {
-        ReportManager.info("Silinebilecek otomasyon kaynağı kalmadı.");
-        break;
-      }
-
-      kaydiSil(aktifPage, kayit);
-      silinenKayitSayisi++;
-
-      ReportManager.info(
-          "Kaynak başarıyla silindi | Kaynak: "
-              + kayit.ad()
-              + " | Toplam silinen: "
-              + silinenKayitSayisi);
-    }
-
-    if (silinenKayitSayisi >= maksimumSilme) {
-      ReportManager.warn(
-          "Silme üst sınırına ulaşıldı ("
-              + maksimumSilme
-              + "). Kalan kayıtlar bir sonraki temizlikte silinecek.");
-    }
+    Sayac veriSetleri = veriSetleriniTemizle(aktifPage, publishPage, publishFlow, onEk, sinir);
+    Sayac kaynaklar = kaynaklariTemizle(aktifPage, openDataPage, onEk, sinir);
 
     ReportManager.info(
-        "OTOMASYON KAYNAK TEMİZLİĞİ TAMAMLANDI | Toplam silinen kayıt: " + silinenKayitSayisi);
+        "OTOMASYON TEMİZLİĞİ TAMAMLANDI | Veri seti: " + veriSetleri + " | Kaynak: " + kaynaklar);
   }
 
-  /** Silinecek kaynağın satırı ve adı. */
-  private record SilinecekKayit(Locator satir, String ad) {}
+  // =====================================================================
+  // Veri setleri
+  // =====================================================================
 
-  /**
-   * Adı ön ekle (büyük/küçük harf duyarlı) başlayan ilk görünür satırı bulur. Kaynak adının sütun
-   * sırası varsayılmaz; satırdaki hücreler tek tek kontrol edilir.
-   */
-  private SilinecekKayit silinecekIlkKaydiBul(Page aktifPage, String onEk) {
+  /** Eski otomasyon veri setlerini en eskiden başlayarak siler; Yayında olanı önce arşivler. */
+  private Sayac veriSetleriniTemizle(
+      Page aktifPage,
+      OpenDataPublishPage publishPage,
+      OpenDataPublishFlow publishFlow,
+      String onEk,
+      LocalDateTime sinir) {
 
-    // Tablo her silmede yeniden çizildiği için locator her seferinde yeniden oluşturulur.
-    Locator adaySatirlar =
-        aktifPage.getByRole(AriaRole.ROW).filter(new Locator.FilterOptions().setHasText(onEk));
+    Sayac sayac = new Sayac();
 
-    int satirSayisi = adaySatirlar.count();
+    aktifPage.navigate(acikVeriAdresi());
+    publishPage.clickPublishTab();
 
-    for (int i = 0; i < satirSayisi; i++) {
+    List<VeriSetiSatiri> bulunanlar = publishPage.veriSetleriniListeleme(onEk);
+    adlariRaporla("Veri seti", bulunanlar.stream().map(VeriSetiSatiri::ad).toList());
 
-      Locator satir = adaySatirlar.nth(i);
-      if (!satir.isVisible()) {
-        continue;
-      }
+    List<VeriSetiSatiri> silinecekler =
+        bulunanlar.stream()
+            .filter(satir -> eskiMi(satir.ad(), sinir))
+            .sorted(Comparator.comparing(satir -> adTarihi(satir.ad()).orElseThrow()))
+            .toList();
 
-      Locator hucreler = satir.getByRole(AriaRole.GRIDCELL);
-      int hucreSayisi = hucreler.count();
+    ReportManager.info("Silinecek veri seti sayısı: " + silinecekler.size());
 
-      for (int h = 0; h < hucreSayisi; h++) {
+    for (VeriSetiSatiri satir : silinecekler) {
+      try {
+        int silButonuBekleme = SIL_BUTONU_TIMEOUT_MS;
 
-        Locator hucre = hucreler.nth(h);
-        if (!hucre.isVisible()) {
+        if (YAYINDA.equals(satir.durum())) {
+          publishFlow.archiveDataSet(satir.ad(), PortalRol.TEMIZLIK);
+          silButonuBekleme = ARSIV_SONRASI_TIMEOUT_MS;
+        }
+
+        if (!publishPage.silinebilirMi(satir.ad(), silButonuBekleme)) {
+          sayac.atla(satir.ad(), "Sil butonu yok (statü: " + satir.durum() + ")");
           continue;
         }
 
-        String hucreMetni = hucre.innerText().trim();
+        publishFlow.deleteDataSet(satir.ad(), PortalRol.TEMIZLIK);
+        sayac.sil(satir.ad());
 
-        if (hucreMetni.startsWith(onEk)) {
-          ReportManager.info("Silinecek otomasyon kaynağı bulundu | " + hucreMetni);
-          return new SilinecekKayit(satir, hucreMetni);
+      } catch (RuntimeException e) {
+        sayac.atla(satir.ad(), e.getMessage());
+        ekraniToparla(aktifPage);
+      }
+    }
+
+    return sayac;
+  }
+
+  // =====================================================================
+  // Kaynaklar
+  // =====================================================================
+
+  /** Eski otomasyon kaynaklarını en eskiden başlayarak siler. */
+  private Sayac kaynaklariTemizle(
+      Page aktifPage, OpenDataPage openDataPage, String onEk, LocalDateTime sinir) {
+
+    Sayac sayac = new Sayac();
+
+    aktifPage.navigate(acikVeriAdresi());
+
+    List<String> bulunanlar = openDataPage.kaynakAdlariniListeleme(onEk);
+    adlariRaporla("Kaynak", bulunanlar);
+
+    List<String> silinecekler =
+        bulunanlar.stream()
+            .filter(ad -> eskiMi(ad, sinir))
+            .sorted(Comparator.comparing(ad -> adTarihi(ad).orElseThrow()))
+            .toList();
+
+    ReportManager.info("Silinecek kaynak sayısı: " + silinecekler.size());
+
+    for (String ad : silinecekler) {
+      try {
+        if (openDataPage.kaynakSilme(ad)) {
+          sayac.sil(ad);
+        } else {
+          sayac.atla(ad, "listeden kalkmadı (bağlı veri seti olabilir)");
+          ekraniToparla(aktifPage);
         }
+      } catch (RuntimeException e) {
+        sayac.atla(ad, e.getMessage());
+        ekraniToparla(aktifPage);
       }
     }
 
-    return null;
+    return sayac;
   }
 
-  /** Kaynağı siler ve aynı adlı kayıt sayısının azaldığını kontrol eder. */
-  private void kaydiSil(Page aktifPage, SilinecekKayit kayit) {
+  // =====================================================================
+  // Yardımcılar
+  // =====================================================================
 
-    // Aynı isimde birden fazla kayıt olabilir; silme, sayının azalmasıyla doğrulanır.
-    int silmeOncesiSayi = gorunurKaynakSayisi(aktifPage, kayit.ad());
+  /**
+   * Bulunan kayıtların tarih aralığını ve adından tarih okunamayanları loga yazar. Tarihi
+   * okunamayan kayda dokunulmaz; bu log, neden silinmediğini görmek içindir.
+   */
+  private static void adlariRaporla(String tur, List<String> adlar) {
 
-    ReportManager.info(
-        "Kaynak silme işlemi başlatılıyor | Kaynak: "
-            + kayit.ad()
-            + " | Aynı isimde görünür kayıt: "
-            + silmeOncesiSayi);
+    List<LocalDateTime> tarihler =
+        adlar.stream()
+            .map(OtomasyonKaynakTemizleyici::adTarihi)
+            .flatMap(Optional::stream)
+            .sorted()
+            .toList();
 
-    kayit.satir().getByRole(AriaRole.BUTTON, silButonu()).click();
-
-    Locator dialog = aktifPage.getByRole(AriaRole.DIALOG);
-    dialog.waitFor(
-        new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(10_000));
-
-    dialog.getByRole(AriaRole.BUTTON, silButonu()).click();
-
-    dialog.waitFor(
-        new Locator.WaitForOptions().setState(WaitForSelectorState.HIDDEN).setTimeout(15_000));
-
-    // Dialogun kapanması kaydın silindiğini garanti etmez; tablonun güncellenmesi beklenir.
-    aktifPage.waitForCondition(
-        () -> gorunurKaynakSayisi(aktifPage, kayit.ad()) < silmeOncesiSayi,
-        new Page.WaitForConditionOptions().setTimeout(15_000));
-  }
-
-  /** Sil butonunu bulma seçenekleri. */
-  private static Locator.GetByRoleOptions silButonu() {
-    return new Locator.GetByRoleOptions().setName("Sil").setExact(true);
-  }
-
-  /** Listede verilen adla görünen kaynak sayısını döndürür. */
-  private int gorunurKaynakSayisi(Page aktifPage, String kaynakAdi) {
-
-    Locator kaynakAdiLocator =
-        aktifPage.getByText(kaynakAdi, new Page.GetByTextOptions().setExact(true));
-    Locator kaynakSatirlari =
-        aktifPage
-            .getByRole(AriaRole.ROW)
-            .filter(new Locator.FilterOptions().setHas(kaynakAdiLocator));
-
-    int gorunurSayi = 0;
-    int satirSayisi = kaynakSatirlari.count();
-
-    for (int i = 0; i < satirSayisi; i++) {
-      if (kaynakSatirlari.nth(i).isVisible()) {
-        gorunurSayi++;
-      }
+    if (!tarihler.isEmpty()) {
+      ReportManager.info(
+          tur
+              + " tarih aralığı | En eski: "
+              + tarihler.get(0).format(LOG_TARIH_BICIMI)
+              + " | En yeni: "
+              + tarihler.get(tarihler.size() - 1).format(LOG_TARIH_BICIMI));
     }
 
-    return gorunurSayi;
+    List<String> tarihsizler = adlar.stream().filter(ad -> adTarihi(ad).isEmpty()).toList();
+    if (!tarihsizler.isEmpty()) {
+      ReportManager.warn(
+          tur
+              + " adından tarih okunamadı, dokunulmayacak ("
+              + tarihsizler.size()
+              + "): "
+              + String.join(", ", tarihsizler));
+    }
   }
 
-  /** Arama sonrası en az bir eşleşen satır veya boş liste mesajı görünene kadar bekler. */
-  private void aramaSonuclariniBekle(Page aktifPage, String onEk) {
-
-    Locator eslesenSatir =
-        aktifPage
-            .getByRole(AriaRole.ROW)
-            .filter(new Locator.FilterOptions().setHasText(onEk))
-            .first();
-
-    Locator bosListeMesaji =
-        aktifPage.getByText(BOS_LISTE_MESAJI, new Page.GetByTextOptions().setExact(true));
-
-    aktifPage.waitForCondition(
-        () -> eslesenSatir.isVisible() || bosListeMesaji.isVisible(),
-        new Page.WaitForConditionOptions().setTimeout(15_000));
-
-    ReportManager.info("Otomasyon kaynak arama sonuçları yüklendi.");
+  /** Adındaki tarih sınırdan eskiyse true; tarih okunamazsa false (kayda dokunulmaz). */
+  private static boolean eskiMi(String ad, LocalDateTime sinir) {
+    return adTarihi(ad).map(tarih -> tarih.isBefore(sinir)).orElse(false);
   }
 
-  /** cleanup.max.delete ayarını okur; geçersizse varsayılanı döndürür. */
-  private static int maksimumSilmeSayisi() {
-    String value =
-        ConfigManager.getOrDefault("cleanup.max.delete", String.valueOf(VARSAYILAN_MAKSIMUM_SILME));
+  /** Ad sonundaki zaman damgasını okur: ..._20261114_232219_575 → 14.11.2026 23:22:19. */
+  private static Optional<LocalDateTime> adTarihi(String ad) {
+    Matcher eslesme = AD_TARIHI.matcher(ad);
+    if (!eslesme.find()) {
+      return Optional.empty();
+    }
     try {
-      int sayi = Integer.parseInt(value);
-      return sayi >= 1 ? sayi : VARSAYILAN_MAKSIMUM_SILME;
+      return Optional.of(LocalDateTime.parse(eslesme.group(1), AD_TARIH_BICIMI));
+    } catch (DateTimeParseException e) {
+      return Optional.empty();
+    }
+  }
+
+  /** Kapalı portaldaki Açık Veri Portalı adresi (ör. http://host:port/opendata). */
+  private static String acikVeriAdresi() {
+    return URI.create(ConfigManager.get("base.url")).resolve("opendata").toString();
+  }
+
+  /**
+   * Hata sonrası açık kalan pencereyi kapatıp Açık Veri Portalı'na döner; sonraki kayıt temiz
+   * başlar.
+   */
+  private static void ekraniToparla(Page aktifPage) {
+    try {
+      aktifPage.keyboard().press("Escape");
+      aktifPage.navigate(acikVeriAdresi());
+    } catch (RuntimeException e) {
+      ReportManager.warn("Temizlik ekranı toparlanamadı: " + e.getMessage());
+    }
+  }
+
+  /** cleanup.min.age.hours ayarını okur; geçersiz veya 1'den küçükse varsayılanı döndürür. */
+  private static int minimumSaat() {
+    String deger =
+        ConfigManager.getOrDefault(
+            "cleanup.min.age.hours", String.valueOf(VARSAYILAN_MINIMUM_SAAT));
+    try {
+      int saat = Integer.parseInt(deger.trim());
+      return saat >= 1 ? saat : VARSAYILAN_MINIMUM_SAAT;
     } catch (NumberFormatException e) {
-      return VARSAYILAN_MAKSIMUM_SILME;
+      return VARSAYILAN_MINIMUM_SAAT;
+    }
+  }
+
+  /** Bir ekrandaki silinen ve atlanan kayıt sayısı; her kayıt loga yazılır. */
+  private static final class Sayac {
+
+    private int silinen;
+    private int atlanan;
+
+    /** Silinen kaydı sayar ve loga yazar. */
+    void sil(String ad) {
+      silinen++;
+      ReportManager.info("Temizlik: silindi | " + ad);
+    }
+
+    /** Atlanan kaydı sebebiyle sayar ve loga yazar. */
+    void atla(String ad, String sebep) {
+      atlanan++;
+      ReportManager.warn("Temizlik: atlandı | " + ad + " | " + sebep);
+    }
+
+    @Override
+    public String toString() {
+      return silinen + " silindi, " + atlanan + " atlandı";
     }
   }
 }

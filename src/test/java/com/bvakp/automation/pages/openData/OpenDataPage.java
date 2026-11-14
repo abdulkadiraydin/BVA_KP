@@ -10,11 +10,16 @@ import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Açık Veri Portalı (kapalı portal) kaynak listesi ve veri seti oluşturma ekranı. */
 public class OpenDataPage extends BasePage {
+
+  private static final String KAYNAK_BULUNAMADI_MESAJI =
+      "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.";
 
   public OpenDataPage(Page page) {
 
@@ -227,11 +232,72 @@ public class OpenDataPage extends BasePage {
 
   /** "Henüz kaynak eklenmemiş" mesajı görünüyorsa true döner. */
   public boolean kaynakBulunamadiMesajiVarMi() {
-    return gorunurMu(
-        page.getByText(
-            "Henüz kaynak eklenmemiş. \"Kaynak Ekle\" ile başlayın.",
-            new Page.GetByTextOptions().setExact(true)),
-        10_000);
+    return gorunurMu(kaynakBulunamadiMesaji(), 10_000);
+  }
+
+  /** "Henüz kaynak eklenmemiş" mesajı. */
+  private Locator kaynakBulunamadiMesaji() {
+    return page.getByText(KAYNAK_BULUNAMADI_MESAJI, new Page.GetByTextOptions().setExact(true));
+  }
+
+  /**
+   * Kaynak ara alanına ön eki yazar ve bütün sonuç sayfalarını gezerek adı ön ekle (büyük/küçük
+   * harf duyarlı) başlayan kaynakların adlarını döndürür. Hiç sonuç yoksa boş liste döner.
+   */
+  public List<String> kaynakAdlariniListeleme(String onEk) {
+
+    kaynakArama(onEk);
+
+    Locator satirlar = page.locator("[role='grid'] [role='row'][data-id]");
+    Locator adlar = satirlar.locator("[data-field='name'] p");
+    Locator bosListe = kaynakBulunamadiMesaji();
+
+    // Arama sonucu gelene kadar eski (filtresiz) satırlar görünebilir; ad kontrolüyle beklenir.
+    page.waitForCondition(
+        () ->
+            bosListe.isVisible()
+                || (satirlar.count() > 0
+                    && adlar.allInnerTexts().stream().allMatch(ad -> ad.contains(onEk))),
+        new Page.WaitForConditionOptions().setTimeout(15_000));
+
+    Set<String> kaynaklar = new LinkedHashSet<>();
+
+    while (true) {
+      for (String ad : adlar.allInnerTexts()) {
+        if (ad.trim().startsWith(onEk)) {
+          kaynaklar.add(ad.trim());
+        }
+      }
+
+      Locator sonrakiSayfa = sayfaDugmesi(false);
+      if (sonrakiSayfa.count() == 0 || !sonrakiSayfa.isEnabled()) {
+        break;
+      }
+      sayfaDegistirme(sonrakiSayfa);
+    }
+
+    ReportManager.info("Ön ekle başlayan kaynak sayısı: " + kaynaklar.size());
+    return new ArrayList<>(kaynaklar);
+  }
+
+  /**
+   * Kaynağı arar, siler ve listeden kalktıysa true döner. Uygulama silmeye izin vermezse (ör.
+   * kaynağa bağlı veri seti varsa) kayıt listede kalır ve false döner.
+   */
+  public boolean kaynakSilme(String kaynakAdi) {
+
+    kaynakArama(kaynakAdi);
+    if (!gorunurMu(kaynakSatiri(kaynakAdi))) {
+      ReportManager.warn("Silinecek kaynak listede bulunamadı: " + kaynakAdi);
+      return false;
+    }
+
+    kaynakSilmeButonunaTiklama(kaynakAdi);
+    page.getByRole(AriaRole.DIALOG)
+        .getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Sil").setExact(true))
+        .click();
+
+    return kaynakListedeYokMu(kaynakAdi);
   }
 
   /** Verilen kaynak kaydını Veri Seti Oluşturma ekranında seçer. */
