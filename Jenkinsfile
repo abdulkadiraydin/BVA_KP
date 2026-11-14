@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    parameters {
+        // Listedeki ilk değer varsayılandır (zamanlanmış koşular da bunu kullanır).
+        choice(name: 'SUITE', choices: ['smoke.xml', 'testng.xml'], description: 'Koşturulacak TestNG paketi')
+    }
+
     tools {
         maven 'Maven'
     }
@@ -26,9 +31,10 @@ pipeline {
     }
 
     stages {
-        stage('Smoke testleri çalıştır') {
+        stage('Testleri çalıştır') {
             steps {
-                bat 'mvn clean test "-Dsuite.xml=smoke.xml"'
+                echo "Suite: ${params.SUITE}"
+                bat "mvn clean test \"-Dsuite.xml=${params.SUITE}\""
             }
         }
     }
