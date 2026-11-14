@@ -32,9 +32,9 @@ pipeline {
         BVAKP_PASSWORD_HAZIRLAYAN          = credentials('bvakp-password-hazirlayan')
         BVAKP_PASSWORD_KVKK                = credentials('bvakp-password-kvkk')
         BVAKP_PASSWORD_YAYIN               = credentials('bvakp-password-yayin')
+        BVAKP_PASSWORD_TEMIZLIK            = credentials('bvakp-password-temizlik')
         BVAKP_PORTAL_PASSWORD_TALEP        = credentials('bvakp-portal-password-talep')
         BVAKP_PORTAL_PASSWORD_ONAY         = credentials('bvakp-portal-password-onay')
-        BVAKP_PASSWORD_TEMIZLIK            = credentials('bvakp-password-temizlik')
 
         // Rapor maili: sunucu ve adresler Jenkins'in genel ortam değişkenlerinden
         // (Jenkins'i Yönet → Sistem → Global özellikler), parola Credentials'tan gelir.
@@ -45,7 +45,8 @@ pipeline {
         stage('Testleri çalıştır') {
             steps {
                 echo "Suite: ${params.SUITE}"
-                bat "mvn clean test \"-Dsuite.xml=${params.SUITE}\""
+                // chcp 65001: Windows konsolunu UTF-8 yapar; Türkçe karakterler Jenkins'te bozulmaz
+                bat "chcp 65001 > nul && mvn clean test \"-Dsuite.xml=${params.SUITE}\""
             }
         }
     }
@@ -61,7 +62,7 @@ pipeline {
 
             // Testler kırılsa da rapor maili gitsin; mail gönderilemezse build UNSTABLE (sarı) olur.
             catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                bat 'mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"'
+                bat 'chcp 65001 > nul && mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"'
             }
         }
     }
