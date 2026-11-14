@@ -149,16 +149,17 @@ public class TestListener
     long duration = getDuration(result);
     Throwable sebep = result.getThrowable();
 
-    HtmlReportManager.markSkipped(className, testName, duration, sebep);
-
-    // Kırılıp tekrar denenecek deneme: gerçek bir atlama değildir.
+    // Kırılıp tekrar denenecek deneme: gerçek bir atlama değildir, raporda yer almaz.
     if (result.wasRetried()) {
+      HtmlReportManager.discardCurrentTest();
       ReportManager.warn(
           "TEST TEKRAR DENENDİ | "
               + testName
               + (sebep != null ? " | İlk deneme hatası: " + sebep.getMessage() : ""));
       return;
     }
+
+    HtmlReportManager.markSkipped(className, testName, duration, sebep);
 
     if (sebep != null) {
       ReportManager.warn("TEST ATLANDI | " + testName + " | Sebep: " + sebep.getMessage());

@@ -11,6 +11,7 @@
         <classes>
             <class name="com.bvakp.automation.tests.LoginTest">
                 <methods>
+                    <include name="retryDenemesi"/>
                     <include name="basariliGirisYapma"/>
                 </methods>
             </class>

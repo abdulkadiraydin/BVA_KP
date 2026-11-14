@@ -416,4 +416,18 @@ public final class HtmlReportManager {
       this.testName = testName;
     }
   }
+
+  /**
+   * Tekrar denenecek başarısız denemenin kaydını siler. Rapora yalnızca son deneme girer; ilk
+   * denemenin hatası log ve Allure'da kalır.
+   */
+  public static void discardCurrentTest() {
+    String testId = CURRENT_TEST.get();
+    if (testId == null) {
+      return;
+    }
+    TEST_RESULTS.remove(testId);
+    TEST_ORDER.remove(testId);
+    CURRENT_TEST.remove();
+  }
 }
