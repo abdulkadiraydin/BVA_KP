@@ -91,10 +91,12 @@ public abstract class PublicPortalBasePage extends BasePage {
         .replaceAll("\\s+", " ")
         .trim();
   }
+
   /**
    * Verilen alanda ALTCHA doğrulaması varsa tamamlar; yoksa hiçbir şey yapmaz (doğrulama her
-   * girişte çıkmayabilir). Alana odaklanınca doğrulama kendiliğinden başlayabilir ("Doğrulanıyor…");
-   * başlamadıysa kutuya tıklanır. Doğrulanmadan form gönderilmediği için "Doğrulandı" beklenir.
+   * girişte çıkmayabilir). Alana odaklanınca doğrulama kendiliğinden başlayabilir
+   * ("Doğrulanıyor…"); başlamadıysa kutuya tıklanır. Doğrulanmadan form gönderilmediği için
+   * "Doğrulandı" beklenir.
    */
   protected void robotDogrulamasiniTamamlama(Locator alan) {
     // Doğrulama kutusu sayfayla birlikte gelir; count beklemez, yoksa hemen 0 döner.
@@ -102,13 +104,13 @@ public abstract class PublicPortalBasePage extends BasePage {
       return;
     }
     Locator kutu =
-            alan.getByRole(
-                    AriaRole.CHECKBOX,
-                    new Locator.GetByRoleOptions().setName("Ben robot değilim").setExact(true));
+        alan.getByRole(
+            AriaRole.CHECKBOX,
+            new Locator.GetByRoleOptions().setName("Ben robot değilim").setExact(true));
     if (kutu.isVisible()) {
       kutu.click();
     }
     alan.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true))
-            .waitFor(new Locator.WaitForOptions().setTimeout(30_000));
+        .waitFor(new Locator.WaitForOptions().setTimeout(30_000));
   }
 }

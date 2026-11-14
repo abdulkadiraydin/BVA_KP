@@ -533,14 +533,17 @@ public class OpenDataPublishPage extends BasePage {
    * kalabilir (değerler alanlardan okunur) ya da detay ekranına dönülebilir (değerler metin olarak
    * aranır); ikisi de desteklenir.
    */
-  public boolean kaydedilenDegerlerGorunuyorMu(String sorumluBirim, String kategori, String aciklama) {
+  public boolean kaydedilenDegerlerGorunuyorMu(
+      String sorumluBirim, String kategori, String aciklama) {
     Locator aciklamaAlani =
-            page.getByLabel("Açıklama", new Page.GetByLabelOptions().setExact(true));
+        page.getByLabel("Açıklama", new Page.GetByLabelOptions().setExact(true));
     if (aciklamaAlani.isVisible()) {
       return duzenlemeAlanlariniOkuma()
-              .equals(new DuzenlemeAlanlari(sorumluBirim, kategori, aciklama));
+          .equals(new DuzenlemeAlanlari(sorumluBirim, kategori, aciklama));
     }
-    return gorunurMu(metin(aciklama)) && gorunurMu(metin(sorumluBirim)) && gorunurMu(metin(kategori));
+    return gorunurMu(metin(aciklama))
+        && gorunurMu(metin(sorumluBirim))
+        && gorunurMu(metin(kategori));
   }
 
   /** Ekranda birebir bu metni taşıyan ilk öge. */

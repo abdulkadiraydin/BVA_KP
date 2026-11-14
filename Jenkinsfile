@@ -9,6 +9,7 @@ pipeline {
         // Jenkins'e özel ayarlar
         BVAKP_HEADLESS                     = 'true'
         BVAKP_ALLURE_REPORT_AUTO_GENERATE  = 'false'
+        BVAKP_TEST_RETRY_COUNT             = '1'
 
         // Parolalar (Jenkins Credentials'tan gelir)
         BVAKP_PASSWORD                     = credentials('bvakp-password')

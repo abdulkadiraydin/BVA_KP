@@ -3,8 +3,11 @@
 
 <!-- Hızlı kontrol: her modülün ana akışı. Ayrıntılı senaryolar regresyon.xml'de. -->
 <suite name="BVA Smoke" verbose="1" parallel="classes" thread-count="2">
-
+    <listeners>
+        <listener class-name="com.bvakp.automation.reporting.RetryTransformer"/>
+    </listeners>
     <test name="Smoke">
+
         <classes>
             <class name="com.bvakp.automation.tests.LoginTest">
                 <methods>

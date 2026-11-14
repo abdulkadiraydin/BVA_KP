@@ -139,7 +139,7 @@ public class TestListener
 
   /**
    * Test çalıştırılmadan atlandığında çağrılır (hazırlık hatası, bağımlı test hatası veya
-   * SkipException).
+   * SkipException). Retry açıkken, tekrar denenecek başarısız deneme de buraya düşer.
    */
   @Override
   public void onTestSkipped(ITestResult result) {
@@ -150,6 +150,15 @@ public class TestListener
     Throwable sebep = result.getThrowable();
 
     HtmlReportManager.markSkipped(className, testName, duration, sebep);
+
+    // Kırılıp tekrar denenecek deneme: gerçek bir atlama değildir.
+    if (result.wasRetried()) {
+      ReportManager.warn(
+          "TEST TEKRAR DENENDİ | "
+              + testName
+              + (sebep != null ? " | İlk deneme hatası: " + sebep.getMessage() : ""));
+      return;
+    }
 
     if (sebep != null) {
       ReportManager.warn("TEST ATLANDI | " + testName + " | Sebep: " + sebep.getMessage());
@@ -221,7 +230,12 @@ public class TestListener
     for (ISuiteResult suiteResult : suite.getResults().values()) {
       basarili += suiteResult.getTestContext().getPassedTests().size();
       basarisiz += suiteResult.getTestContext().getFailedTests().size();
-      atlanan += suiteResult.getTestContext().getSkippedTests().size();
+      // Tekrar denenen başarısız denemeler de "skipped" listesinde durur; gerçek atlama sayılmaz.
+      atlanan +=
+          (int)
+              suiteResult.getTestContext().getSkippedTests().getAllResults().stream()
+                  .filter(sonuc -> !sonuc.wasRetried())
+                  .count();
     }
 
     int toplam = basarili + basarisiz + atlanan;

@@ -131,6 +131,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
       PlaywrightManager.close("ortakVeriSetiHazirlama", basarili ? "HAZIRLIK" : "HATALI");
     }
   }
+
   /**
    * Portaldaki kayıt sayısını döndürür. Manuel güncellemeden sonra portal veriyi yeniden yüklerken
    * toplam bir süre 0 görünür; bu yüzden sayı dolana kadar 5 saniyede bir tekrar sorulur.
@@ -148,8 +149,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
       toplam = api.kayitlariGetir(kaynakId, 1).toplam();
     }
     Assert.assertTrue(
-            toplam > 0,
-            "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.");
+        toplam > 0, "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.");
     return toplam;
   }
 

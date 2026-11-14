@@ -126,9 +126,9 @@ public class OpenDataPublishFlow {
     publishPage.bildirimBekleme("Veri seti güncellendi");
 
     Assert.assertTrue(
-            publishPage.kaydedilenDegerlerGorunuyorMu(
-                    DUZENLEME_SORUMLU_BIRIM, DUZENLEME_KATEGORI, yeniAciklama),
-            "Ön koşul: düzenlenen değerler (sorumlu birim, kategori, açıklama) ekranda görünmedi.");
+        publishPage.kaydedilenDegerlerGorunuyorMu(
+            DUZENLEME_SORUMLU_BIRIM, DUZENLEME_KATEGORI, yeniAciklama),
+        "Ön koşul: düzenlenen değerler (sorumlu birim, kategori, açıklama) ekranda görünmedi.");
 
     ReportManager.step("Değişiklikler onaya gönderiliyor: " + dataSetName);
 
