@@ -37,13 +37,14 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-        }
-        unsuccessful {   // build başarılı değilse (kırmızı veya sarı)
-            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                bat 'mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"'
-            }
-        }
-    }
+       post {
+           always {
+               junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+
+               // Testler kırılsa da rapor maili gitsin; mail gönderilemezse build UNSTABLE (sarı) olur.
+               catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                   bat 'mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"'
+               }
+           }
+       }
+   }
