@@ -16,12 +16,12 @@ import java.util.Properties;
  *   <li>Ortam değişkeni: BVAKP_ + anahtarın büyük harfli hali, nokta yerine alt çizgi (ör. password
  *       → {@code BVAKP_PASSWORD}, base.url → {@code BVAKP_BASE_URL})
  *   <li>config/config.local.properties: kişisel ayarlar, Git'e eklenmez, isteğe bağlı
- *   <li>config/ortam/&lt;ortam&gt;.properties: ortama özel adresler ve kullanıcı
+ *   <li>config/env/&lt;ortam&gt;.properties: ortama özel adresler ve kullanıcı
  *   <li>config/config.properties: bütün ortamlarda ortak ayarlar
  *   <li>getOrDefault ile verilen varsayılan
  * </ol>
  *
- * <p>Ortam {@code -Dortam=...} veya {@code BVAKP_ORTAM} ile seçilir; verilmezse "test". Parola gibi
+ * <p>Ortam {@code -Denv=...} veya {@code BVAKP_ENV} ile seçilir; verilmezse "test". Parola gibi
  * gizli değerler hiçbir dosyaya yazılmaz; ortam değişkeninden verilir.
  */
 public final class ConfigManager {
@@ -105,9 +105,7 @@ public final class ConfigManager {
     return bosMu(value) ? null : value.trim();
   }
 
-  /**
-   * -Dortam, BVAKP_ORTAM, yoksa "test". Dosya adında kullanılacağı için harf/rakam/-/_ ile sınırlı.
-   */
+  /** -Denv, BVAKP_ENV, yoksa "test". Dosya adında kullanılacağı için harf/rakam/-/_ ile sınırlı. */
   private static String ortamBelirleme() {
 
     String ortam = System.getProperty("env");
@@ -125,7 +123,7 @@ public final class ConfigManager {
   /**
    * Dosyayı önce classpath'ten, bulunamazsa src/test/resources altından yükler.
    *
-   * @param goreliYol config klasörüne göre yol (ör. ortam/test.properties)
+   * @param goreliYol config klasörüne göre yol (ör. env/test.properties)
    * @param zorunlu true ise dosya yoksa hata verir
    */
   private static void dosyaYukleme(String goreliYol, boolean zorunlu) {

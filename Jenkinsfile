@@ -10,6 +10,7 @@ pipeline {
         BVAKP_HEADLESS                     = 'true'
         BVAKP_ALLURE_REPORT_AUTO_GENERATE  = 'false'
         BVAKP_TEST_RETRY_COUNT             = '1'
+        BVAKP_CLEANUP_ENABLED              = 'true'
 
         // Parolalar (Jenkins Credentials'tan gelir)
         BVAKP_PASSWORD                     = credentials('bvakp-password')
@@ -25,27 +26,26 @@ pipeline {
     }
 
     stages {
-        stage('Smoke suite hazırla') {
-            steps {
-                // pom her zaman testng.xml'i çalıştırıyor; Jenkins'in kopyasında smoke.xml ile değiştiriyoruz
-                bat 'copy /Y smoke.xml testng.xml'
-            }
-        }
         stage('Smoke testleri çalıştır') {
             steps {
-                bat 'mvn clean test'
+                bat 'mvn clean test "-Dsuite.xml=smoke.xml"'
             }
         }
     }
 
-       post {
-           always {
-               junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+    post {
+        always {
+            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
 
-               // Testler kırılsa da rapor maili gitsin; mail gönderilemezse build UNSTABLE (sarı) olur.
-               catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                   bat 'mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"'
-               }
-           }
-       }
-   }
+            // Allure raporu: build sayfasında "Allure Report" linki olarak görünür.
+            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                allure includeProperties: false, results: [[path: 'target/allure-results']]
+            }
+
+            // Testler kırılsa da rapor maili gitsin; mail gönderilemezse build UNSTABLE (sarı) olur.
+            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                bat 'mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"'
+            }
+        }
+    }
+}

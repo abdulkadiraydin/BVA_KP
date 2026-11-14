@@ -30,7 +30,7 @@ Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI
    mvn test-compile
    ```
 4. Test kullanıcısının parolasını `BVAKP_PASSWORD` ortam değişkeni olarak tanımla (bkz. Ayarlar).
-5. Mail gönderilecekse proje kökünde `.env.mail` dosyası oluştur (Git'e eklenmez).
+5. Mail gönderilecekse proje kökünde `.env.mail` dosyası oluştur (Git'e eklenmez; bkz. Mail).
 6. IntelliJ'e **google-java-format** eklentisini kurup etkinleştir; Settings → Editor → General → Smart Keys → *Reformat on paste* ayarını **None** yap (bkz. Kod biçimi).
 
 > Windows terminalinde Türkçe karakterler bozuk görünüyorsa PowerShell profiline
@@ -51,6 +51,7 @@ mvn test "-Dtest=PublicOpenDataTest"             # tek sınıf
 mvn test "-Dtest=LoginTest,OpenDataDashboardTest" # birkaç sınıf
 mvn test "-Dtest=PublicOpenDataTest" "-Dheadless=false"  # tarayıcıyı izleyerek
 mvn test "-Dtest=PublicOpenDataTest" "-Dtrace.mode=on"   # bütün testlerin trace'ini sakla
+mvn test "-Dtest.retry.count=1"                  # kırılan testi 1 kez tekrar dene
 ```
 
 | Paket | İçerik | Ne zaman |
@@ -112,6 +113,7 @@ Bir değer şu öncelikle okunur:
 | `allure.report.auto.generate` | Koşu sonunda raporu otomatik üret | `true` |
 | `allure.report.timeout.seconds` | Rapor üretimi zaman aşımı | `300` |
 | `kosu.saklama.adedi` | Saklanacak koşu sayısı; eskiler silinir (`0` = silme) | `20` |
+| `test.retry.count` | Kırılan test kaç kez tekrar denensin (Jenkins'te `1`) | `0` |
 | `failure.tracking.enabled`, `failure.alert.threshold` | Ardışık hata sayacı ve alarm maili eşiği | |
 | `cleanup.enabled` | Koşu sonunda otomasyon kaynaklarını sil | |
 | `cleanup.allowed.hosts` | Temizliğin çalışabileceği host'lar (ortam dosyasında); boşsa hiçbir yerde silmez | |
@@ -154,6 +156,7 @@ src/test/java/com/bvakp/automation/
 scripts/
   Generate-AllureReport.ps1   Koşu sonunda Allure raporunu ve history'yi üretir
 testng.xml, smoke.xml, regresyon.xml   TestNG paketleri (bkz. Testleri çalıştırma)
+Jenkinsfile                            Jenkins pipeline'ı (bkz. Jenkins)
 ```
 
 ## Yazım kuralları
@@ -191,11 +194,56 @@ reports/
 - Çok dosyalı Allure raporu için: `allure open "reports\kosular\<koşu>\teknik\allure-report"`
 - Sayfa yüklemesi 5xx dönerse logda `ORTAM HATASI | 503 | ...` satırı çıkar; bu, hatanın testte değil ortamda olduğunu gösterir.
 
+### Tekrar deneme (retry)
+
+Kırılan test `test.retry.count` kadar tekrar denenir (varsayılan `0`; Jenkins'te `1`). `RetryTransformer` bütün testlere `RetryAnalyzer`'ı atar ve suite xml'lerinin `<listeners>` bölümünde tanımlıdır; **yeni bir suite xml'i açılırsa oraya da eklenmelidir.**
+
+- Logda `TEST TEKRAR DENENECEK` ve `TEST TEKRAR DENENDİ | ... | İlk deneme hatası: ...` satırları çıkar.
+- `ozet.html`, mail özeti ve koşu klasörü adı yalnızca son denemeyi sayar: ikinci denemede geçen test başarılıdır, atlanan sayılmaz.
+- İlk denemenin ayrıntısı Allure'da testin *Retries* sekmesindedir.
+- Jenkins'in kendi test ekranında ilk deneme *skipped* görünür; bu TestNG'nin XML'inden gelir, normaldir.
+- Ardışık hata sayacı ve alarm maili yalnızca son deneme de kırılırsa işler.
+
 ## Mail
 
 - **Rapor maili:** Koşu bittikten sonra `MailRunner` ayrı bir süreç olarak çalıştırılır. Ekte `BVA_KP_Test_Raporu_<tarih>.zip` vardır; içinde `ozet.html` ve ekran görüntüleri bulunur. `RAPOR.html`, video ve trace boyut ve hassas veri nedeniyle maile eklenmez.
-- **Hata alarm maili:** Bir test art arda `failure.alert.threshold` kez kırılırsa gönderilir.
-- SMTP bilgileri `.env.mail` dosyasından okunur.
+- **Rapor durumu:** Başarısız veya atlanan test varsa ya da hiç test koşmadıysa `HATALI`, aksi halde `BASARILI`.
+- **Hata alarm maili:** Bir test art arda `failure.alert.threshold` kez kırılırsa test koşarken gönderilir; aynı test için günde en fazla bir kez. Test geçince sayaç sıfırlanır.
+- SMTP ayarları önce ortam değişkenlerinden, yoksa proje kökündeki `.env.mail` dosyasından okunur:
+
+| Değişken | Açıklama |
+|---|---|
+| `MAIL_HOST`, `MAIL_PORT` | SMTP sunucusu ve portu (Gmail: `smtp.gmail.com`, `587`) |
+| `MAIL_USERNAME` | SMTP giriş kullanıcısı |
+| `MAIL_PASSWORD` | SMTP parolası (Gmail'de uygulama şifresi); hiçbir zaman Git'e girmez |
+| `MAIL_FROM` | Gönderen adres (Gmail'de `MAIL_USERNAME` ile aynı) |
+| `MAIL_TO` | Alıcılar, virgülle ayrılmış |
+| `MAIL_STARTTLS` | STARTTLS (varsayılan `true`) |
+
+Rapor mailini elle göndermek için (son koşunun özeti):
+
+```powershell
+mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"
+```
+
+## Jenkins
+
+`Jenkinsfile` smoke paketini koşturur ve sonucu ne olursa olsun rapor mailini gönderir.
+1. `mvn clean test "-Dsuite.xml=smoke.xml"` (headless, `test.retry.count=1`; `RAPOR.html` üretilmez, Allure raporu Jenkins eklentisiyle oluşur).
+2. `post { always }`: JUnit sonuçları Jenkins'e yüklenir ve `MailRunner` çalışır. Mail gönderilemezse build **UNSTABLE** (sarı) olur; testler kırılırsa **FAILURE** (kırmızı).
+
+Jenkins'te tanımlanması gerekenler:
+
+| Nerede | Ne |
+|---|---|
+| Jenkins'i Yönet → Credentials (*Secret text*) | `bvakp-password`, `bvakp-password-hazirlayan`, `bvakp-password-kvkk`, `bvakp-password-yayin`, `bvakp-portal-password-talep`, `bvakp-portal-password-onay`, `bvakp-mail-password` |
+| Jenkins'i Yönet → Sistem → Global özellikler → Ortam değişkenleri | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_FROM`, `MAIL_TO` |
+| Global Tool Configuration | `Maven` adında Maven kurulumu |
+
+- Parolalar yalnızca Credentials'ta tutulur; Global özelliklere parola yazılmaz (orada düz metin görünür).
+- `.env.mail` Jenkins çalışma alanına kopyalanmaz.
+- Jenkinsfile şu an Windows agent içindir (`bat`). Linux agent'ta `bat` yerine `sh`, `copy /Y` yerine `cp` kullanılır.
+- Jenkins makinesi test ortamına (VPN gerektirmeden) erişebilmeli; Maven ve Playwright indirmeleri ile SMTP çıkışı açık olmalıdır.
 
 ## Temizlik
 
