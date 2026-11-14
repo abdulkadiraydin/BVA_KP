@@ -17,6 +17,10 @@ pipeline {
         BVAKP_PASSWORD_YAYIN               = credentials('bvakp-password-yayin')
         BVAKP_PORTAL_PASSWORD_TALEP        = credentials('bvakp-portal-password-talep')
         BVAKP_PORTAL_PASSWORD_ONAY         = credentials('bvakp-portal-password-onay')
+
+        // Rapor maili: sunucu ve adresler Jenkins'in genel ortam değişkenlerinden
+        // (Jenkins'i Yönet → Sistem → Global özellikler), parola Credentials'tan gelir.
+        MAIL_PASSWORD                      = credentials('bvakp-mail-password')
     }
 
     stages {
@@ -37,5 +41,9 @@ pipeline {
         always {
             junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
         }
+        unsuccessful {   // build başarılı değilse (kırmızı veya sarı)
+            catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                bat 'mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.classpathScope=test"'
+            }
+        }
     }
-}
