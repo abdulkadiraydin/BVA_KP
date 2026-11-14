@@ -33,6 +33,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+
         <!-- Framework Versions -->
         <playwright.version>1.64.0</playwright.version>
         <testng.version>7.12.0</testng.version>
@@ -57,6 +58,8 @@
         <!-- 3.6.0+ testng.xml'i okumuyor (TestNG'yi JUnit Platform'da çalıştırıyor); 3.5.x'te kalınmalı. -->
         <surefire.plugin.version>3.5.4</surefire.plugin.version>
 
+        <!-- Koşturulacak TestNG paketi; -Dsuite.xml=smoke.xml ile değiştirilir -->
+        <suite.xml>testng.xml</suite.xml>
     </properties>
 
 
@@ -179,11 +182,9 @@
 
                 <configuration>
 
-                    <!-- TestNG test paketi -->
+                    <!-- TestNG test paketi (varsayılan testng.xml; -Dsuite.xml ile seçilir) -->
                     <suiteXmlFiles>
-                        <suiteXmlFile>
-                            ${project.basedir}/testng.xml
-                        </suiteXmlFile>
+                        <suiteXmlFile>${project.basedir}/${suite.xml}</suiteXmlFile>
                     </suiteXmlFiles>
 
                     <failIfNoTests>true</failIfNoTests>

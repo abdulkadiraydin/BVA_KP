@@ -12,6 +12,7 @@ pipeline {
 
     environment {
         // Jenkins'e özel ayarlar
+        MAVEN_OPTS                         = '-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8'
         BVAKP_HEADLESS                     = 'true'
         BVAKP_ALLURE_REPORT_AUTO_GENERATE  = 'false'
         BVAKP_TEST_RETRY_COUNT             = '1'
