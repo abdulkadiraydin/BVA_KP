@@ -5,6 +5,8 @@ import java.util.Locale;
 /** Desteklenen tarayıcılar. */
 public enum BrowserName {
   CHROMIUM,
+  CHROME,
+  EDGE,
   FIREFOX,
   WEBKIT;
 

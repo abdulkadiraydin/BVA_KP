@@ -7,6 +7,8 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 
+import java.util.regex.Pattern;
+
 /**
  * Kamuya açık portal (CKAN) sayfalarının ortak temeli: portal adresi, başlıklı bölümler ve sayfalar
  * arasında aynı olan veri talebi listesi (Hesabım › Taleplerim, Veri Talepleri).
@@ -93,24 +95,29 @@ public abstract class PublicPortalBasePage extends BasePage {
   }
 
   /**
-   * Verilen alanda ALTCHA doğrulaması varsa tamamlar; yoksa hiçbir şey yapmaz (doğrulama her
-   * girişte çıkmayabilir). Alana odaklanınca doğrulama kendiliğinden başlayabilir
-   * ("Doğrulanıyor…"); başlamadıysa kutuya tıklanır. Doğrulanmadan form gönderilmediği için
-   * "Doğrulandı" beklenir.
+   * Formdaki ALTCHA robot doğrulamasını tamamlar; bileşen yoksa hiçbir şey yapmaz. Kutunun adı
+   * tarayıcıya göre farklı okunabildiği ("Ben robot değilim:") için başlangıcıyla aranır; bileşen
+   * geç çizilebildiği için önce kutunun ya da "Doğrulandı" yazısının görünmesi beklenir.
    */
   protected void robotDogrulamasiniTamamlama(Locator alan) {
-    // Doğrulama kutusu sayfayla birlikte gelir; count beklemez, yoksa hemen 0 döner.
+
     if (alan.locator("altcha-widget").count() == 0) {
       return;
     }
+
     Locator kutu =
-        alan.getByRole(
-            AriaRole.CHECKBOX,
-            new Locator.GetByRoleOptions().setName("Ben robot değilim").setExact(true));
-    if (kutu.isVisible()) {
+            alan.getByRole(
+                    AriaRole.CHECKBOX,
+                    new Locator.GetByRoleOptions().setName(Pattern.compile("^Ben robot değilim")));
+    Locator dogrulandi =
+            alan.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true));
+
+    kutu.or(dogrulandi).first().waitFor(new Locator.WaitForOptions().setTimeout(10_000));
+
+    if (!dogrulandi.isVisible() && kutu.isVisible() && !kutu.isChecked()) {
       kutu.click();
     }
-    alan.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true))
-        .waitFor(new Locator.WaitForOptions().setTimeout(30_000));
+
+    dogrulandi.waitFor(new Locator.WaitForOptions().setTimeout(30_000));
   }
 }
