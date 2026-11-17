@@ -13,10 +13,15 @@ import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.pages.openData.OpenDataUpdateCalendarPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.fasterxml.jackson.databind.JsonNode;
+
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -138,20 +143,16 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
    * toplam bir süre 0 görünür; bu yüzden sayı dolana kadar 5 saniyede bir tekrar sorulur.
    */
   private static int portalKayitSayisiniBekleme(PublicPortalApi api, String kaynakId) {
-    long bitis = System.currentTimeMillis() + PORTAL_BEKLEME_SN * 1_000L;
-    int toplam = api.kayitlariGetir(kaynakId, 1).toplam();
-    while (toplam == 0 && System.currentTimeMillis() < bitis) {
-      try {
-        Thread.sleep(5_000);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        break;
-      }
-      toplam = api.kayitlariGetir(kaynakId, 1).toplam();
+    try {
+      return Awaitility.await("Portal kayıtları")
+              .atMost(Duration.ofSeconds(PORTAL_BEKLEME_SN))
+              .pollDelay(Duration.ZERO)
+              .pollInterval(Duration.ofSeconds(5))
+              .until(() -> api.kayitlariGetir(kaynakId, 1).toplam(), toplam -> toplam > 0);
+    } catch (ConditionTimeoutException e) {
+      throw new AssertionError(
+              "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.", e);
     }
-    Assert.assertTrue(
-        toplam > 0, "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.");
-    return toplam;
   }
 
   // ------------------------------------------------------------------

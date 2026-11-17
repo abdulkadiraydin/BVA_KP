@@ -28,8 +28,6 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   private final Locator talepHerkeseAcikKutusu;
   private final Locator talepGonderButonu;
   private final Locator talepVazgecButonu;
-  private final Locator robotDogrulamaKutusu;
-  private final Locator robotDogrulandiEtiketi;
 
   // API anahtarları
   private final Locator anahtarAdiAlani;
