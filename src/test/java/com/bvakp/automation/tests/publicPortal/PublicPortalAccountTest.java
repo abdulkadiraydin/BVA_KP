@@ -23,7 +23,7 @@ import org.testng.annotations.Test;
 public class PublicPortalAccountTest extends BaseTest {
 
   private static final String TALEP_AMACI = "Otomasyon testi kapsamında oluşturulan talep.";
-  private static final String TALEP_KATEGORISI = "Ulaşım";
+  private static final String TALEP_KATEGORISI = "Altyapı ve İstasyonlar";
   private static final String TALEP_ONAY_BEKLIYOR = "Onay bekliyor";
   private static final String TALEP_ACIK = "Açık";
   private static final String TALEP_KARSILANDI = "Kapanmış · Karşılandı";
@@ -61,9 +61,6 @@ public class PublicPortalAccountTest extends BaseTest {
     String baslik = TestDataUtil.dinamikAdOlusturma("otomasyon_talep");
 
     talepGonderme(ctx, baslik, true);
-    Assert.assertTrue(
-        ctx.hesapPage().talepAlindiMesajiGorunurMu(), "\"Talebiniz alındı\" mesajı görünmedi.");
-
     ctx.hesapPage().sekmeAcma("Taleplerim");
     Assert.assertTrue(
         ctx.hesapPage().talepListedeMi(baslik), "Talep Taleplerim'de bulunamadı: " + baslik);
@@ -160,13 +157,16 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.pass("Talep başlığındaki HTML işlenmedi: " + html);
   }
 
-  /** Talep formunu açar, doldurur ve gönderir. */
+  /** Talep formunu açar, doldurur ve gönderir; talebin alındığını doğrular. */
   private void talepGonderme(TestContext ctx, String baslik, boolean herkeseAcik) {
     ReportManager.step("Veri talebi oluşturuluyor: " + baslik);
     ctx.hesapPage().talepFormunuAcma();
     Assert.assertTrue(ctx.hesapPage().talepFormuAcikMi(), "Ön koşul: talep formu açılmadı.");
     ctx.hesapPage().talepBilgileriniGirme(baslik, TALEP_AMACI, TALEP_KATEGORISI, herkeseAcik);
     ctx.hesapPage().talebiGonderme();
+    Assert.assertTrue(
+            ctx.hesapPage().talepAlindiMesajiGorunurMu(),
+            "Ön koşul: talep gönderilemedi (\"Talebiniz alındı\" görünmedi): " + baslik);
   }
 
   // =====================================================================
@@ -176,12 +176,16 @@ public class PublicPortalAccountTest extends BaseTest {
   // "Açık" olur; sonra bir veri setiyle karşılandı olarak kapatılır ya da reddedilir.
   // =====================================================================
 
-  /** Yöneticinin bekleyen talebi onaylayıp bir veri setiyle karşılandı kapattığını doğrular. */
+  /**
+   * Yöneticinin bekleyen talebi onaylayıp yorum eklediğini, bir veri setiyle karşılandı olarak
+   * kapattığını ve talebin listede "Kapanmış · Karşılandı" göründüğünü doğrular.
+   */
   @Test
   public void talepOnaylanipKarsilanir() {
 
     TestContext ctx = hesabimAcikHazirlik();
     String baslik = TestDataUtil.dinamikAdOlusturma("otomasyon_talep");
+    String yorum = "Otomasyon yorumu: " + baslik;
     talepGonderme(ctx, baslik, true);
 
     onayKullanicisiylaTalebiAcma(ctx, baslik);
@@ -189,22 +193,30 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.step("Talep onaylanıyor: " + baslik);
     ctx.hesapPage().talebiOnaylama();
     Assert.assertTrue(
-        ctx.hesapPage().talepGuncellendiMesajiGorunurMu(), "Onaydan sonra bildirim görünmedi.");
+            ctx.hesapPage().onaylandiMesajiGorunurMu(),
+            "\"Talep onaylandı ve yayınlandı\" mesajı görünmedi.");
     Assert.assertEquals(
-        ctx.hesapPage().talepDetayDurumuOkuma(), TALEP_ACIK, "Onaylanan talebin durumu farklı.");
+            ctx.hesapPage().talepDetayDurumuOkuma(), TALEP_ACIK, "Onaylanan talebin durumu farklı.");
+
+    ReportManager.step("Talebe yorum ekleniyor.");
+    ctx.hesapPage().yorumEkleme(yorum);
+    Assert.assertTrue(ctx.hesapPage().yorumGorunurMu(yorum), "Eklenen yorum görünmedi.");
 
     ReportManager.step("Talep karşılandı olarak kapatılıyor: " + baslik);
     String veriSeti = ctx.hesapPage().talebiKarsilandiOlarakKapatma();
     Assert.assertTrue(
-        ctx.hesapPage().talepGuncellendiMesajiGorunurMu(), "Kapatmadan sonra bildirim görünmedi.");
-    Assert.assertEquals(
-        ctx.hesapPage().talepDetayDurumuOkuma(),
-        TALEP_KARSILANDI,
-        "Karşılanan talebin durumu farklı.");
-    Assert.assertEquals(
-        ctx.hesapPage().kabulEdilenVeriSetiOkuma(), veriSeti, "Kabul edilen veri seti farklı.");
+            ctx.hesapPage().karsilandiMesajiGorunurMu(),
+            "\"Talep karşılandı olarak kapatıldı\" mesajı görünmedi.");
 
-    ReportManager.pass("Talep onaylandı ve karşılandı olarak kapatıldı: " + veriSeti);
+    ReportManager.step("Veri Talepleri > Tümü listesinde talebin durumu kontrol ediliyor.");
+    ctx.hesapPage().veriTaleplerineDonme();
+    ctx.hesapPage().talepDurumSekmesiAcma("Tümü");
+    Assert.assertEquals(
+            ctx.hesapPage().talepKartiDurumuOkuma(baslik),
+            TALEP_KARSILANDI,
+            "Listede talebin durumu farklı.");
+
+    ReportManager.pass("Talep onaylandı, yorumlandı ve karşılandı olarak kapatıldı: " + veriSeti);
   }
 
   /** Yöneticinin bekleyen talebi reddettiğini ve talebin kapandığını doğrular. */
@@ -220,13 +232,20 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.step("Talep reddediliyor: " + baslik);
     ctx.hesapPage().talebiReddetme();
     Assert.assertTrue(
-        ctx.hesapPage().talepGuncellendiMesajiGorunurMu(), "Redden sonra bildirim görünmedi.");
+            ctx.hesapPage().reddedildiMesajiGorunurMu(), "\"Talep reddedildi\" mesajı görünmedi.");
     Assert.assertEquals(
-        ctx.hesapPage().talepDetayDurumuOkuma(),
-        TALEP_REDDEDILDI,
-        "Reddedilen talebin durumu farklı.");
+            ctx.hesapPage().talepDetayDurumuOkuma(),
+            TALEP_REDDEDILDI,
+            "Reddedilen talebin durumu farklı.");
+    ReportManager.step("Veri Talepleri > Tümü listesinde talebin durumu kontrol ediliyor.");
+    ctx.hesapPage().veriTaleplerineDonme();
+    ctx.hesapPage().talepDurumSekmesiAcma("Tümü");
+    Assert.assertEquals(
+            ctx.hesapPage().talepKartiDurumuOkuma(baslik),
+            TALEP_REDDEDILDI,
+            "Listede talebin durumu farklı.");
 
-    ReportManager.pass("Talep reddedildi: " + baslik);
+    ReportManager.pass("Talep reddedildi ve listede kapanmış görünüyor: " + baslik);
   }
 
   /** Onay rolüne geçer ve "Onay bekliyor" listesinden talebin detayını açar. */

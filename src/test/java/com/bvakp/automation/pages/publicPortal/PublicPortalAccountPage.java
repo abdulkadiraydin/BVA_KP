@@ -38,7 +38,6 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
 
   // Talep detayı (yönetici işlemleri)
   private final Locator talepDetayDurumu;
-  private final Locator talepGuncellendiMesaji;
   private final Locator yoneticiIslemleri;
   private final Locator karsilayanVeriSetiAlani;
   private final Locator veriSetiSecenekleri;
@@ -79,19 +78,12 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     // "API anahtarı oluşturuldu: <code>…</code>" bildirimi; değer yalnız bir kez gösterilir.
     this.olusanAnahtarDegeri = page.getByText("API anahtarı oluşturuldu").locator("code");
     this.anahtarSatirlari = bolum("Anahtarlarınız").getByRole(AriaRole.LISTITEM);
-    // "Emin misiniz?" penceresinde Vazgeç dışındaki düğme (adı işleme göre değişir).
-    this.onayPenceresiOnayButonu =
-        page.getByRole(
-                AriaRole.DIALOG,
-                new Page.GetByRoleOptions().setName("Emin misiniz?").setExact(true))
-            .getByRole(AriaRole.BUTTON)
-            .filter(new Locator.FilterOptions().setHasNotText("Vazgeç"));
+    // Onay penceresindeki onay düğmesi (adı işleme göre değişir: Onayla, Reddet, Karşılandı...).
+    // Sayfada birden fazla onay penceresi olabileceği için yalnız görünen alınır.
+    this.onayPenceresiOnayButonu = page.locator("[data-bvakp-confirm-ok]:visible");
 
     // Talep detayının başlığındaki durum etiketi (ör. "Onay bekliyor", "Kapanmış · Reddedildi").
     this.talepDetayDurumu = page.getByRole(AriaRole.MAIN).locator("header .bvakp-history-kind");
-    this.talepGuncellendiMesaji =
-        page.getByRole(AriaRole.STATUS)
-            .filter(new Locator.FilterOptions().setHasText("Talep güncellendi."));
     // Onayla / Reddet / Karşılandı düğmeleri bu bölgededir. Onay penceresinde de "Onayla" düğmesi
     // olduğu için düğmeler bölgeyle daraltılır.
     this.yoneticiIslemleri =
@@ -156,7 +148,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
    * Talep formunu doldurur.
    *
    * @param amac boşsa (null) girilmez
-   * @param kategori seçenekte görünen ad (ör. "Ulaşım"); null ise seçilmez
+   * @param kategori seçenekte görünen ad (ör. "Altyapı ve İstasyonlar"); null ise seçilmez
    * @param herkeseAcik "Talebim herkese açık listelensin" işaretli olsun mu
    */
   public void talepBilgileriniGirme(
@@ -265,16 +257,10 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     return talepDetayDurumu.innerText().trim();
   }
 
-  /** İşlemden sonra "Talep güncellendi." bildirimi görünüyorsa true döner. */
-  public boolean talepGuncellendiMesajiGorunurMu() {
-    return gorunurMu(talepGuncellendiMesaji);
-  }
-
-  /** Açık olan talep detayında Onayla'ya tıklar ve onay penceresini onaylar. */
+  /** Açık olan talep detayında Onayla'ya tıklar; onay penceresi açılmadan talep onaylanır. */
   public void talebiOnaylama() {
     sayfaHazirOlanaKadarBekleme();
     buton(yoneticiIslemleri, "Onayla").click();
-    onayPenceresiOnayButonu.click();
   }
 
   /** Açık olan talep detayında Reddet'e tıklar ve onay penceresini onaylar. */
@@ -285,24 +271,21 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   }
 
   /**
-   * Açık olan talebi, listede ilk sunulan veri setiyle karşılandı olarak kapatır.
-   *
-   * @return seçilen veri setinin adı (Ek Bilgiler'deki "Kabul edilen veri seti" ile karşılaştırmak
-   *     için)
+   * Talebi "Karşılandı" olarak kapatır. Karşılayan veri seti olarak listedeki ilk veri setini seçer
+   * ve adını döndürür.
    */
   public String talebiKarsilandiOlarakKapatma() {
+    // Yorum eklendikten sonra sayfa yenilenir; "Karşılandı" da sayfayı yeniden yükler.
     sayfaHazirOlanaKadarBekleme();
-    yoneticiIslemleri
-        .getByRole(
-            AriaRole.LINK, new Locator.GetByRoleOptions().setName("Karşılandı").setExact(true))
-        .click();
-    karsilayanVeriSetiAlani.click();
+    page.locator("[data-bvakp-fulfil-open]").click();
+    sayfaHazirOlanaKadarBekleme();
 
-    Locator secenek = veriSetiSecenekleri.first();
-    String veriSetiAdi = secenek.innerText().trim();
-    secenek.click();
+    // Radyo butonu özel tasarımlı olabilir; görünür olan etikete tıklanır.
+    Locator ilkVeriSeti = page.locator("[data-bvakp-dataset-list] label").first();
+    String veriSetiAdi = ilkVeriSeti.locator("input[type=radio]").getAttribute("data-title");
+    ilkVeriSeti.click();
 
-    buton(yoneticiIslemleri, "Karşılandı olarak kapat").click();
+    page.locator("[data-bvakp-fulfil-submit]").click();
     onayPenceresiOnayButonu.click();
     return veriSetiAdi;
   }
@@ -322,6 +305,53 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
         .getByRole(AriaRole.CELL)
         .innerText()
         .trim();
+  }
+  /** Talep detayına yorum yazar ve "Yorum ekle"ye tıklar. */
+  public void yorumEkleme(String yorum) {
+    page.locator("#field-request-comment").fill(yorum);
+    page.locator("form:has(#field-request-comment) [data-bvakp-counter-submit]").click();
+  }
+
+  /** Verilen yorum talep detayında görünüyorsa true döner. */
+  public boolean yorumGorunurMu(String yorum) {
+    return gorunurMu(page.getByText(yorum).first());
+  }
+
+  /** "Talep karşılandı olarak kapatıldı." bildirimi görünüyorsa true döner. */
+  public boolean karsilandiMesajiGorunurMu() {
+    return gorunurMu(page.getByText("Talep karşılandı olarak kapatıldı."));
+  }
+
+  /** "Talep onaylandı ve yayınlandı." bildirimi görünüyorsa true döner. */
+  public boolean onaylandiMesajiGorunurMu() {
+    return gorunurMu(page.getByText("Talep onaylandı ve yayınlandı."));
+  }
+  /** "Talep reddedildi." bildirimi görünüyorsa true döner. */
+  public boolean reddedildiMesajiGorunurMu() {
+    return gorunurMu(page.getByText("Talep reddedildi."));
+  }
+
+  /** Talep detayından "Veri Taleplerine dön" ile listeye döner. */
+  public void veriTaleplerineDonme() {
+    page.locator(".bvakp-dr-back-label").click();
+  }
+
+  /** Veri Talepleri'nde durum sekmesine geçer: "Açık", "Kapanmış", "Tümü", "Onay bekliyor". */
+  public void talepDurumSekmesiAcma(String sekmeAdi) {
+    page.getByRole(
+                    AriaRole.NAVIGATION,
+                    new Page.GetByRoleOptions().setName("Talep durumu").setExact(true))
+            .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName(sekmeAdi).setExact(true))
+            .click();
+  }
+
+  /** Veri Talepleri listesinde başlığı verilen talebin kartındaki durum etiketi. */
+  public String talepKartiDurumuOkuma(String baslik) {
+    return page.locator(".bvakp-dr-card")
+            .filter(new Locator.FilterOptions().setHas(link(baslik)))
+            .locator(".bvakp-history-kind")
+            .innerText()
+            .trim();
   }
 
   /** Talep detayında yönetici işlemleri (Reddet) görünmüyorsa true döner. */

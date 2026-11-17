@@ -28,7 +28,7 @@ public class OpenDataPublishPage extends BasePage {
 
   private static final int SATIR_TIMEOUT_MS = 10_000;
   private static final int ARAMA_SONUCU_TIMEOUT_MS = 10_000;
-
+  private static final int POPUP_TIMEOUT_MS = 10_000;
   private static final int STATU_TIMEOUT_MS = 120_000;
   private static final int STATU_YENILEME_ARALIGI_MS = 3_000;
   private static final int PORTAL_AKTARIM_TIMEOUT_MS = 180_000;
@@ -162,6 +162,20 @@ public class OpenDataPublishPage extends BasePage {
 
     return gorunurMu(getDataSetRow(dataSetName), SATIR_TIMEOUT_MS);
   }
+  /**
+   * Satırdaki butona tıklar ve onay penceresinin açılmasını bekler. Tablo arama sonrası yeniden
+   * çizilirken yapılan tıklama boşa gidebildiği için pencere açılmazsa bir kez daha tıklanır.
+   */
+  private void satirButonunaTiklaVePencereyiBekle(String dataSetName, String butonAdi) {
+    for (int deneme = 1; deneme <= 2; deneme++) {
+      satirButonunaTikla(dataSetName, butonAdi);
+      if (gorunurMu(popup, POPUP_TIMEOUT_MS)) {
+        return;
+      }
+      ReportManager.warn("'" + butonAdi + "' penceresi açılmadı, tekrar deneniyor: " + dataSetName);
+    }
+    throw new IllegalStateException("'" + butonAdi + "' penceresi açılmadı: " + dataSetName);
+  }
 
   // =====================================================================
   // Satır işlemleri
@@ -174,37 +188,36 @@ public class OpenDataPublishPage extends BasePage {
 
   /** Veri setinin satırındaki KVKK Onayla butonuna tıklar. */
   public void clickKvkkOnayla(String dataSetName) {
-    satirButonunaTikla(dataSetName, "KVKK Onayla");
+    satirButonunaTiklaVePencereyiBekle(dataSetName, "KVKK Onayla");
   }
 
   /** Veri setinin satırındaki KVKK Reddet butonuna tıklar. */
   public void clickKvkkReddet(String dataSetName) {
-    satirButonunaTikla(dataSetName, "KVKK Reddet");
+    satirButonunaTiklaVePencereyiBekle(dataSetName, "KVKK Reddet");
   }
-
   /** Veri setinin satırındaki Yayınla butonuna tıklar. */
   public void clickYayinla(String dataSetName) {
-    satirButonunaTikla(dataSetName, "Yayınla");
+    satirButonunaTiklaVePencereyiBekle(dataSetName, "Yayınla");
   }
 
   /** Veri setinin satırındaki Yayını Reddet butonuna tıklar. */
   public void clickYayinReddet(String dataSetName) {
-    satirButonunaTikla(dataSetName, "Yayını Reddet");
+    satirButonunaTiklaVePencereyiBekle(dataSetName, "Yayını Reddet");
   }
 
   /** Veri setinin satırındaki Arşivle butonuna tıklar. */
   public void clickArsivle(String dataSetName) {
-    satirButonunaTikla(dataSetName, "Arşivle");
+    satirButonunaTiklaVePencereyiBekle(dataSetName, "Arşivle");
   }
 
   /** Veri setinin satırındaki Sil butonuna tıklar. */
   public void clickSil(String dataSetName) {
-    satirButonunaTikla(dataSetName, "Sil");
+    satirButonunaTiklaVePencereyiBekle(dataSetName, "Sil");
   }
 
   /** Veri setinin satırındaki Güncelle butonuna tıklar. */
   public void clickGuncelle(String dataSetName) {
-    satirButonunaTikla(dataSetName, "Güncelle");
+    satirButonunaTiklaVePencereyiBekle(dataSetName, "Güncelle");
   }
 
   /** Veri setinin satırındaki Düzenle butonuna tıklar. */
@@ -353,19 +366,6 @@ public class OpenDataPublishPage extends BasePage {
     page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Onaya Gönder"))
         .first()
         .click();
-  }
-
-  /** Düzenleme ekranında görünen sorumlu birim, kategori ve açıklama. */
-  public record DuzenlemeAlanlari(String sorumluBirim, String kategori, String aciklama) {}
-
-  /** Düzenleme ekranındaki sorumlu birim, kategori ve açıklamayı okur. */
-  public DuzenlemeAlanlari duzenlemeAlanlariniOkuma() {
-    return new DuzenlemeAlanlari(
-        page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Sorumlu Birim"))
-            .innerText(),
-        page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Kategori"))
-            .innerText(),
-        page.locator("textarea[name='description']").inputValue());
   }
 
   /** Detay ekranında Geri Dön'e tıklar. */
@@ -605,21 +605,17 @@ public class OpenDataPublishPage extends BasePage {
   }
 
   /**
-   * Düzenlemeden sonra kaydedilen değerler ekranda görünüyorsa true döner. Kaydedince form açık
-   * kalabilir (değerler alanlardan okunur) ya da detay ekranına dönülebilir (değerler metin olarak
-   * aranır); ikisi de desteklenir.
+   * Düzenlemeden sonra kaydedilen değerler detay ekranında görünüyorsa true döner. Kaydet'ten sonra
+   * form kapanıp detay ekranına dönülür; geçiş bitmeden okunursa form alanları kaybolur, bu yüzden
+   * önce formun kapanması beklenir.
    */
   public boolean kaydedilenDegerlerGorunuyorMu(
-      String sorumluBirim, String kategori, String aciklama) {
-    Locator aciklamaAlani =
-        page.getByLabel("Açıklama", new Page.GetByLabelOptions().setExact(true));
-    if (aciklamaAlani.isVisible()) {
-      return duzenlemeAlanlariniOkuma()
-          .equals(new DuzenlemeAlanlari(sorumluBirim, kategori, aciklama));
-    }
+          String sorumluBirim, String kategori, String aciklama) {
+    page.locator("textarea[name='description']")
+            .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.DETACHED));
     return gorunurMu(metin(aciklama))
-        && gorunurMu(metin(sorumluBirim))
-        && gorunurMu(metin(kategori));
+            && gorunurMu(metin(sorumluBirim))
+            && gorunurMu(metin(kategori));
   }
 
   /** Ekranda birebir bu metni taşıyan ilk öge. */

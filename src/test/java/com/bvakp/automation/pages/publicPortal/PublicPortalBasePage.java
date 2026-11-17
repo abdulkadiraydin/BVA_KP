@@ -98,18 +98,31 @@ public abstract class PublicPortalBasePage extends BasePage {
   private static final double ALTCHA_TIMEOUT_MS = 60_000;
 
   /**
-   * Robot doğrulamasını tamamlar. Widget auto="onfocus" çalıştığı için doğrulama forma yazı
-   * girilince kendiliğinden başlayabilir; kutuya yalnızca başlamamışsa tıklanır.
+   * Robot doğrulamasını tamamlar. Doğrulama her zaman istenmez (ör. giriş sayfasında yalnız bazı
+   * durumlarda çıkar); widget sayfada yoksa adım atlanır.
+   *
+   * <p>Widget auto="onfocus" çalışır: forma yazı girilince doğrulama kendiliğinden başlar ve
+   * sürerken kutu tıklanamaz. Bu yüzden kutuya yalnız doğrulama birkaç saniye içinde başlamazsa
+   * ya da hata/süre dolumu durumunda kalırsa tıklanır.
    */
   protected void robotDogrulamasiniTamamlama(Locator kapsam) {
-    Locator widget = kapsam.locator("altcha-widget .altcha");
-    widget.waitFor(
-            new Locator.WaitForOptions()
-                    .setState(WaitForSelectorState.VISIBLE)
-                    .setTimeout(15_000));
+    // Widget etiketi sunucudan gelir; sayfa yüklendiğinde ya vardır ya yoktur.
+    if (kapsam.locator("altcha-widget").count() == 0) {
+      return;
+    }
 
-    String durum = widget.getAttribute("data-state");
-    if (!"verifying".equals(durum) && !"verified".equals(durum)) {
+    kapsam
+            .locator("altcha-widget .altcha")
+            .waitFor(
+                    new Locator.WaitForOptions()
+                            .setState(WaitForSelectorState.VISIBLE)
+                            .setTimeout(15_000));
+
+    Locator baslamis =
+            kapsam.locator(
+                    "altcha-widget .altcha[data-state='verifying'],"
+                            + " altcha-widget .altcha[data-state='verified']");
+    if (!gorunurMu(baslamis, 5_000)) {
       kapsam.locator("altcha-widget input[type=checkbox]").click();
     }
 

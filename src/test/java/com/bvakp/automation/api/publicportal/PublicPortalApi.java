@@ -98,28 +98,52 @@ public class PublicPortalApi {
   }
 
   /**
-   * Veri seti aramada görünene ve verisi DataStore'a yüklenene kadar bekler; süre dolarsa hata
-   * verir. Yayından hemen sonra paket aramada olsa da kaynağı birkaç saniye eksik kalabilir.
+   * Veri seti aramada görünene ve verisi DataStore'a tamamen yüklenene kadar bekler; süre dolarsa
+   * hata verir. Yayından hemen sonra kaynak aktif görünse de satırlar arkadan, parça parça yüklenir;
+   * bu yüzden kayıt sayısı sıfırdan büyük olup iki yoklamada aynı kalana kadar beklenir.
    */
   public JsonNode paketHazirOlanaKadarBekleme(String baslik, int sureSn) {
 
     long bitis = System.currentTimeMillis() + sureSn * 1000L;
+    int oncekiToplam = -1;
 
     while (true) {
       Optional<JsonNode> paket = paketBaslikIleBul(baslik);
-      if (paket.isPresent() && datastoreKaynakId(paket.get()).isPresent()) {
+      Optional<String> kaynakId = paket.flatMap(PublicPortalApi::datastoreKaynakId);
+      int toplam = kaynakId.map(this::kayitSayisiOkuma).orElse(0);
+
+      if (toplam > 0 && toplam == oncekiToplam) {
         return paket.get();
       }
       if (System.currentTimeMillis() > bitis) {
         throw new IllegalStateException(
-            "Veri seti "
-                + sureSn
-                + " sn içinde portalda hazır olmadı: "
-                + baslik
-                + (paket.isPresent() ? " (paket var, DataStore kaynağı yok)" : " (paket yok)"));
+                "Veri seti "
+                        + sureSn
+                        + " sn içinde portalda hazır olmadı: "
+                        + baslik
+                        + hazirOlmamaSebebi(paket, kaynakId, toplam));
       }
+      oncekiToplam = toplam;
       yoklamaAraligiBekleme();
     }
+  }
+
+  /** Kaynağın DataStore'daki kayıt sayısı; yükleme sürerken veya çağrı başarısızsa 0 döner. */
+  private int kayitSayisiOkuma(String kaynakId) {
+    ApiYanit yanit = datastoreAra(kaynakId, 1, 0);
+    return apiBasariliMi(yanit) ? yanit.alan("/result/total").asInt(0) : 0;
+  }
+
+  /** Bekleme süresi dolduğunda hata mesajına eklenecek sebep. */
+  private static String hazirOlmamaSebebi(
+          Optional<JsonNode> paket, Optional<String> kaynakId, int toplam) {
+    if (paket.isEmpty()) {
+      return " (paket yok)";
+    }
+    if (kaynakId.isEmpty()) {
+      return " (paket var, DataStore kaynağı yok)";
+    }
+    return " (kayıtlar yüklenmedi ya da yükleme sürüyor, son kayıt sayısı: " + toplam + ")";
   }
 
   /** Başlığı verilen veri seti süre içinde portal aramasında görünürse true döner. */
