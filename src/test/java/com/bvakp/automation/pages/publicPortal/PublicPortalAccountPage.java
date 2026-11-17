@@ -70,14 +70,6 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
     this.talepHerkeseAcikKutusu = talepFormu.getByLabel("Talebim herkese açık listelensin");
     this.talepGonderButonu = buton(talepFormu, "Talebi Gönder");
     this.talepVazgecButonu = buton(talepFormu, "Vazgeç");
-    // ALTCHA doğrulaması: kutuya tıklanınca tarayıcı bir hesaplama yapar (birkaç saniye), sonra
-    // etiket "Doğrulandı" olur. Doğrulanmadan form gönderilmez.
-    this.robotDogrulamaKutusu =
-        talepFormu.getByRole(
-            AriaRole.CHECKBOX,
-            new Locator.GetByRoleOptions().setName("Ben robot değilim").setExact(true));
-    this.robotDogrulandiEtiketi =
-        talepFormu.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true));
 
     this.anahtarAdiAlani =
         page.getByLabel("Anahtar adı", new Page.GetByLabelOptions().setExact(true));

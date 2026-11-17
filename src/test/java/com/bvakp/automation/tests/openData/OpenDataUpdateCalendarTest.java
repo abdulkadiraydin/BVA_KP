@@ -13,13 +13,11 @@ import com.bvakp.automation.pages.openData.OpenDataPublishPage;
 import com.bvakp.automation.pages.openData.OpenDataUpdateCalendarPage;
 import com.bvakp.automation.reporting.ReportManager;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.testng.Assert;
@@ -145,13 +143,13 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
   private static int portalKayitSayisiniBekleme(PublicPortalApi api, String kaynakId) {
     try {
       return Awaitility.await("Portal kayıtları")
-              .atMost(Duration.ofSeconds(PORTAL_BEKLEME_SN))
-              .pollDelay(Duration.ZERO)
-              .pollInterval(Duration.ofSeconds(5))
-              .until(() -> api.kayitlariGetir(kaynakId, 1).toplam(), toplam -> toplam > 0);
+          .atMost(Duration.ofSeconds(PORTAL_BEKLEME_SN))
+          .pollDelay(Duration.ZERO)
+          .pollInterval(Duration.ofSeconds(5))
+          .until(() -> api.kayitlariGetir(kaynakId, 1).toplam(), toplam -> toplam > 0);
     } catch (ConditionTimeoutException e) {
       throw new AssertionError(
-              "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.", e);
+          "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.", e);
     }
   }
 

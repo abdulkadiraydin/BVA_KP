@@ -77,6 +77,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Awaitility -->
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
