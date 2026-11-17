@@ -6,6 +6,8 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
+import com.microsoft.playwright.options.WaitForSelectorState;
+
 import java.util.regex.Pattern;
 
 /**
@@ -92,31 +94,27 @@ public abstract class PublicPortalBasePage extends BasePage {
         .replaceAll("\\s+", " ")
         .trim();
   }
+  /** ALTCHA doğrulaması tarayıcıda hesaplama yapar; yoğun makinede 10 sn'yi aşabilir. */
+  private static final double ALTCHA_TIMEOUT_MS = 60_000;
 
   /**
-   * Formdaki ALTCHA robot doğrulamasını tamamlar; bileşen yoksa hiçbir şey yapmaz. Kutunun adı
-   * tarayıcıya göre farklı okunabildiği ("Ben robot değilim:") için başlangıcıyla aranır; bileşen
-   * geç çizilebildiği için önce kutunun ya da "Doğrulandı" yazısının görünmesi beklenir.
+   * Robot doğrulamasını tamamlar. Widget auto="onfocus" çalıştığı için doğrulama forma yazı
+   * girilince kendiliğinden başlayabilir; kutuya yalnızca başlamamışsa tıklanır.
    */
-  protected void robotDogrulamasiniTamamlama(Locator alan) {
+  protected void robotDogrulamasiniTamamlama(Locator kapsam) {
+    Locator widget = kapsam.locator("altcha-widget .altcha");
+    widget.waitFor(
+            new Locator.WaitForOptions()
+                    .setState(WaitForSelectorState.VISIBLE)
+                    .setTimeout(15_000));
 
-    if (alan.locator("altcha-widget").count() == 0) {
-      return;
+    String durum = widget.getAttribute("data-state");
+    if (!"verifying".equals(durum) && !"verified".equals(durum)) {
+      kapsam.locator("altcha-widget input[type=checkbox]").click();
     }
 
-    Locator kutu =
-        alan.getByRole(
-            AriaRole.CHECKBOX,
-            new Locator.GetByRoleOptions().setName(Pattern.compile("^Ben robot değilim")));
-    Locator dogrulandi =
-        alan.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true));
-
-    kutu.or(dogrulandi).first().waitFor(new Locator.WaitForOptions().setTimeout(10_000));
-
-    if (!dogrulandi.isVisible() && kutu.isVisible() && !kutu.isChecked()) {
-      kutu.click();
-    }
-
-    dogrulandi.waitFor(new Locator.WaitForOptions().setTimeout(30_000));
+    kapsam
+            .locator("altcha-widget .altcha[data-state='verified']")
+            .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
   }
 }
