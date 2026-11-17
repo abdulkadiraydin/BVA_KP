@@ -26,7 +26,8 @@ pipeline {
         BVAKP_CLEANUP_ENABLED              = 'true'
         // Aynı test üst üste kırılırsa alarm maili (günde en fazla bir kez)
         BVAKP_FAILURE_TRACKING_ENABLED     = 'true'
-
+        BVAKP_TRACE_MODE = 'off'
+        BVAKP_VIDEO_MODE = 'retain-on-failure'
         // Parolalar (Jenkins Credentials'tan gelir)
         BVAKP_PASSWORD                     = credentials('bvakp-password')
         BVAKP_PASSWORD_HAZIRLAYAN          = credentials('bvakp-password-hazirlayan')
