@@ -51,10 +51,10 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
   /** Tek bir testin kullandığı kamuya açık portal sayfaları ve API istemcisi. */
   private record TestContext(
-          PublicPortalSearchPage aramaPage,
-          PublicPortalDataSetPage veriSetiPage,
-          PublicPortalResourcePage kaynakPage,
-          PublicPortalApi api) {}
+      PublicPortalSearchPage aramaPage,
+      PublicPortalDataSetPage veriSetiPage,
+      PublicPortalResourcePage kaynakPage,
+      PublicPortalApi api) {}
 
   // ------------------------------------------------------------------
   // Hazırlık
@@ -78,18 +78,18 @@ public class PublicOpenDataTest extends AvpBaseTest {
       OpenDataPublishPage publishPage = new OpenDataPublishPage(page());
       OpenDataPublishFlow publishFlow = new OpenDataPublishFlow(publishPage);
       OpenDataSetupFlow setupFlow =
-              new OpenDataSetupFlow(new OpenDataCreateFlow(page()), publishPage, publishFlow);
+          new OpenDataSetupFlow(new OpenDataCreateFlow(page()), publishPage, publishFlow);
 
       tanim = setupFlow.yayindaVeriSetiTanimiOlusturma("otomasyon_public_portal");
 
       JsonNode paket =
-              PublicPortalApi.portaldan()
-                      .paketHazirOlanaKadarBekleme(tanim.ad(), PORTAL_INDEKS_BEKLEME_SN);
+          PublicPortalApi.portaldan()
+              .paketHazirOlanaKadarBekleme(tanim.ad(), PORTAL_INDEKS_BEKLEME_SN);
       adresAdi = paket.path("name").asText();
       kaynakId = PublicPortalApi.datastoreKaynakId(paket).orElseThrow();
       portalKayitSayisi = PublicPortalApi.portaldan().kayitlariGetir(kaynakId, 1).toplam();
       ReportManager.info(
-              "Ortak veri seti portalda | " + tanim.ad() + " | " + adresAdi + " | " + kaynakId);
+          "Ortak veri seti portalda | " + tanim.ad() + " | " + adresAdi + " | " + kaynakId);
       basarili = true;
 
     } finally {
@@ -100,10 +100,10 @@ public class PublicOpenDataTest extends AvpBaseTest {
   /** Testin kullanacağı sayfa nesnelerini ve API istemcisini oluşturur. */
   private TestContext testHazirligi() {
     return new TestContext(
-            new PublicPortalSearchPage(page()),
-            new PublicPortalDataSetPage(page()),
-            new PublicPortalResourcePage(page()),
-            PublicPortalApi.portaldan());
+        new PublicPortalSearchPage(page()),
+        new PublicPortalDataSetPage(page()),
+        new PublicPortalResourcePage(page()),
+        PublicPortalApi.portaldan());
   }
 
   /** Veri seti detay sayfası açık olarak başlayan test hazırlığı. */
@@ -112,8 +112,8 @@ public class PublicOpenDataTest extends AvpBaseTest {
     ReportManager.step("Kamuya açık portalda veri seti detay sayfası açılıyor: " + tanim.ad());
     ctx.veriSetiPage().veriSetiSayfasiniAcma(adresAdi);
     Assert.assertTrue(
-            ctx.veriSetiPage().veriSetiSayfasiGoruntulendiMi(tanim.ad()),
-            "Ön koşul: veri seti detay sayfası açılamadı: " + tanim.ad());
+        ctx.veriSetiPage().veriSetiSayfasiGoruntulendiMi(tanim.ad()),
+        "Ön koşul: veri seti detay sayfası açılamadı: " + tanim.ad());
     return ctx;
   }
 
@@ -123,8 +123,8 @@ public class PublicOpenDataTest extends AvpBaseTest {
     ReportManager.step("Kaynak (önizleme) sayfası açılıyor.");
     ctx.veriSetiPage().onizlemeAcma();
     Assert.assertTrue(
-            ctx.kaynakPage().kaynakSayfasiGoruntulendiMi(tanim.ad()),
-            "Ön koşul: kaynak sayfası açılamadı: " + tanim.ad());
+        ctx.kaynakPage().kaynakSayfasiGoruntulendiMi(tanim.ad()),
+        "Ön koşul: kaynak sayfası açılamadı: " + tanim.ad());
     return ctx;
   }
 
@@ -153,8 +153,8 @@ public class PublicOpenDataTest extends AvpBaseTest {
     ctx.aramaPage().veriSetiArama(tanim.ad());
 
     Assert.assertTrue(
-            ctx.aramaPage().veriSetiSonuclardaMi(tanim.ad()),
-            "Veri seti arama sonuçlarında bulunamadı: " + tanim.ad());
+        ctx.aramaPage().veriSetiSonuclardaMi(tanim.ad()),
+        "Veri seti arama sonuçlarında bulunamadı: " + tanim.ad());
 
     ReportManager.step("Veri seti kartının bilgileri kontrol ediliyor.");
     PublicPortalSearchPage.VeriSetiKarti kart = ctx.aramaPage().veriSetiKartiOkuma(tanim.ad());
@@ -162,7 +162,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
     soft.assertEquals(kart.kategori(), tanim.kategori(), "Kart kategorisi");
     soft.assertEquals(kart.aciklama(), tanim.aciklama(), "Kart açıklaması");
     soft.assertEquals(
-            Set.copyOf(kart.formatlar()), Set.copyOf(beklenenFormatCipleri()), "Kart formatları");
+        Set.copyOf(kart.formatlar()), Set.copyOf(beklenenFormatCipleri()), "Kart formatları");
     soft.assertEquals(kart.kolonSayisi(), tanim.kolonAdlari().size(), "Kart kolon sayısı");
     soft.assertEquals(kart.satirSayisi(), portalKayitSayisi, "Kart satır sayısı");
     soft.assertAll();
@@ -170,8 +170,8 @@ public class PublicOpenDataTest extends AvpBaseTest {
     ReportManager.step("Karttan veri seti detayı açılıyor.");
     ctx.aramaPage().veriSetiAcma(tanim.ad());
     Assert.assertTrue(
-            ctx.veriSetiPage().veriSetiSayfasiGoruntulendiMi(tanim.ad()),
-            "Karttan veri seti detayı açılamadı.");
+        ctx.veriSetiPage().veriSetiSayfasiGoruntulendiMi(tanim.ad()),
+        "Karttan veri seti detayı açılamadı.");
 
     ReportManager.pass("Veri seti aramada bulundu ve kart bilgileri doğru.");
   }
@@ -191,10 +191,10 @@ public class PublicOpenDataTest extends AvpBaseTest {
     soft.assertEquals(veriSeti.aciklamaOkuma(), tanim.aciklama(), "Açıklama");
     soft.assertEquals(veriSeti.kolonSayisiOkuma(), tanim.kolonAdlari().size(), "Kolon sayısı");
     soft.assertEquals(
-            veriSeti.ekBilgileriOkuma().get("Sorumlu Birim"), tanim.sorumluBirim(), "Sorumlu Birim");
+        veriSeti.ekBilgileriOkuma().get("Sorumlu Birim"), tanim.sorumluBirim(), "Sorumlu Birim");
     soft.assertEquals(veriSeti.lisansOkuma(), tanim.kullanimLisansi(), "Lisans");
     soft.assertEquals(
-            veriSeti.ilkYayinNotuOkuma(), tanim.yayin().yayinAciklamasi(), "İlk yayın notu");
+        veriSeti.ilkYayinNotuOkuma(), tanim.yayin().yayinAciklamasi(), "İlk yayın notu");
     soft.assertAll();
 
     ReportManager.pass("Detay sayfası bilgileri kapalı portaldaki değerlerle aynı.");
@@ -207,9 +207,9 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
     ReportManager.step("KVKK notundaki maskelenen alanlar kontrol ediliyor.");
     Assert.assertEquals(
-            ctx.veriSetiPage().maskelenenAlanlariOkuma(),
-            tanim.maskelenenKolonlar(),
-            "KVKK notundaki maskelenen alanlar farklı.");
+        ctx.veriSetiPage().maskelenenAlanlariOkuma(),
+        tanim.maskelenenKolonlar(),
+        "KVKK notundaki maskelenen alanlar farklı.");
 
     ReportManager.pass("Maskelenen alanlar notu doğru: " + tanim.maskelenenKolonlar());
   }
@@ -225,29 +225,29 @@ public class PublicOpenDataTest extends AvpBaseTest {
     ReportManager.step("İndirme linkleri okunuyor ve yayın formatlarıyla karşılaştırılıyor.");
     Map<String, String> linkler = ctx.veriSetiPage().indirmeLinkleriniOkuma();
     Assert.assertEquals(
-            Set.copyOf(linkler.keySet()),
-            Set.copyOf(tanim.yayin().formatlar()),
-            "İndirilebilir formatlar yayın ayarlarıyla aynı değil.");
+        Set.copyOf(linkler.keySet()),
+        Set.copyOf(tanim.yayin().formatlar()),
+        "İndirilebilir formatlar yayın ayarlarıyla aynı değil.");
 
     ReportManager.step("Dosyalar indirilip içerikleri kontrol ediliyor: " + linkler.keySet());
     SoftAssert soft = new SoftAssert();
     linkler.forEach(
-            (format, link) -> {
-              ApiYanit yanit = ctx.api().dosyaIndirme(link);
-              soft.assertEquals(yanit.durumKodu(), 200, format + " indirme durum kodu");
-              soft.assertFalse(
-                      yanit.govde() == null || yanit.govde().isBlank(), format + " dosyası boş");
+        (format, link) -> {
+          ApiYanit yanit = ctx.api().dosyaIndirme(link);
+          soft.assertEquals(yanit.durumKodu(), 200, format + " indirme durum kodu");
+          soft.assertFalse(
+              yanit.govde() == null || yanit.govde().isBlank(), format + " dosyası boş");
 
-              if ("CSV".equals(format) && yanit.basariliMi()) {
-                String baslikSatiri = yanit.govde().lines().findFirst().orElse("");
-                for (String kolon : tanim.kolonAdlari()) {
-                  soft.assertTrue(baslikSatiri.contains(kolon), "CSV başlığında kolon yok: " + kolon);
-                }
-              }
-              if ("JSON".equals(format) && yanit.basariliMi()) {
-                jsonMaskeKontrolu(yanit.govde(), soft);
-              }
-            });
+          if ("CSV".equals(format) && yanit.basariliMi()) {
+            String baslikSatiri = yanit.govde().lines().findFirst().orElse("");
+            for (String kolon : tanim.kolonAdlari()) {
+              soft.assertTrue(baslikSatiri.contains(kolon), "CSV başlığında kolon yok: " + kolon);
+            }
+          }
+          if ("JSON".equals(format) && yanit.basariliMi()) {
+            jsonMaskeKontrolu(yanit.govde(), soft);
+          }
+        });
     soft.assertAll();
 
     ReportManager.pass("İndirme linkleri çalışıyor: " + linkler.keySet());
@@ -270,19 +270,19 @@ public class PublicOpenDataTest extends AvpBaseTest {
 
     SoftAssert soft = new SoftAssert();
     soft.assertEquals(
-            List.copyOf(kaynak.veriSozluguOkuma().keySet()),
-            tanim.kolonAdlari(),
-            "Veri sözlüğü alanları");
+        List.copyOf(kaynak.veriSozluguOkuma().keySet()),
+        tanim.kolonAdlari(),
+        "Veri sözlüğü alanları");
     soft.assertEquals(
-            List.copyOf(kaynak.apiAlanlariniOkuma().keySet()), tanim.kolonAdlari(), "API alanları");
+        List.copyOf(kaynak.apiAlanlariniOkuma().keySet()), tanim.kolonAdlari(), "API alanları");
     soft.assertEquals(kaynak.apiKaynakIdOkuma(), kaynakId, "API resource_id");
     soft.assertTrue(
-            kaynak.apiAdresiOkuma().endsWith("/api/3/action/datastore_search"),
-            "API adresi beklenen uç nokta değil: " + kaynak.apiAdresiOkuma());
+        kaynak.apiAdresiOkuma().endsWith("/api/3/action/datastore_search"),
+        "API adresi beklenen uç nokta değil: " + kaynak.apiAdresiOkuma());
     soft.assertEquals(
-            Set.copyOf(kaynak.formatlariOkuma()),
-            Set.copyOf(beklenenFormatCipleri()),
-            "Kaynak formatları");
+        Set.copyOf(kaynak.formatlariOkuma()),
+        Set.copyOf(beklenenFormatCipleri()),
+        "Kaynak formatları");
     soft.assertAll();
 
     ReportManager.pass("Veri sözlüğü ve API bölümü kolonlarla aynı.");
@@ -324,17 +324,17 @@ public class PublicOpenDataTest extends AvpBaseTest {
     ReportManager.step("API: package_show isteği gönderiliyor.");
     ApiYanit yanit = api.paketGetir(adresAdi);
     Assert.assertTrue(
-            PublicPortalApi.apiBasariliMi(yanit),
-            "package_show başarısız | Durum: " + yanit.durumKodu() + " | " + yanit.kisaGovde());
+        PublicPortalApi.apiBasariliMi(yanit),
+        "package_show başarısız | Durum: " + yanit.durumKodu() + " | " + yanit.kisaGovde());
 
     ReportManager.step("Paket bilgileri kapalı portaldaki değerlerle karşılaştırılıyor.");
     SoftAssert soft = new SoftAssert();
     soft.assertEquals(yanit.alan("/result/title").asText(), tanim.ad(), "title");
     soft.assertEquals(yanit.alan("/result/notes").asText(), tanim.aciklama(), "notes");
     soft.assertEquals(
-            yanit.alan("/result/license_title").asText(), tanim.kullanimLisansi(), "license_title");
+        yanit.alan("/result/license_title").asText(), tanim.kullanimLisansi(), "license_title");
     soft.assertEquals(
-            yanit.alan("/result/groups/0/title").asText(), tanim.kategori(), "groups[0].title");
+        yanit.alan("/result/groups/0/title").asText(), tanim.kategori(), "groups[0].title");
     soft.assertAll();
 
     ReportManager.pass("API paket bilgileri doğru.");
@@ -349,17 +349,17 @@ public class PublicOpenDataTest extends AvpBaseTest {
     ReportManager.step("API: datastore_search ile bütün kayıtlar alınıyor.");
     DatastoreSonuc sonuc = api.kayitlariGetir(kaynakId, portalKayitSayisi);
     Assert.assertEquals(
-            sonuc.alanAdlari(), tanim.kolonAdlari(), "API alanları kolonlarla aynı değil.");
+        sonuc.alanAdlari(), tanim.kolonAdlari(), "API alanları kolonlarla aynı değil.");
 
     ReportManager.step("Maskelenen kolonların değerleri kontrol ediliyor.");
     SoftAssert soft = new SoftAssert();
     for (String kolon : tanim.maskelenenKolonlar()) {
       List<String> acikDegerler =
-              sonuc.degerler(kolon).stream()
-                      .filter(deger -> deger == null || !deger.contains("*"))
-                      .toList();
+          sonuc.degerler(kolon).stream()
+              .filter(deger -> deger == null || !deger.contains("*"))
+              .toList();
       soft.assertTrue(
-              acikDegerler.isEmpty(), kolon + " kolonunda maskelenmemiş değer var: " + acikDegerler);
+          acikDegerler.isEmpty(), kolon + " kolonunda maskelenmemiş değer var: " + acikDegerler);
     }
     soft.assertAll();
 
@@ -379,10 +379,10 @@ public class PublicOpenDataTest extends AvpBaseTest {
     // Önizleme ile API'nin sıralaması farklı; her önizleme satırı API kayıtları içinde aranır.
     // Eşleşen kayıt listeden çıkarılır, böylece tekrar eden satırlar da doğru sayılır.
     List<Map<String, String>> apiSatirlari =
-            new ArrayList<>(
-                    api.kayitlariGetir(kaynakId, portalKayitSayisi).kayitlar().stream()
-                            .map(this::maskesizKolonlar)
-                            .toList());
+        new ArrayList<>(
+            api.kayitlariGetir(kaynakId, portalKayitSayisi).kayitlar().stream()
+                .map(this::maskesizKolonlar)
+                .toList());
 
     ReportManager.step("Kapalı portal önizlemesindeki kayıtlar API kayıtlarında aranıyor.");
     List<Map<String, String>> bulunamayanlar = new ArrayList<>();
@@ -394,7 +394,7 @@ public class PublicOpenDataTest extends AvpBaseTest {
     }
 
     Assert.assertTrue(
-            bulunamayanlar.isEmpty(), "Önizlemedeki bu satırlar API'de yok: " + bulunamayanlar);
+        bulunamayanlar.isEmpty(), "Önizlemedeki bu satırlar API'de yok: " + bulunamayanlar);
 
     ReportManager.pass("Önizlemedeki " + onizleme.size() + " kaydın tamamı API'de var.");
   }

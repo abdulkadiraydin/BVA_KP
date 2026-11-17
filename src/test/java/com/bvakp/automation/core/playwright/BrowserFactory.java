@@ -27,22 +27,22 @@ public class BrowserFactory {
 
   /** Verilen tarayıcıyı headless ayarıyla başlatır. */
   public static Browser createBrowser(
-          Playwright playwright, BrowserName browserName, boolean headless) {
+      Playwright playwright, BrowserName browserName, boolean headless) {
 
     BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions().setHeadless(headless);
 
     Browser browser =
-            switch (browserName) {
-              case CHROMIUM -> playwright.chromium().launch(launchOptions);
+        switch (browserName) {
+          case CHROMIUM -> playwright.chromium().launch(launchOptions);
 
-              case CHROME -> playwright.chromium().launch(launchOptions.setChannel("chrome"));
+          case CHROME -> playwright.chromium().launch(launchOptions.setChannel("chrome"));
 
-              case EDGE -> playwright.chromium().launch(launchOptions.setChannel("msedge"));
+          case EDGE -> playwright.chromium().launch(launchOptions.setChannel("msedge"));
 
-              case FIREFOX -> playwright.firefox().launch(launchOptions);
+          case FIREFOX -> playwright.firefox().launch(launchOptions);
 
-              case WEBKIT -> playwright.webkit().launch(launchOptions);
-            };
+          case WEBKIT -> playwright.webkit().launch(launchOptions);
+        };
 
     if (BILGI_YAZILDI.compareAndSet(false, true)) {
       tarayiciBilgisiniYazma(browserName, browser.version(), headless);
@@ -52,31 +52,31 @@ public class BrowserFactory {
 
   /** Tarayıcı bilgisini loga ve Allure raporunun Environment bölümüne yazar. */
   private static void tarayiciBilgisiniYazma(
-          BrowserName browserName, String surum, boolean headless) {
+      BrowserName browserName, String surum, boolean headless) {
 
     ReportManager.info(
-            "Tarayıcı: " + browserName + " | Sürüm: " + surum + " | Headless: " + headless);
+        "Tarayıcı: " + browserName + " | Sürüm: " + surum + " | Headless: " + headless);
 
     Path dosya =
-            Paths.get(System.getProperty("allure.results.directory", "target/allure-results"))
-                    .resolve("environment.properties");
+        Paths.get(System.getProperty("allure.results.directory", "target/allure-results"))
+            .resolve("environment.properties");
 
     String icerik =
-            "Tarayici="
-                    + browserName
-                    + System.lineSeparator()
-                    + "Tarayici.Surumu="
-                    + surum
-                    + System.lineSeparator()
-                    + "Headless="
-                    + headless
-                    + System.lineSeparator()
-                    + "Ortam="
-                    + ConfigManager.ortam()
-                    + System.lineSeparator()
-                    + "Kapali.Portal="
-                    + ConfigManager.getOrDefault("base.url", "-")
-                    + System.lineSeparator();
+        "Tarayici="
+            + browserName
+            + System.lineSeparator()
+            + "Tarayici.Surumu="
+            + surum
+            + System.lineSeparator()
+            + "Headless="
+            + headless
+            + System.lineSeparator()
+            + "Ortam="
+            + ConfigManager.ortam()
+            + System.lineSeparator()
+            + "Kapali.Portal="
+            + ConfigManager.getOrDefault("base.url", "-")
+            + System.lineSeparator();
 
     try {
       Files.createDirectories(dosya.getParent());

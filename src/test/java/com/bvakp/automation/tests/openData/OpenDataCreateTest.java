@@ -26,6 +26,9 @@ import org.testng.asserts.SoftAssert;
  */
 public class OpenDataCreateTest extends AvpBaseTest {
 
+  /** Kaynak tablonun bulunduğu şema; Tablo alanı şema seçilmeden aktif olmaz. */
+  private static final String KAYNAK_SEMASI = "dwh";
+
   private static final String KAYNAK_TABLOSU = "d_hat";
   private static final String SORUMLU_BIRIM = "Bilgi Teknolojileri Daire Başkanlığı";
   private static final String KATEGORI = "Yük Taşımacılığı";
@@ -73,7 +76,13 @@ public class OpenDataCreateTest extends AvpBaseTest {
     String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
     String kaynakAciklamasi = "Otomasyon kaynak oluşturma testi - " + kaynakAdi;
 
-    ReportManager.info("Test verisi | Kaynak: " + kaynakAdi + " | Tablo: " + KAYNAK_TABLOSU);
+    ReportManager.info(
+        "Test verisi | Kaynak: "
+            + kaynakAdi
+            + " | Şema: "
+            + KAYNAK_SEMASI
+            + " | Tablo: "
+            + KAYNAK_TABLOSU);
 
     Assert.assertTrue(
         openDataPage.kaynakTabloSorguGoruntulendiMi(),
@@ -84,13 +93,16 @@ public class OpenDataCreateTest extends AvpBaseTest {
     Assert.assertTrue(
         kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(), "Kaynak Ekle formu görüntülenemedi.");
 
-    ReportManager.step("Kaynak adı, tablo ve açıklama giriliyor.");
+    ReportManager.step("Kaynak adı, şema, tablo ve açıklama giriliyor.");
 
     kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
     Assert.assertEquals(
         kaynakEkleModal.kaynakAdiAlma(),
         kaynakAdi,
         "Kaynak adı alanındaki değer beklenenle uyuşmuyor.");
+    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
+    Assert.assertEquals(
+        kaynakEkleModal.seciliSemayiAlma(), KAYNAK_SEMASI, "Seçilen şema beklenenle uyuşmuyor.");
 
     kaynakEkleModal.kaynakTablosuSecme(KAYNAK_TABLOSU);
     Assert.assertEquals(
@@ -306,16 +318,17 @@ public class OpenDataCreateTest extends AvpBaseTest {
     ReportManager.info("TÜM ZORUNLU ALAN KONTROLÜ BAŞARILI");
   }
 
-  /** Ad dolu ve Tablo boşken yalnızca Tablo validasyonunu doğrular. */
+  /** Ad dolu, şema seçili ve Tablo boşken yalnızca Tablo validasyonunu doğrular. */
   @Test
   public void kaynakTabloZorunluKontrolu() {
 
     TestContext context = testHazirligi();
     KaynakEkleModal kaynakEkleModal = context.kaynakEkleModal();
 
-    ReportManager.step("Yalnızca ad girilerek Kaynak Ekle seçiliyor.");
+    ReportManager.step("Ad girilip şema seçilerek, tablo boş bırakılarak Kaynak Ekle seçiliyor.");
     context.openDataPage().kaynakEklemeEkraniniAcma();
     kaynakEkleModal.kaynakAdiGirme(TestDataUtil.dinamikAdOlusturma("otomasyon_zorunlu_tablo"));
+    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
     kaynakEkleModal.kaynakEkleme();
 
     // Önce beklenen mesaj doğrulanır; ardından diğer mesajın olmadığı kontrol edilir.
@@ -331,15 +344,16 @@ public class OpenDataCreateTest extends AvpBaseTest {
     ReportManager.info("TABLO ZORUNLU ALAN KONTROLÜ BAŞARILI");
   }
 
-  /** Tablo seçili ve Ad boşken yalnızca Ad validasyonunu doğrular. */
+  /** Şema ve Tablo seçili, Ad boşken yalnızca Ad validasyonunu doğrular. */
   @Test
   public void kaynakAdiZorunluKontrolu() {
 
     TestContext context = testHazirligi();
     KaynakEkleModal kaynakEkleModal = context.kaynakEkleModal();
 
-    ReportManager.step("Yalnızca tablo seçilerek Kaynak Ekle seçiliyor.");
+    ReportManager.step("Yalnızca şema ve tablo seçilerek Kaynak Ekle seçiliyor.");
     context.openDataPage().kaynakEklemeEkraniniAcma();
+    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
     kaynakEkleModal.kaynakTablosuSecme(KAYNAK_TABLOSU);
     kaynakEkleModal.kaynakEkleme();
 
@@ -354,6 +368,30 @@ public class OpenDataCreateTest extends AvpBaseTest {
         "Kaynak adı boş olmasına rağmen form kapandı.");
 
     ReportManager.info("KAYNAK ADI ZORUNLU ALAN KONTROLÜ BAŞARILI");
+  }
+
+  /** Şema seçilmeden Tablo alanının pasif olduğunu, şema seçilince aktifleştiğini doğrular. */
+  @Test
+  public void kaynakTabloSemaSecilmedenPasif() {
+
+    TestContext context = testHazirligi();
+    KaynakEkleModal kaynakEkleModal = context.kaynakEkleModal();
+
+    ReportManager.step("Kaynak Ekle formu açılıyor.");
+    context.openDataPage().kaynakEklemeEkraniniAcma();
+    Assert.assertTrue(
+        kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(), "Kaynak Ekle formu görüntülenemedi.");
+
+    ReportManager.step("Şema seçilmeden Tablo alanının pasif olduğu kontrol ediliyor.");
+    Assert.assertFalse(
+        kaynakEkleModal.tabloAlaniAktifMi(), "Şema seçilmeden Tablo alanı aktif görünüyor.");
+
+    ReportManager.step("Şema seçiliyor: " + KAYNAK_SEMASI);
+    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
+    Assert.assertTrue(
+        kaynakEkleModal.tabloAlaniAktifMi(), "Şema seçildikten sonra Tablo alanı aktif olmadı.");
+
+    ReportManager.info("ŞEMA SEÇİMİ OLMADAN TABLO PASİF KONTROLÜ BAŞARILI");
   }
 
   // =====================================================================
@@ -373,20 +411,20 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
     String sorgu =
         """
-            SELECT
-                EXTRACT(YEAR FROM planlanan_sefer_tarihi) AS yil,
-                EXTRACT(MONTH FROM planlanan_sefer_tarihi) AS ay,
-                yolcu_tren_tipi AS tren_turu,
-                COUNT(*) AS toplam_sefer,
-                ROUND(100.0 * SUM(CASE WHEN kalkis_tehiri_dk <= 0 THEN 1 ELSE 0 END)
-                    / NULLIF(COUNT(kalkis_tehiri_dk), 0), 2) AS zamaninda_kalkis_yuzdesi
-            FROM f_sefer_nakliye
-            WHERE planlanan_sefer_tarihi >= DATE '2026-07-01'
-              AND planlanan_sefer_tarihi < DATE '2026-08-01'
-            GROUP BY
-                EXTRACT(YEAR FROM planlanan_sefer_tarihi),
-                EXTRACT(MONTH FROM planlanan_sefer_tarihi),
-                yolcu_tren_tipi""";
+                SELECT
+                    EXTRACT(YEAR FROM planlanan_sefer_tarihi) AS yil,
+                    EXTRACT(MONTH FROM planlanan_sefer_tarihi) AS ay,
+                    yolcu_tren_tipi AS tren_turu,
+                    COUNT(*) AS toplam_sefer,
+                    ROUND(100.0 * SUM(CASE WHEN kalkis_tehiri_dk <= 0 THEN 1 ELSE 0 END)
+                        / NULLIF(COUNT(kalkis_tehiri_dk), 0), 2) AS zamaninda_kalkis_yuzdesi
+                FROM f_sefer_nakliye
+                WHERE planlanan_sefer_tarihi >= DATE '2026-07-01'
+                  AND planlanan_sefer_tarihi < DATE '2026-08-01'
+                GROUP BY
+                    EXTRACT(YEAR FROM planlanan_sefer_tarihi),
+                    EXTRACT(MONTH FROM planlanan_sefer_tarihi),
+                    yolcu_tren_tipi""";
 
     ReportManager.step("Hazır Sorgu ile kaynak formu dolduruluyor: " + kaynakAdi);
     openDataPage.kaynakEklemeEkraniniAcma();
@@ -446,9 +484,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
     String sorgu =
         """
-                UPDATE yillik_hat_km
-                SET yil = yil
-                WHERE 1 = 0;""";
+                    UPDATE yillik_hat_km
+                    SET yil = yil
+                    WHERE 1 = 0;""";
 
     ReportManager.step("Hazır Sorgu alanına UPDATE sorgusu giriliyor: " + kaynakAdi);
     context.openDataPage().kaynakEklemeEkraniniAcma();

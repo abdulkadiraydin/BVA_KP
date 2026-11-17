@@ -26,6 +26,9 @@ public class OpenDataCreateFlow {
   private final OpenDataPage openDataPage;
   private final KaynakEkleModal kaynakEkleModal;
 
+  /** Kaynakların oluşturulduğu şema; test tablolarının (ör. d_hat) bulunduğu şema. */
+  private static final String KAYNAK_SEMASI = "dwh";
+
   public OpenDataCreateFlow(Page page) {
     this.page = page;
     this.openDataPage = new OpenDataPage(page);
@@ -50,6 +53,7 @@ public class OpenDataCreateFlow {
         kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(), "Ön koşul: Kaynak Ekle formu açılamadı.");
 
     kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
+    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
     kaynakEkleModal.kaynakTablosuSecme(tabloAdi);
     kaynakEkleModal.kaynakAciklamasiGirme(aciklama);
 

@@ -25,6 +25,7 @@ public class KaynakEkleModal extends BasePage {
 
   private final Locator modal;
   private final Locator adAlani;
+  private final Locator semaAlani;
   private final Locator tabloAlani;
   private final Locator aciklamaAlani;
   private final Locator veriOnizleme;
@@ -39,6 +40,7 @@ public class KaynakEkleModal extends BasePage {
     this.modal = page.getByRole(AriaRole.DIALOG);
 
     this.adAlani = modal.getByLabel("Ad *");
+    this.semaAlani = modal.getByLabel("Şema *");
     this.tabloAlani = modal.getByLabel("Tablo *");
     this.aciklamaAlani = modal.getByLabel("Açıklama");
     this.veriOnizleme =
@@ -57,9 +59,10 @@ public class KaynakEkleModal extends BasePage {
   // Form
   // =====================================================================
 
-  /** Ad, tablo ve açıklama alanları görünüyorsa true döner. */
+  /** Ad, şema, tablo ve açıklama alanları görünüyorsa true döner. */
   public boolean kaynakEkleFormuGoruntulendiMi() {
     return gorunurMu(adAlani, FORM_TIMEOUT_MS)
+        && semaAlani.isVisible()
         && tabloAlani.isVisible()
         && aciklamaAlani.isVisible();
   }
@@ -90,12 +93,41 @@ public class KaynakEkleModal extends BasePage {
   }
 
   /**
-   * Tablo listesini açar ve verilen tabloyu seçer.
+   * Şema listesini açar ve verilen şemayı seçer. Tablo alanı şema seçilmeden pasiftir; seçimden
+   * sonra o şemanın tabloları yüklenir.
+   */
+  public void kaynakSemasiSecme(String sema) {
+    semaAlani.click();
+    page.getByRole(AriaRole.OPTION, new Page.GetByRoleOptions().setName(sema).setExact(true))
+        .click();
+    // Şema seçilince Tablo alanı aktif olur; tablo seçimi buna güvenir.
+    page.waitForCondition(
+        tabloAlani::isEnabled, new Page.WaitForConditionOptions().setTimeout(FORM_TIMEOUT_MS));
+  }
+
+  /** Seçili şemanın adını döndürür. */
+  public String seciliSemayiAlma() {
+    return semaAlani.inputValue().trim();
+  }
+
+  /** Tablo alanı seçilebilir durumdaysa (şema seçilmişse) true döner. */
+  public boolean tabloAlaniAktifMi() {
+    return tabloAlani.isEnabled();
+  }
+
+  /**
+   * Tablo listesini açar ve verilen tabloyu seçer. Önce şema seçilmiş olmalıdır (bkz. {@link
+   * #kaynakSemasiSecme}).
    *
-   * <p>Liste sunucudan yüklenir. Sunucu "Tablolar okunamadı" derse (örneğin oturum geçersizse)
-   * zaman aşımını beklemeden, sebebi açıkça yazan bir hatayla durur.
+   * <p>Liste, seçilen şemaya göre sunucudan yüklenir. Sunucu "Tablolar okunamadı" derse (örneğin
+   * oturum geçersizse) zaman aşımını beklemeden, sebebi açıkça yazan bir hatayla durur.
    */
   public void kaynakTablosuSecme(String tabloAdi) {
+
+    if (!tabloAlani.isEnabled()) {
+      throw new IllegalStateException(
+          "Tablo alanı pasif: önce kaynakSemasiSecme(...) ile şema seçilmeli.");
+    }
 
     tabloAlani.click();
 
@@ -185,9 +217,9 @@ public class KaynakEkleModal extends BasePage {
     modal
         .getByPlaceholder(
             """
-                        SELECT a.*, b.ad
-                        FROM tablo_a a
-                        JOIN tablo_b b ON a.id = b.a_id""")
+                                SELECT a.*, b.ad
+                                FROM tablo_a a
+                                JOIN tablo_b b ON a.id = b.a_id""")
         .fill(sorgu);
   }
 

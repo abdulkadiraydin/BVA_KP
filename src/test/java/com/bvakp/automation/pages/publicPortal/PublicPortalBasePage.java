@@ -6,7 +6,6 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
-
 import java.util.regex.Pattern;
 
 /**
@@ -106,11 +105,11 @@ public abstract class PublicPortalBasePage extends BasePage {
     }
 
     Locator kutu =
-            alan.getByRole(
-                    AriaRole.CHECKBOX,
-                    new Locator.GetByRoleOptions().setName(Pattern.compile("^Ben robot değilim")));
+        alan.getByRole(
+            AriaRole.CHECKBOX,
+            new Locator.GetByRoleOptions().setName(Pattern.compile("^Ben robot değilim")));
     Locator dogrulandi =
-            alan.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true));
+        alan.getByText("Doğrulandı", new Locator.GetByTextOptions().setExact(true));
 
     kutu.or(dogrulandi).first().waitFor(new Locator.WaitForOptions().setTimeout(10_000));
 
