@@ -11,7 +11,6 @@
     <listeners>
         <listener class-name="com.bvakp.automation.reporting.RetryTransformer"/>
     </listeners>
-    <!--
     <test name="Kapalı portal (AVP)">
         <classes>
             <class name="com.bvakp.automation.tests.LoginTest"/>
@@ -21,7 +20,6 @@
             <class name="com.bvakp.automation.tests.openData.OpenDataUpdateCalendarTest"/>
         </classes>
     </test>
--->
     <test name="Açık portal (CKAN)">
         <classes>
             <class name="com.bvakp.automation.tests.publicPortal.PublicOpenDataTest"/>
