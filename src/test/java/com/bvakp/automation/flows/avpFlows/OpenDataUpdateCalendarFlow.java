@@ -24,7 +24,7 @@ public class OpenDataUpdateCalendarFlow {
     calendarPage.gecmisVeriSetiFiltreleme(veriSetiAdi);
   }
 
-  /** İşlem Geçmişinde "Durum" filtresini seçer (ör. SUCCEEDED, FAILED, ALL). */
+  /** İşlem Geçmişinde "Durum" filtresini seçer (ör. COMPLETED, FAILED, ALL). */
   public void gecmisSonucFiltresiSecme(String value) {
     ReportManager.step("İşlem geçmişi sonuç filtresi seçiliyor: " + value);
     calendarPage.gecmisSonucFiltresiSecme(value);

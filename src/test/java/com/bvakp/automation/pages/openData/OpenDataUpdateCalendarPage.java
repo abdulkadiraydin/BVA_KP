@@ -47,10 +47,10 @@ public class OpenDataUpdateCalendarPage extends BasePage {
       guncellemeTakvimiSekmesi().click(new Locator.ClickOptions().setTimeout(15_000));
     } catch (PlaywrightException e) {
       throw new IllegalStateException(
-              "Güncelleme Takvimi sekmesi bulunamadı. URL: "
-                      + page.url()
-                      + " | Hata: "
-                      + e.getMessage());
+          "Güncelleme Takvimi sekmesi bulunamadı. URL: "
+              + page.url()
+              + " | Hata: "
+              + e.getMessage());
     }
     planTablosu().waitFor();
   }
@@ -67,7 +67,7 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** "İşlem dönemi" açılır listesi; erişilebilir adı seçili değeri de içerir. */
   private Locator donemSecici() {
     return page.getByRole(
-            AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName(Pattern.compile("^İşlem dönemi")));
+        AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName(Pattern.compile("^İşlem dönemi")));
   }
 
   /** Listede seçili dönemin değeri (7d, 30d, 90d, 1y); listenin yanındaki gizli alandan okunur. */
@@ -84,7 +84,7 @@ public class OpenDataUpdateCalendarPage extends BasePage {
     page.locator("li[role='option'][data-value='" + value + "']").click();
     try {
       page.waitForLoadState(
-              LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(10_000));
+          LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(10_000));
     } catch (PlaywrightException e) {
       // Sayfa arka planda sürekli istek atıyorsa ağ hiç durulmaz; kart kontrolleri yine bekler.
     }
@@ -94,8 +94,8 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   public boolean donemSeciliMi(String value) {
     try {
       page.waitForCondition(
-              () -> value.equals(seciliDonem()),
-              new Page.WaitForConditionOptions().setTimeout(SATIR_TIMEOUT_MS));
+          () -> value.equals(seciliDonem()),
+          new Page.WaitForConditionOptions().setTimeout(SATIR_TIMEOUT_MS));
       return true;
     } catch (PlaywrightException e) {
       return false;
@@ -105,9 +105,9 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Başlığı verilen özet kartının değer alanı. */
   private Locator ozetKartiDegeri(String baslik) {
     return page.locator("div.MuiCard-root")
-            .filter(new Locator.FilterOptions().setHasText(baslik))
-            .locator("p")
-            .first();
+        .filter(new Locator.FilterOptions().setHasText(baslik))
+        .locator("p")
+        .first();
   }
 
   /** Kartın değeri Türkçe biçimli bir sayı olana kadar bekler (ör. "30", "1.234"). */
@@ -123,8 +123,8 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Kartın değeri boş değilse true döner (ör. "10 sn"). */
   public boolean ozetKartiDoluMu(String baslik) {
     return gorunurMu(
-            ozetKartiDegeri(baslik)
-                    .filter(new Locator.FilterOptions().setHasText(Pattern.compile("\\S"))));
+        ozetKartiDegeri(baslik)
+            .filter(new Locator.FilterOptions().setHasText(Pattern.compile("\\S"))));
   }
 
   // =====================================================================
@@ -144,10 +144,10 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Plan tablosunda veri setinin satırı. */
   private Locator planSatiri(String veriSetiAdi) {
     return planBolumu()
-            .locator("[role='row']")
-            .filter(
-                    new Locator.FilterOptions()
-                            .setHas(page.locator("[data-field='name'] p[title='" + veriSetiAdi + "']")));
+        .locator("[role='row']")
+        .filter(
+            new Locator.FilterOptions()
+                .setHas(page.locator("[data-field='name'] p[title='" + veriSetiAdi + "']")));
   }
 
   /** Plan tablosunun arama kutusuna metin yazar. */
@@ -177,7 +177,7 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Ay dışı günler (dayOutsideMonth) elenir. */
   private Locator takvimGunu(int gun) {
     return page.locator("button.MuiPickersDay-root:not(.MuiPickersDay-dayOutsideMonth)")
-            .filter(new Locator.FilterOptions().setHasText(Pattern.compile("^" + gun + "$")));
+        .filter(new Locator.FilterOptions().setHasText(Pattern.compile("^" + gun + "$")));
   }
 
   /**
@@ -186,8 +186,8 @@ public class OpenDataUpdateCalendarPage extends BasePage {
    */
   public boolean gunBasariliMi(int gun) {
     return gorunurMu(
-            takvimGunu(gun)
-                    .and(page.locator("[aria-label*=' başarılı']:not([aria-label*=', 0 başarılı'])")));
+        takvimGunu(gun)
+            .and(page.locator("[aria-label*=' başarılı']:not([aria-label*=', 0 başarılı'])")));
   }
 
   /** Seçili günün listesinde veri seti görünüyorsa true döner. */
@@ -207,33 +207,33 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** İşlem Geçmişinde veri setinin satırı. */
   private Locator gecmisSatiri(String veriSetiAdi) {
     return gecmisBolumu()
-            .locator("[role='row']")
-            .filter(
-                    new Locator.FilterOptions()
-                            .setHas(page.locator("[data-field='datasetName'] p[title='" + veriSetiAdi + "']")));
+        .locator("[role='row']")
+        .filter(
+            new Locator.FilterOptions()
+                .setHas(page.locator("[data-field='datasetName'] p[title='" + veriSetiAdi + "']")));
   }
 
   /** İşlem geçmişinde "Durum" listesinden sonucu seçer (ör. SUCCEEDED, FAILED). */
   public void gecmisSonucFiltresiSecme(String sonuc) {
     gecmisBolumu()
-            .getByRole(
-                    AriaRole.COMBOBOX, new Locator.GetByRoleOptions().setName(Pattern.compile("^Durum")))
-            .click();
+        .getByRole(
+            AriaRole.COMBOBOX, new Locator.GetByRoleOptions().setName(Pattern.compile("^Durum")))
+        .click();
     page.locator("li[role='option'][data-value='" + sonuc + "']").click();
   }
 
   /** "Veri seti" autocomplete'inden veri setini seçip geçmiş tablosunu filtreler. */
   public void gecmisVeriSetiFiltreleme(String veriSetiAdi) {
     Locator giris =
-            gecmisBolumu()
-                    .getByRole(
-                            AriaRole.COMBOBOX,
-                            new Locator.GetByRoleOptions().setName("Veri seti").setExact(true));
+        gecmisBolumu()
+            .getByRole(
+                AriaRole.COMBOBOX,
+                new Locator.GetByRoleOptions().setName("Veri seti").setExact(true));
     giris.click();
     giris.fill(veriSetiAdi);
     page.getByRole(AriaRole.OPTION, new Page.GetByRoleOptions().setName(veriSetiAdi))
-            .first()
-            .click();
+        .first()
+        .click();
   }
 
   /** Veri seti İşlem Geçmişinde görünüyorsa true döner. */
@@ -305,14 +305,14 @@ public class OpenDataUpdateCalendarPage extends BasePage {
     }
 
     ReportManager.warn(
-            "Geçmiş sonucu "
-                    + GECMIS_SONUC_TIMEOUT_MS / 1000
-                    + " sn içinde '"
-                    + beklenenSonuc
-                    + "' olmadı: "
-                    + veriSetiAdi
-                    + " | Son görülen: "
-                    + sonDurum);
+        "Geçmiş sonucu "
+            + GECMIS_SONUC_TIMEOUT_MS / 1000
+            + " sn içinde '"
+            + beklenenSonuc
+            + "' olmadı: "
+            + veriSetiAdi
+            + " | Son görülen: "
+            + sonDurum);
     return false;
   }
 
@@ -328,9 +328,9 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Takvimde seçili günün listesinden veri setinin kaydına tıklar ve çekmeceyi bekler. */
   public void gunListesindenKayitAcma(String veriSetiAdi) {
     page.locator("li")
-            .filter(new Locator.FilterOptions().setHas(page.locator("p[title='" + veriSetiAdi + "']")))
-            .first()
-            .click();
+        .filter(new Locator.FilterOptions().setHas(page.locator("p[title='" + veriSetiAdi + "']")))
+        .first()
+        .click();
     detayCekmecesi().waitFor();
   }
 
@@ -344,16 +344,14 @@ public class OpenDataUpdateCalendarPage extends BasePage {
     return detayCekmecesi().locator(".MuiChip-label").first().innerText().trim();
   }
 
-  /**
-   * Etiket metnine göre değer okur. Örn: "Tetikleyen", "Versiyon", "İşlenen kayıt", "Deneme"
-   */
+  /** Etiket metnine göre değer okur. Örn: "Tetikleyen", "Versiyon", "İşlenen kayıt", "Deneme" */
   public String detayAlanDegeriAlma(String etiket) {
     return detayCekmecesi()
-            .getByText(etiket, new Locator.GetByTextOptions().setExact(true))
-            .first()
-            .locator("xpath=following-sibling::div[1]")
-            .innerText()
-            .trim();
+        .getByText(etiket, new Locator.GetByTextOptions().setExact(true))
+        .first()
+        .locator("xpath=following-sibling::div[1]")
+        .innerText()
+        .trim();
   }
 
   /** Çekmecedeki Akış bölümünün metnini döndürür. */
@@ -364,8 +362,8 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Çekmecedeki Veri setine git butonuna tıklar. */
   public void detaydaVeriSetineGitTiklama() {
     detayCekmecesi()
-            .getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Veri setine git"))
-            .click();
+        .getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Veri setine git"))
+        .click();
   }
 
   /** Çekmeceyi Kapat ile kapatır. */
@@ -385,8 +383,8 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Veri seti detay sayfası açıldıysa ve başlık veri seti adıysa true döner. */
   public boolean detayBasligiDogruMu(String veriSetiAdi) {
     return gorunurMu(
-            page.getByRole(
-                    AriaRole.HEADING, new Page.GetByRoleOptions().setName(veriSetiAdi).setExact(true)));
+        page.getByRole(
+            AriaRole.HEADING, new Page.GetByRoleOptions().setName(veriSetiAdi).setExact(true)));
   }
 
   /** Veri seti detayında adı verilen sekmeye geçer. */
@@ -397,14 +395,14 @@ public class OpenDataUpdateCalendarPage extends BasePage {
   /** Versiyonlar tablosunda verilen versiyonun durumunu döndürür (ör. Aktif). */
   public String versiyonDurumuAlma(String versiyon) {
     return page.locator("tbody tr")
-            .filter(
-                    new Locator.FilterOptions()
-                            .setHas(
-                                    page.locator("td")
-                                            .getByText(versiyon, new Locator.GetByTextOptions().setExact(true))))
-            .locator("td")
-            .nth(1)
-            .innerText()
-            .trim();
+        .filter(
+            new Locator.FilterOptions()
+                .setHas(
+                    page.locator("td")
+                        .getByText(versiyon, new Locator.GetByTextOptions().setExact(true))))
+        .locator("td")
+        .nth(1)
+        .innerText()
+        .trim();
   }
 }

@@ -58,11 +58,11 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
   /** Tek bir testin kullandığı takvim, yayın ve hazırlık nesneleri. */
   private record TestContext(
-          OpenDataUpdateCalendarPage calendarPage,
-          OpenDataUpdateCalendarFlow calendarFlow,
-          OpenDataPublishPage publishPage,
-          OpenDataPublishFlow publishFlow,
-          OpenDataSetupFlow setupFlow) {}
+      OpenDataUpdateCalendarPage calendarPage,
+      OpenDataUpdateCalendarFlow calendarFlow,
+      OpenDataPublishPage publishPage,
+      OpenDataPublishFlow publishFlow,
+      OpenDataSetupFlow setupFlow) {}
 
   // ------------------------------------------------------------------
   // Hazırlık
@@ -79,11 +79,11 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     OpenDataUpdateCalendarPage calendarPage = new OpenDataUpdateCalendarPage(page());
 
     return new TestContext(
-            calendarPage,
-            new OpenDataUpdateCalendarFlow(calendarPage),
-            publishPage,
-            publishFlow,
-            new OpenDataSetupFlow(new OpenDataCreateFlow(page()), publishPage, publishFlow));
+        calendarPage,
+        new OpenDataUpdateCalendarFlow(calendarPage),
+        publishPage,
+        publishFlow,
+        new OpenDataSetupFlow(new OpenDataCreateFlow(page()), publishPage, publishFlow));
   }
 
   /** Takvim sekmesi açık olarak başlayan test hazırlığı. */
@@ -114,8 +114,8 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
       // Salt okunur testler, güncelleme tamamen bitmiş haliyle çalışsın.
       Assert.assertTrue(
-              ctx.calendarPage().gecmisteSonucaUlastiMi(hazirVeriSeti, "Başarılı"),
-              "Ön koşul: manuel güncelleme geçmişte Başarılı olmadı.");
+          ctx.calendarPage().gecmisteSonucaUlastiMi(hazirVeriSeti, "Başarılı"),
+          "Ön koşul: manuel güncelleme geçmişte Başarılı olmadı.");
 
       // Takvimdeki kayıt sayıları portaldaki gerçek kayıt sayısıyla karşılaştırılır.
       PublicPortalApi api = PublicPortalApi.portaldan();
@@ -124,10 +124,10 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
       portalKayitSayisi = portalKayitSayisiniBekleme(api, kaynakId);
 
       ReportManager.info(
-              "Ortak veri seti hazır: "
-                      + hazirVeriSeti
-                      + " | Portal kayıt sayısı: "
-                      + portalKayitSayisi);
+          "Ortak veri seti hazır: "
+              + hazirVeriSeti
+              + " | Portal kayıt sayısı: "
+              + portalKayitSayisi);
       basarili = true;
 
     } finally {
@@ -143,13 +143,13 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
   private static int portalKayitSayisiniBekleme(PublicPortalApi api, String kaynakId) {
     try {
       return Awaitility.await("Portal kayıtları")
-              .atMost(Duration.ofSeconds(PORTAL_BEKLEME_SN))
-              .pollDelay(Duration.ZERO)
-              .pollInterval(Duration.ofSeconds(5))
-              .until(() -> api.kayitlariGetir(kaynakId, 1).toplam(), toplam -> toplam > 0);
+          .atMost(Duration.ofSeconds(PORTAL_BEKLEME_SN))
+          .pollDelay(Duration.ZERO)
+          .pollInterval(Duration.ofSeconds(5))
+          .until(() -> api.kayitlariGetir(kaynakId, 1).toplam(), toplam -> toplam > 0);
     } catch (ConditionTimeoutException e) {
       throw new AssertionError(
-              "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.", e);
+          "Ön koşul: portalda kayıtlar " + PORTAL_BEKLEME_SN + " sn içinde yüklenmedi.", e);
     }
   }
 
@@ -164,15 +164,15 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
     ReportManager.step("Sekmenin seçili olduğu kontrol ediliyor.");
     Assert.assertTrue(
-            ctx.calendarPage().sekmeSeciliMi(), "Güncelleme Takvimi sekmesi seçili değil.");
+        ctx.calendarPage().sekmeSeciliMi(), "Güncelleme Takvimi sekmesi seçili değil.");
 
     ReportManager.pass("Güncelleme Takvimi sekmesi görüntülendi.");
   }
 
   /**
-   * Dönem seçicide her seçimin seçili olduğunu ve verileri değiştirdiğini doğrular:
-   * dönem uzadıkça Başarılı Güncelleme sayısı azalamaz; son 7 günde bugünkü güncelleme olduğu için
-   * en az 1 olmalıdır.
+   * Dönem seçicide her seçimin seçili olduğunu ve verileri değiştirdiğini doğrular: dönem uzadıkça
+   * Başarılı Güncelleme sayısı azalamaz; son 7 günde bugünkü güncelleme olduğu için en az 1
+   * olmalıdır.
    */
   @Test
   public void donemSeciciCalisir() {
@@ -188,8 +188,8 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
       Assert.assertTrue(ctx.calendarPage().donemSeciliMi(donem), donem + " seçili değil.");
 
       Assert.assertTrue(
-              ctx.calendarPage().ozetKartiSayisalMi("Başarılı Güncelleme"),
-              donem + ": Başarılı Güncelleme sayısal değil.");
+          ctx.calendarPage().ozetKartiSayisalMi("Başarılı Güncelleme"),
+          donem + ": Başarılı Güncelleme sayısal değil.");
       basarililar.add(ctx.calendarPage().ozetKartiSayisiAlma("Başarılı Güncelleme"));
     }
 
@@ -198,8 +198,8 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     Assert.assertTrue(basarililar.get(0) >= 1, "Son 7 günde başarılı güncelleme görünmüyor.");
     for (int i = 1; i < basarililar.size(); i++) {
       Assert.assertTrue(
-              basarililar.get(i) >= basarililar.get(i - 1),
-              "Dönem uzadığı halde Başarılı Güncelleme azaldı: " + basarililar);
+          basarililar.get(i) >= basarililar.get(i - 1),
+          "Dönem uzadığı halde Başarılı Güncelleme azaldı: " + basarililar);
     }
 
     ReportManager.pass("Dönem seçici doğru çalışıyor: " + basarililar);
@@ -212,12 +212,12 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
     ReportManager.step("Özet kartları kontrol ediliyor.");
     for (String baslik :
-            new String[] {"Başarılı Güncelleme", "Başarısız Güncelleme", "Önümüzdeki 7 Gün"}) {
+        new String[] {"Başarılı Güncelleme", "Başarısız Güncelleme", "Önümüzdeki 7 Gün"}) {
       Assert.assertTrue(
-              ctx.calendarPage().ozetKartiSayisalMi(baslik), baslik + " kartı sayısal değil.");
+          ctx.calendarPage().ozetKartiSayisalMi(baslik), baslik + " kartı sayısal değil.");
     }
     Assert.assertTrue(
-            ctx.calendarPage().ozetKartiDoluMu("Ortalama Süre"), "Ortalama Süre kartı boş.");
+        ctx.calendarPage().ozetKartiDoluMu("Ortalama Süre"), "Ortalama Süre kartı boş.");
 
     ReportManager.pass("Özet kartları doğru görüntüleniyor.");
   }
@@ -229,11 +229,11 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
     ReportManager.step("Başarılı Güncelleme kartı kontrol ediliyor.");
     Assert.assertTrue(
-            ctx.calendarPage().ozetKartiSayisalMi("Başarılı Güncelleme"),
-            "Başarılı Güncelleme kartı sayısal değil.");
+        ctx.calendarPage().ozetKartiSayisalMi("Başarılı Güncelleme"),
+        "Başarılı Güncelleme kartı sayısal değil.");
     Assert.assertTrue(
-            ctx.calendarPage().ozetKartiSayisiAlma("Başarılı Güncelleme") >= 1,
-            "Başarılı Güncelleme kartı bugünkü güncellemeyi saymıyor.");
+        ctx.calendarPage().ozetKartiSayisiAlma("Başarılı Güncelleme") >= 1,
+        "Başarılı Güncelleme kartı bugünkü güncellemeyi saymıyor.");
 
     ReportManager.pass("Özet kartı bugünkü güncellemeyi içeriyor.");
   }
@@ -251,8 +251,8 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
     ReportManager.step("Takvimde bugünün (" + bugun + ") durumu kontrol ediliyor.");
     Assert.assertTrue(
-            ctx.calendarPage().gunBasariliMi(bugun),
-            "Takvimde bugün (" + bugun + ") başarılı güncelleme ile işaretli değil.");
+        ctx.calendarPage().gunBasariliMi(bugun),
+        "Takvimde bugün (" + bugun + ") başarılı güncelleme ile işaretli değil.");
 
     ReportManager.pass("Takvim bugünü başarılı güncelleme ile gösteriyor.");
   }
@@ -264,8 +264,8 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
     ReportManager.step("Seçili günün listesinde kayıt aranıyor: " + hazirVeriSeti);
     Assert.assertTrue(
-            ctx.calendarPage().gunDetayindaKayitVarMi(hazirVeriSeti),
-            "Seçili günün listesinde güncelleme kaydı yok: " + hazirVeriSeti);
+        ctx.calendarPage().gunDetayindaKayitVarMi(hazirVeriSeti),
+        "Seçili günün listesinde güncelleme kaydı yok: " + hazirVeriSeti);
 
     ReportManager.pass("Seçili günün listesinde güncelleme kaydı görünüyor.");
   }
@@ -283,16 +283,16 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     ctx.calendarFlow().planAramaYapma(hazirVeriSeti);
 
     Assert.assertTrue(
-            ctx.calendarPage().planListesindeVarMi(hazirVeriSeti),
-            "Veri seti plan tablosunda görünmüyor.");
+        ctx.calendarPage().planListesindeVarMi(hazirVeriSeti),
+        "Veri seti plan tablosunda görünmüyor.");
 
     SoftAssert soft = new SoftAssert();
     soft.assertEquals(
-            ctx.calendarPage().planSikligiAlma(hazirVeriSeti), "Manuel", "Plan sıklığı Manuel değil.");
+        ctx.calendarPage().planSikligiAlma(hazirVeriSeti), "Manuel", "Plan sıklığı Manuel değil.");
     soft.assertEquals(
-            ctx.calendarPage().planSonGuncellemeSurumuAlma(hazirVeriSeti),
-            "v2",
-            "Plan tablosundaki sürüm v2 değil (manuel güncelleme plana yansımadı).");
+        ctx.calendarPage().planSonGuncellemeSurumuAlma(hazirVeriSeti),
+        "v2",
+        "Plan tablosundaki sürüm v2 değil (manuel güncelleme plana yansımadı).");
     soft.assertAll();
 
     ReportManager.pass("Veri seti plan tablosunda doğru bilgilerle görünüyor.");
@@ -314,29 +314,29 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     ctx.calendarFlow().gecmisiFiltrele(hazirVeriSeti);
 
     Assert.assertTrue(
-            ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Güncelleme geçmişte görünmüyor.");
+        ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Güncelleme geçmişte görünmüyor.");
 
     SoftAssert soft = new SoftAssert();
     soft.assertEquals(
-            ctx.calendarPage().gecmisSonucuAlma(hazirVeriSeti),
-            "Başarılı",
-            "Geçmiş sonucu Başarılı değil.");
+        ctx.calendarPage().gecmisSonucuAlma(hazirVeriSeti),
+        "Başarılı",
+        "Geçmiş sonucu Başarılı değil.");
     soft.assertEquals(
-            ctx.calendarPage().gecmisTetikleyenAlma(hazirVeriSeti),
-            "Manuel",
-            "Tetikleyen Manuel değil.");
+        ctx.calendarPage().gecmisTetikleyenAlma(hazirVeriSeti),
+        "Manuel",
+        "Tetikleyen Manuel değil.");
     soft.assertEquals(
-            ctx.calendarPage().gecmisSurumuAlma(hazirVeriSeti),
-            "v2",
-            "Geçmişteki sürüm v2 değil (manuel güncelleme sürümü artırmadı).");
+        ctx.calendarPage().gecmisSurumuAlma(hazirVeriSeti),
+        "v2",
+        "Geçmişteki sürüm v2 değil (manuel güncelleme sürümü artırmadı).");
     String kayitSayisi = ctx.calendarPage().gecmisKayitSayisiAlma(hazirVeriSeti);
     soft.assertTrue(
-            kayitSayisi.matches(SAYI_DESENI),
-            "Geçmişteki kayıt sayısı sayısal değil: [" + kayitSayisi + "]");
+        kayitSayisi.matches(SAYI_DESENI),
+        "Geçmişteki kayıt sayısı sayısal değil: [" + kayitSayisi + "]");
     soft.assertEquals(
-            sayiyaCevir(kayitSayisi),
-            portalKayitSayisi,
-            "Geçmişteki kayıt sayısı portaldaki kayıt sayısından farklı.");
+        sayiyaCevir(kayitSayisi),
+        portalKayitSayisi,
+        "Geçmişteki kayıt sayısı portaldaki kayıt sayısından farklı.");
     soft.assertAll();
 
     ReportManager.pass("Güncelleme geçmişi kaydı doğru bilgilerle oluşmuş.");
@@ -352,18 +352,18 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     ReportManager.info("Veri seti: " + hazirVeriSeti);
     ctx.calendarFlow().gecmisiFiltrele(hazirVeriSeti);
 
-    ctx.calendarFlow().gecmisSonucFiltresiSecme("SUCCEEDED");
+    ctx.calendarFlow().gecmisSonucFiltresiSecme("COMPLETED");
     Assert.assertTrue(
-            ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Başarılı filtresinde kayıt görünmüyor.");
+        ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Başarılı filtresinde kayıt görünmüyor.");
 
     ctx.calendarFlow().gecmisSonucFiltresiSecme("FAILED");
     Assert.assertTrue(
-            ctx.calendarPage().gecmisteYokMu(hazirVeriSeti),
-            "Başarısız filtresinde başarılı güncelleme kaydı görünüyor.");
+        ctx.calendarPage().gecmisteYokMu(hazirVeriSeti),
+        "Başarısız filtresinde başarılı güncelleme kaydı görünüyor.");
 
     ctx.calendarFlow().gecmisSonucFiltresiSecme("ALL");
     Assert.assertTrue(
-            ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Tümü filtresinde kayıt görünmüyor.");
+        ctx.calendarPage().gecmisteVarMi(hazirVeriSeti), "Tümü filtresinde kayıt görünmüyor.");
 
     ReportManager.pass("Geçmiş sonuç filtresi doğru çalışıyor.");
   }
@@ -385,25 +385,25 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
     SoftAssert soft = new SoftAssert();
     soft.assertEquals(
-            ctx.calendarPage().detayVeriSetiAdiAlma(),
-            hazirVeriSeti,
-            "Çekmecede farklı veri seti görüntüleniyor.");
+        ctx.calendarPage().detayVeriSetiAdiAlma(),
+        hazirVeriSeti,
+        "Çekmecede farklı veri seti görüntüleniyor.");
     soft.assertEquals(
-            ctx.calendarPage().detaySonucAlma(), "Başarılı", "Güncelleme sonucu Başarılı değil.");
+        ctx.calendarPage().detaySonucAlma(), "Başarılı", "Güncelleme sonucu Başarılı değil.");
     soft.assertTrue(
-            ctx.calendarPage().detayAlanDegeriAlma("Tetikleyen").startsWith("Manuel"),
-            "Tetikleyen Manuel değil.");
+        ctx.calendarPage().detayAlanDegeriAlma("Tetikleyen").startsWith("Manuel"),
+        "Tetikleyen Manuel değil.");
     soft.assertEquals(
-            ctx.calendarPage().detayAlanDegeriAlma("Versiyon"), "v2", "Versiyon v2 değil.");
+        ctx.calendarPage().detayAlanDegeriAlma("Versiyon"), "v2", "Versiyon v2 değil.");
     String islenenKayit = ctx.calendarPage().detayAlanDegeriAlma("İşlenen kayıt");
     soft.assertTrue(
-            islenenKayit.matches(SAYI_DESENI), "İşlenen kayıt sayısal değil: [" + islenenKayit + "]");
+        islenenKayit.matches(SAYI_DESENI), "İşlenen kayıt sayısal değil: [" + islenenKayit + "]");
     soft.assertEquals(
-            sayiyaCevir(islenenKayit),
-            portalKayitSayisi,
-            "İşlenen kayıt sayısı portaldaki kayıt sayısından farklı.");
+        sayiyaCevir(islenenKayit),
+        portalKayitSayisi,
+        "İşlenen kayıt sayısı portaldaki kayıt sayısından farklı.");
     soft.assertEquals(
-            ctx.calendarPage().detayAlanDegeriAlma("Deneme"), "1", "Deneme sayısı 1 değil.");
+        ctx.calendarPage().detayAlanDegeriAlma("Deneme"), "1", "Deneme sayısı 1 değil.");
 
     String akis = ctx.calendarPage().detayAkisMetniAlma();
     soft.assertTrue(akis.contains("Tamamlandı"), "Akışta 'Tamamlandı' adımı yok.");
@@ -425,8 +425,8 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     ctx.calendarFlow().detaydanVeriSetineGitme();
 
     Assert.assertTrue(
-            ctx.calendarPage().detayBasligiDogruMu(hazirVeriSeti),
-            "Veri setine git farklı bir sayfa açtı: " + hazirVeriSeti);
+        ctx.calendarPage().detayBasligiDogruMu(hazirVeriSeti),
+        "Veri setine git farklı bir sayfa açtı: " + hazirVeriSeti);
 
     ReportManager.pass("Veri setine git doğru detay sayfasını açıyor.");
   }
@@ -441,15 +441,15 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     ctx.calendarFlow().detaydanVeriSetineGitme();
 
     Assert.assertTrue(
-            ctx.calendarPage().detayBasligiDogruMu(hazirVeriSeti),
-            "Veri setine git farklı bir sayfa açtı: " + hazirVeriSeti);
+        ctx.calendarPage().detayBasligiDogruMu(hazirVeriSeti),
+        "Veri setine git farklı bir sayfa açtı: " + hazirVeriSeti);
 
     ctx.calendarFlow().detaySekmesineGecme("Versiyonlar");
 
     SoftAssert soft = new SoftAssert();
     soft.assertEquals(ctx.calendarPage().versiyonDurumuAlma("v2"), "Aktif", "v2 Aktif değil.");
     soft.assertEquals(
-            ctx.calendarPage().versiyonDurumuAlma("v1"), "Arşiv", "v1 Arşiv durumuna geçmedi.");
+        ctx.calendarPage().versiyonDurumuAlma("v1"), "Arşiv", "v1 Arşiv durumuna geçmedi.");
     soft.assertAll();
 
     ReportManager.pass("Güncelleme yeni versiyon oluşturmuş: v2 Aktif, v1 Arşiv.");
@@ -464,7 +464,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
     ctx.calendarFlow().gunKaydiniAcma(hazirVeriSeti);
     ctx.calendarFlow().detayiKapatma();
     Assert.assertTrue(
-            ctx.calendarPage().detayCekmecesiKapaliMi(), "Güncelleme ayrıntısı çekmecesi kapanmadı.");
+        ctx.calendarPage().detayCekmecesiKapaliMi(), "Güncelleme ayrıntısı çekmecesi kapanmadı.");
 
     ReportManager.pass("Güncelleme ayrıntısı çekmecesi kapatıldı.");
   }
