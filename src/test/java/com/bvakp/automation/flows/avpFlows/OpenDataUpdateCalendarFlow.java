@@ -12,7 +12,7 @@ public class OpenDataUpdateCalendarFlow {
     this.calendarPage = calendarPage;
   }
 
-  /** Dönem seçicide verilen dönemi seçer. */
+  /** "İşlem dönemi" listesinden verilen dönemi seçer (7d, 30d, 90d, 1y). */
   public void donemSecme(String donem) {
     ReportManager.step("Dönem seçiliyor: " + donem);
     calendarPage.donemSecme(donem);
@@ -24,7 +24,7 @@ public class OpenDataUpdateCalendarFlow {
     calendarPage.gecmisVeriSetiFiltreleme(veriSetiAdi);
   }
 
-  /** İşlem Geçmişinde sonuç filtresini seçer (ör. Başarılı). */
+  /** İşlem Geçmişinde "Durum" filtresini seçer (ör. SUCCEEDED, FAILED, ALL). */
   public void gecmisSonucFiltresiSecme(String value) {
     ReportManager.step("İşlem geçmişi sonuç filtresi seçiliyor: " + value);
     calendarPage.gecmisSonucFiltresiSecme(value);

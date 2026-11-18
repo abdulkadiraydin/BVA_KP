@@ -117,23 +117,23 @@ public abstract class PublicPortalBasePage extends BasePage {
     }
 
     kapsam
-            .locator("altcha-widget .altcha")
-            .waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(WaitForSelectorState.VISIBLE)
-                            .setTimeout(ALTCHA_GORUNME_TIMEOUT_MS));
+        .locator("altcha-widget .altcha")
+        .waitFor(
+            new Locator.WaitForOptions()
+                .setState(WaitForSelectorState.VISIBLE)
+                .setTimeout(ALTCHA_GORUNME_TIMEOUT_MS));
 
     Locator baslamis =
-            kapsam.locator(
-                    "altcha-widget .altcha[data-state='verifying'],"
-                            + " altcha-widget .altcha[data-state='verified']");
+        kapsam.locator(
+            "altcha-widget .altcha[data-state='verifying'],"
+                + " altcha-widget .altcha[data-state='verified']");
     if (!gorunurMu(baslamis, ALTCHA_BASLAMA_TIMEOUT_MS)) {
       // Kutunun ortasındaki tik görseli tıklamayı engeller; kutuya bağlı etikete tıklanır.
       kapsam.locator("altcha-widget .altcha-checkbox-wrap label").click();
     }
 
     kapsam
-            .locator("altcha-widget .altcha[data-state='verified']")
-            .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
+        .locator("altcha-widget .altcha[data-state='verified']")
+        .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
   }
 }
