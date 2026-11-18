@@ -165,8 +165,8 @@ public class PublicPortalAccountTest extends BaseTest {
     ctx.hesapPage().talepBilgileriniGirme(baslik, TALEP_AMACI, TALEP_KATEGORISI, herkeseAcik);
     ctx.hesapPage().talebiGonderme();
     Assert.assertTrue(
-            ctx.hesapPage().talepAlindiMesajiGorunurMu(),
-            "Ön koşul: talep gönderilemedi (\"Talebiniz alındı\" görünmedi): " + baslik);
+        ctx.hesapPage().talepAlindiMesajiGorunurMu(),
+        "Ön koşul: talep gönderilemedi (\"Talebiniz alındı\" görünmedi): " + baslik);
   }
 
   // =====================================================================
@@ -193,10 +193,10 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.step("Talep onaylanıyor: " + baslik);
     ctx.hesapPage().talebiOnaylama();
     Assert.assertTrue(
-            ctx.hesapPage().onaylandiMesajiGorunurMu(),
-            "\"Talep onaylandı ve yayınlandı\" mesajı görünmedi.");
+        ctx.hesapPage().onaylandiMesajiGorunurMu(),
+        "\"Talep onaylandı ve yayınlandı\" mesajı görünmedi.");
     Assert.assertEquals(
-            ctx.hesapPage().talepDetayDurumuOkuma(), TALEP_ACIK, "Onaylanan talebin durumu farklı.");
+        ctx.hesapPage().talepDetayDurumuOkuma(), TALEP_ACIK, "Onaylanan talebin durumu farklı.");
 
     ReportManager.step("Talebe yorum ekleniyor.");
     ctx.hesapPage().yorumEkleme(yorum);
@@ -205,16 +205,16 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.step("Talep karşılandı olarak kapatılıyor: " + baslik);
     String veriSeti = ctx.hesapPage().talebiKarsilandiOlarakKapatma();
     Assert.assertTrue(
-            ctx.hesapPage().karsilandiMesajiGorunurMu(),
-            "\"Talep karşılandı olarak kapatıldı\" mesajı görünmedi.");
+        ctx.hesapPage().karsilandiMesajiGorunurMu(),
+        "\"Talep karşılandı olarak kapatıldı\" mesajı görünmedi.");
 
     ReportManager.step("Veri Talepleri > Tümü listesinde talebin durumu kontrol ediliyor.");
     ctx.hesapPage().veriTaleplerineDonme();
     ctx.hesapPage().talepDurumSekmesiAcma("Tümü");
     Assert.assertEquals(
-            ctx.hesapPage().talepKartiDurumuOkuma(baslik),
-            TALEP_KARSILANDI,
-            "Listede talebin durumu farklı.");
+        ctx.hesapPage().talepKartiDurumuOkuma(baslik),
+        TALEP_KARSILANDI,
+        "Listede talebin durumu farklı.");
 
     ReportManager.pass("Talep onaylandı, yorumlandı ve karşılandı olarak kapatıldı: " + veriSeti);
   }
@@ -232,18 +232,18 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.step("Talep reddediliyor: " + baslik);
     ctx.hesapPage().talebiReddetme();
     Assert.assertTrue(
-            ctx.hesapPage().reddedildiMesajiGorunurMu(), "\"Talep reddedildi\" mesajı görünmedi.");
+        ctx.hesapPage().reddedildiMesajiGorunurMu(), "\"Talep reddedildi\" mesajı görünmedi.");
     Assert.assertEquals(
-            ctx.hesapPage().talepDetayDurumuOkuma(),
-            TALEP_REDDEDILDI,
-            "Reddedilen talebin durumu farklı.");
+        ctx.hesapPage().talepDetayDurumuOkuma(),
+        TALEP_REDDEDILDI,
+        "Reddedilen talebin durumu farklı.");
     ReportManager.step("Veri Talepleri > Tümü listesinde talebin durumu kontrol ediliyor.");
     ctx.hesapPage().veriTaleplerineDonme();
     ctx.hesapPage().talepDurumSekmesiAcma("Tümü");
     Assert.assertEquals(
-            ctx.hesapPage().talepKartiDurumuOkuma(baslik),
-            TALEP_REDDEDILDI,
-            "Listede talebin durumu farklı.");
+        ctx.hesapPage().talepKartiDurumuOkuma(baslik),
+        TALEP_REDDEDILDI,
+        "Listede talebin durumu farklı.");
 
     ReportManager.pass("Talep reddedildi ve listede kapanmış görünüyor: " + baslik);
   }

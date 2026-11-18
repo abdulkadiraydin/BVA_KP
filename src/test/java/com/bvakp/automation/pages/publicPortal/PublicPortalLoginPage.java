@@ -1,6 +1,8 @@
 package com.bvakp.automation.pages.publicPortal;
 
+import com.bvakp.automation.core.auth.PublicPortalAuthStateManager;
 import com.bvakp.automation.core.auth.PublicPortalRol;
+import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
@@ -72,9 +74,35 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     girisButonu.click();
   }
 
-  /** Oturumu kapatıp (çerezleri silerek) verilen rolün kullanıcısıyla giriş yapar. */
+  /**
+   * Rolün kullanıcısıyla giriş yapmış duruma getirir. Önce kayıtlı oturum denenir; yoksa ya da
+   * geçersizse gerçek giriş yapılır ve oturum kaydedilir. Böylece koşu başına rol için bir kez
+   * giriş yapılır (portal kısa sürede çok girişte istek sınırına takılır).
+   */
   public void rolIleGirisYapma(PublicPortalRol rol) {
-    page.context().clearCookies();
+    String kullanici = rol.kullaniciAdi();
+
+    synchronized (PublicPortalAuthStateManager.kilit(rol)) {
+      if (PublicPortalAuthStateManager.oturumuYukleme(page.context(), rol)) {
+        anaSayfaAcma();
+        if (girisYapildiMi(kullanici)) {
+          ReportManager.info("Kayıtlı oturumla açıldı | Rol: " + rol + " | " + kullanici);
+          return;
+        }
+        ReportManager.info("Kayıtlı oturum geçersiz, yeniden giriş yapılıyor | Rol: " + rol);
+        PublicPortalAuthStateManager.portalCerezleriniSilme(page.context());
+      }
+
+      gercekGirisYapma(rol);
+      if (girisYapildiMi(kullanici)) {
+        PublicPortalAuthStateManager.oturumuKaydetme(page.context(), rol);
+        ReportManager.info("Giriş yapıldı, oturum kaydedildi | Rol: " + rol + " | " + kullanici);
+      }
+    }
+  }
+
+  /** Kayıtlı oturum kullanmadan giriş ekranından giriş yapar. */
+  public void gercekGirisYapma(PublicPortalRol rol) {
     anaSayfaAcma();
     girisEkraniniAcma();
     girisYapma(rol.kullaniciAdi(), rol.parola());

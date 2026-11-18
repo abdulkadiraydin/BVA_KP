@@ -162,6 +162,7 @@ public class OpenDataPublishPage extends BasePage {
 
     return gorunurMu(getDataSetRow(dataSetName), SATIR_TIMEOUT_MS);
   }
+
   /**
    * Satırdaki butona tıklar ve onay penceresinin açılmasını bekler. Tablo arama sonrası yeniden
    * çizilirken yapılan tıklama boşa gidebildiği için pencere açılmazsa bir kez daha tıklanır.
@@ -195,6 +196,7 @@ public class OpenDataPublishPage extends BasePage {
   public void clickKvkkReddet(String dataSetName) {
     satirButonunaTiklaVePencereyiBekle(dataSetName, "KVKK Reddet");
   }
+
   /** Veri setinin satırındaki Yayınla butonuna tıklar. */
   public void clickYayinla(String dataSetName) {
     satirButonunaTiklaVePencereyiBekle(dataSetName, "Yayınla");
@@ -610,12 +612,12 @@ public class OpenDataPublishPage extends BasePage {
    * önce formun kapanması beklenir.
    */
   public boolean kaydedilenDegerlerGorunuyorMu(
-          String sorumluBirim, String kategori, String aciklama) {
+      String sorumluBirim, String kategori, String aciklama) {
     page.locator("textarea[name='description']")
-            .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.DETACHED));
+        .waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.DETACHED));
     return gorunurMu(metin(aciklama))
-            && gorunurMu(metin(sorumluBirim))
-            && gorunurMu(metin(kategori));
+        && gorunurMu(metin(sorumluBirim))
+        && gorunurMu(metin(kategori));
   }
 
   /** Ekranda birebir bu metni taşıyan ilk öge. */

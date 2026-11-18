@@ -99,8 +99,8 @@ public class PublicPortalApi {
 
   /**
    * Veri seti aramada görünene ve verisi DataStore'a tamamen yüklenene kadar bekler; süre dolarsa
-   * hata verir. Yayından hemen sonra kaynak aktif görünse de satırlar arkadan, parça parça yüklenir;
-   * bu yüzden kayıt sayısı sıfırdan büyük olup iki yoklamada aynı kalana kadar beklenir.
+   * hata verir. Yayından hemen sonra kaynak aktif görünse de satırlar arkadan, parça parça
+   * yüklenir; bu yüzden kayıt sayısı sıfırdan büyük olup iki yoklamada aynı kalana kadar beklenir.
    */
   public JsonNode paketHazirOlanaKadarBekleme(String baslik, int sureSn) {
 
@@ -117,11 +117,11 @@ public class PublicPortalApi {
       }
       if (System.currentTimeMillis() > bitis) {
         throw new IllegalStateException(
-                "Veri seti "
-                        + sureSn
-                        + " sn içinde portalda hazır olmadı: "
-                        + baslik
-                        + hazirOlmamaSebebi(paket, kaynakId, toplam));
+            "Veri seti "
+                + sureSn
+                + " sn içinde portalda hazır olmadı: "
+                + baslik
+                + hazirOlmamaSebebi(paket, kaynakId, toplam));
       }
       oncekiToplam = toplam;
       yoklamaAraligiBekleme();
@@ -136,7 +136,7 @@ public class PublicPortalApi {
 
   /** Bekleme süresi dolduğunda hata mesajına eklenecek sebep. */
   private static String hazirOlmamaSebebi(
-          Optional<JsonNode> paket, Optional<String> kaynakId, int toplam) {
+      Optional<JsonNode> paket, Optional<String> kaynakId, int toplam) {
     if (paket.isEmpty()) {
       return " (paket yok)";
     }

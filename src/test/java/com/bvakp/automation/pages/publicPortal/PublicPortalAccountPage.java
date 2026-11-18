@@ -39,8 +39,6 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   // Talep detayı (yönetici işlemleri)
   private final Locator talepDetayDurumu;
   private final Locator yoneticiIslemleri;
-  private final Locator karsilayanVeriSetiAlani;
-  private final Locator veriSetiSecenekleri;
 
   public PublicPortalAccountPage(Page page) {
     super(page);
@@ -90,14 +88,6 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
         page.getByRole(
             AriaRole.REGION,
             new Page.GetByRoleOptions().setName("Yönetici işlemleri").setExact(true));
-    this.karsilayanVeriSetiAlani =
-        page.getByRole(
-            AriaRole.COMBOBOX,
-            new Page.GetByRoleOptions().setName("Talebi karşılayan veri seti").setExact(true));
-    // Kutuya tıklanınca açılan listede her veri seti bir düğmedir.
-    this.veriSetiSecenekleri =
-        page.getByRole(AriaRole.LIST, new Page.GetByRoleOptions().setName("Veri setleri"))
-            .getByRole(AriaRole.BUTTON);
   }
 
   // =====================================================================
@@ -306,6 +296,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
         .innerText()
         .trim();
   }
+
   /** Talep detayına yorum yazar ve "Yorum ekle"ye tıklar. */
   public void yorumEkleme(String yorum) {
     page.locator("#field-request-comment").fill(yorum);
@@ -326,6 +317,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   public boolean onaylandiMesajiGorunurMu() {
     return gorunurMu(page.getByText("Talep onaylandı ve yayınlandı."));
   }
+
   /** "Talep reddedildi." bildirimi görünüyorsa true döner. */
   public boolean reddedildiMesajiGorunurMu() {
     return gorunurMu(page.getByText("Talep reddedildi."));
@@ -339,19 +331,18 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   /** Veri Talepleri'nde durum sekmesine geçer: "Açık", "Kapanmış", "Tümü", "Onay bekliyor". */
   public void talepDurumSekmesiAcma(String sekmeAdi) {
     page.getByRole(
-                    AriaRole.NAVIGATION,
-                    new Page.GetByRoleOptions().setName("Talep durumu").setExact(true))
-            .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName(sekmeAdi).setExact(true))
-            .click();
+            AriaRole.NAVIGATION, new Page.GetByRoleOptions().setName("Talep durumu").setExact(true))
+        .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName(sekmeAdi).setExact(true))
+        .click();
   }
 
   /** Veri Talepleri listesinde başlığı verilen talebin kartındaki durum etiketi. */
   public String talepKartiDurumuOkuma(String baslik) {
     return page.locator(".bvakp-dr-card")
-            .filter(new Locator.FilterOptions().setHas(link(baslik)))
-            .locator(".bvakp-history-kind")
-            .innerText()
-            .trim();
+        .filter(new Locator.FilterOptions().setHas(link(baslik)))
+        .locator(".bvakp-history-kind")
+        .innerText()
+        .trim();
   }
 
   /** Talep detayında yönetici işlemleri (Reddet) görünmüyorsa true döner. */

@@ -8,8 +8,6 @@ import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitForSelectorState;
 
-import java.util.regex.Pattern;
-
 /**
  * Kamuya açık portal (CKAN) sayfalarının ortak temeli: portal adresi, başlıklı bölümler ve sayfalar
  * arasında aynı olan veri talebi listesi (Hesabım › Taleplerim, Veri Talepleri).
@@ -94,6 +92,7 @@ public abstract class PublicPortalBasePage extends BasePage {
         .replaceAll("\\s+", " ")
         .trim();
   }
+
   /** ALTCHA doğrulaması tarayıcıda hesaplama yapar; yoğun makinede 10 sn'yi aşabilir. */
   private static final double ALTCHA_TIMEOUT_MS = 60_000;
 
@@ -102,8 +101,8 @@ public abstract class PublicPortalBasePage extends BasePage {
    * durumlarda çıkar); widget sayfada yoksa adım atlanır.
    *
    * <p>Widget auto="onfocus" çalışır: forma yazı girilince doğrulama kendiliğinden başlar ve
-   * sürerken kutu tıklanamaz. Bu yüzden kutuya yalnız doğrulama birkaç saniye içinde başlamazsa
-   * ya da hata/süre dolumu durumunda kalırsa tıklanır.
+   * sürerken kutu tıklanamaz. Bu yüzden kutuya yalnız doğrulama birkaç saniye içinde başlamazsa ya
+   * da hata/süre dolumu durumunda kalırsa tıklanır.
    */
   protected void robotDogrulamasiniTamamlama(Locator kapsam) {
     // Widget etiketi sunucudan gelir; sayfa yüklendiğinde ya vardır ya yoktur.
@@ -112,22 +111,20 @@ public abstract class PublicPortalBasePage extends BasePage {
     }
 
     kapsam
-            .locator("altcha-widget .altcha")
-            .waitFor(
-                    new Locator.WaitForOptions()
-                            .setState(WaitForSelectorState.VISIBLE)
-                            .setTimeout(15_000));
+        .locator("altcha-widget .altcha")
+        .waitFor(
+            new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(15_000));
 
     Locator baslamis =
-            kapsam.locator(
-                    "altcha-widget .altcha[data-state='verifying'],"
-                            + " altcha-widget .altcha[data-state='verified']");
+        kapsam.locator(
+            "altcha-widget .altcha[data-state='verifying'],"
+                + " altcha-widget .altcha[data-state='verified']");
     if (!gorunurMu(baslamis, 5_000)) {
       kapsam.locator("altcha-widget input[type=checkbox]").click();
     }
 
     kapsam
-            .locator("altcha-widget .altcha[data-state='verified']")
-            .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
+        .locator("altcha-widget .altcha[data-state='verified']")
+        .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
   }
 }

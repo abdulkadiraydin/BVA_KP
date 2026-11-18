@@ -71,7 +71,8 @@ public class PublicPortalLoginTest extends BaseTest {
     PublicPortalLoginPage loginPage = new PublicPortalLoginPage(page());
     String kullanici = PublicPortalRol.TALEP.kullaniciAdi();
 
-    loginPage.rolIleGirisYapma(PublicPortalRol.TALEP);
+    // Kayıtlı oturum kullanılmaz: çıkış sunucudaki oturumu kapatıp diğer testleri etkileyebilir.
+    loginPage.gercekGirisYapma(PublicPortalRol.TALEP);
     Assert.assertTrue(loginPage.girisYapildiMi(kullanici), "Ön koşul: giriş yapılamadı.");
 
     ReportManager.step("Çıkış yapılıyor.");
