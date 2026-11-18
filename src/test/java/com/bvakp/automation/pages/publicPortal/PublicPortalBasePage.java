@@ -14,6 +14,15 @@ import com.microsoft.playwright.options.WaitForSelectorState;
  */
 public abstract class PublicPortalBasePage extends BasePage {
 
+  /** ALTCHA widget'ının sayfada görünmesi için üst sınır. */
+  private static final double ALTCHA_GORUNME_TIMEOUT_MS = 15_000;
+
+  /** auto="onfocus" ile doğrulamanın kendiliğinden başlaması için tanınan süre. */
+  private static final int ALTCHA_BASLAMA_TIMEOUT_MS = 5_000;
+
+  /** ALTCHA doğrulaması tarayıcıda hesaplama yapar; yoğun makinede 10 sn'yi aşabilir. */
+  private static final double ALTCHA_TIMEOUT_MS = 60_000;
+
   protected PublicPortalBasePage(Page page) {
     super(page);
   }
@@ -93,16 +102,13 @@ public abstract class PublicPortalBasePage extends BasePage {
         .trim();
   }
 
-  /** ALTCHA doğrulaması tarayıcıda hesaplama yapar; yoğun makinede 10 sn'yi aşabilir. */
-  private static final double ALTCHA_TIMEOUT_MS = 60_000;
-
   /**
    * Robot doğrulamasını tamamlar. Doğrulama her zaman istenmez (ör. giriş sayfasında yalnız bazı
    * durumlarda çıkar); widget sayfada yoksa adım atlanır.
    *
    * <p>Widget auto="onfocus" çalışır: forma yazı girilince doğrulama kendiliğinden başlar ve
-   * sürerken kutu tıklanamaz. Bu yüzden kutuya yalnız doğrulama birkaç saniye içinde başlamazsa ya
-   * da hata/süre dolumu durumunda kalırsa tıklanır.
+   * sürerken kutu tıklanamaz. Bu yüzden kutuya yalnız doğrulama kısa süre içinde başlamazsa ya da
+   * hata/süre dolumu durumunda kalırsa tıklanır.
    */
   protected void robotDogrulamasiniTamamlama(Locator kapsam) {
     // Widget etiketi sunucudan gelir; sayfa yüklendiğinde ya vardır ya yoktur.
@@ -111,20 +117,23 @@ public abstract class PublicPortalBasePage extends BasePage {
     }
 
     kapsam
-        .locator("altcha-widget .altcha")
-        .waitFor(
-            new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE).setTimeout(15_000));
+            .locator("altcha-widget .altcha")
+            .waitFor(
+                    new Locator.WaitForOptions()
+                            .setState(WaitForSelectorState.VISIBLE)
+                            .setTimeout(ALTCHA_GORUNME_TIMEOUT_MS));
 
     Locator baslamis =
-        kapsam.locator(
-            "altcha-widget .altcha[data-state='verifying'],"
-                + " altcha-widget .altcha[data-state='verified']");
-    if (!gorunurMu(baslamis, 5_000)) {
-      kapsam.locator("altcha-widget input[type=checkbox]").click();
+            kapsam.locator(
+                    "altcha-widget .altcha[data-state='verifying'],"
+                            + " altcha-widget .altcha[data-state='verified']");
+    if (!gorunurMu(baslamis, ALTCHA_BASLAMA_TIMEOUT_MS)) {
+      // Kutunun ortasındaki tik görseli tıklamayı engeller; kutuya bağlı etikete tıklanır.
+      kapsam.locator("altcha-widget .altcha-checkbox-wrap label").click();
     }
 
     kapsam
-        .locator("altcha-widget .altcha[data-state='verified']")
-        .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
+            .locator("altcha-widget .altcha[data-state='verified']")
+            .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
   }
 }
