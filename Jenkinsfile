@@ -3,7 +3,13 @@ pipeline {
 
     parameters {
         // Listedeki ilk değer varsayılandır (zamanlanmış koşular da bunu kullanır).
-        choice(name: 'SUITE', choices: ['smoke.xml', 'regression.xml'], description: 'Koşturulacak TestNG paketi')
+        choice(name: 'SUITE', choices: ['regression.xml', 'smoke.xml'], description: 'Koşturulacak TestNG paketi')
+    }
+
+    triggers {
+        // Hafta içi 08:00–18:00 arası her saat başı (H: Jenkins'in seçtiği sabit dakika).
+        // 7/24 için: cron('H * * * *')
+        cron('H * * * *')
     }
 
     tools {
@@ -25,9 +31,10 @@ pipeline {
         BVAKP_TEST_RETRY_COUNT             = '1'
         BVAKP_CLEANUP_ENABLED              = 'true'
         // Aynı test üst üste kırılırsa alarm maili (günde en fazla bir kez)
-        BVAKP_FAILURE_TRACKING_ENABLED     = 'true'
-        BVAKP_TRACE_MODE = 'off'
-        BVAKP_VIDEO_MODE = 'off'
+        BVAKP_FAILURE_TRACKING_ENABLED     = 'false'
+        // Trace girilen değerleri (parolalar dahil) açık metin saklar; Jenkins'te kapalı
+        BVAKP_TRACE_MODE                   = 'off'
+        BVAKP_VIDEO_MODE                   = 'off'
         // Parolalar (Jenkins Credentials'tan gelir)
         BVAKP_PASSWORD                     = credentials('bvakp-password')
         BVAKP_PASSWORD_HAZIRLAYAN          = credentials('bvakp-password-hazirlayan')
