@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
         // Listedeki ilk değer varsayılandır (zamanlanmış koşular da bunu kullanır).
-        choice(name: 'SUITE', choices: ['smoke.xml', 'testng.xml'], description: 'Koşturulacak TestNG paketi')
+        choice(name: 'SUITE', choices: ['smoke.xml', 'regression.xml'], description: 'Koşturulacak TestNG paketi')
     }
 
     tools {
