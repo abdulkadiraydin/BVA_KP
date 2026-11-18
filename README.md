@@ -1,9 +1,9 @@
 # BVA KP Test Otomasyonu
 
-Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI ve API test otomasyonu.
+Büyük Veri Analitiği ve Kaynak Planlama (BVA KP) projesinin Açık Veri Portalı (AVP) modülü için UI ve API test otomasyonu.
 
 - **Kapalı portal:** veri kaynağı ve veri seti oluşturma, KVKK onayı, yayın, güncelleme takvimi, dashboard
-- **Kamuya açık portal:** yayınlanan veri setinin arama, detay, kaynak sayfası ve CKAN API üzerinden doğrulanması
+- **Kamuya açık portal (CKAN):** giriş/çıkış, veri talebi, API anahtarı; yayınlanan veri setinin arama, detay, kaynak sayfası ve CKAN API üzerinden doğrulanması
 
 ## Teknolojiler
 
@@ -102,19 +102,19 @@ Bir değer şu öncelikle okunur:
 | `public.data.url` | Kamuya açık portal adresi | |
 | `username` | Test kullanıcısı (ortam dosyasında) | |
 | `password` | Parola; yalnızca `BVAKP_PASSWORD` ortam değişkeniyle | |
-| `browser`, `headless` | Tarayıcı ve görünmez mod (CI'da `headless=true`) | |
+| `browser`, `headless` | Tarayıcı (`chromium`, `firefox`, `webkit`) ve görünmez mod (CI'da `headless=true`) | `chromium` |
 | `browser.locale` | Tarayıcı dili; sayı ve tarih biçimini belirler (`3.529`) | `tr-TR` |
 | `ignore.https.errors` | Sertifika hatalarını yok say (kamuya açık portal self-signed sertifika kullanıyor). **Yalnızca `env/test.properties`'te** `true`; canlı ortamda açılmamalı | `false` |
 | `viewport.width`, `viewport.height` | Pencere boyutu | 1280 × 720 |
-| `auth.state.reuse` | Oturumu dosyada saklayıp testler arasında paylaş; paralel koşuda `false` kalmalı | `false` |
-| `trace.mode` | `off`, `on`, `retain-on-failure` | `retain-on-failure` |
+| `auth.state.reuse` | Kapalı portal oturumunu dosyada saklayıp testler arasında paylaş; paralel koşuda `false` kalmalı | `false` |
+| `trace.mode` | `off`, `on`, `retain-on-failure`; Jenkins'te `off` (bkz. Raporlar) | `retain-on-failure` |
 | `video.mode` | `off`, `on`, `retain-on-failure` | `retain-on-failure` |
 | `allure.attach.trace`, `allure.attach.video` | Trace/videoyu Allure raporuna ekle | `true` / `false` |
 | `allure.report.auto.generate` | Koşu sonunda raporu otomatik üret | `true` |
 | `allure.report.timeout.seconds` | Rapor üretimi zaman aşımı | `300` |
 | `kosu.saklama.adedi` | Saklanacak koşu sayısı; eskiler silinir (`0` = silme) | `20` |
 | `test.retry.count` | Kırılan test kaç kez tekrar denensin (Jenkins'te `1`) | `0` |
-| `failure.tracking.enabled`, `failure.alert.threshold` | Ardışık hata sayacı ve alarm maili eşiği | |
+| `failure.tracking.enabled`, `failure.alert.threshold` | Ardışık hata sayacı ve alarm maili eşiği | `false` / `5` |
 | `cleanup.enabled` | Koşu sonunda otomasyon kaynaklarını sil | |
 | `cleanup.allowed.hosts` | Temizliğin çalışabileceği host'lar (ortam dosyasında); boşsa hiçbir yerde silmez | |
 | `cleanup.name.prefix` | Yalnızca bu önekle başlayan kaynaklar silinir | `otomasyon_` |
@@ -143,13 +143,13 @@ src/test/java/com/bvakp/automation/
   core/
     config/          ConfigManager
     playwright/      PlaywrightManager, BrowserFactory, TraceManager
-    auth/            Oturum dosyası yönetimi
+    auth/            Oturum dosyası yönetimi (kamuya açık portalda rol bazlı oturum: PublicPortalAuthStateManager)
   flows/             İş adımları (kaynak oluştur, onaya gönder, yayınla, ön koşul hazırla)
   mail/              Rapor maili ve hata alarm maili
   model/             VeriSetiTanimi, KolonTanimi, YayinAyarlari: ekranlardan toplanan beklenen değerler
   pages/
     openData/        Kapalı portal sayfaları
-    publicportal/    Kamuya açık portal sayfaları (arama, veri seti detayı, kaynak)
+    publicPortal/    Kamuya açık portal sayfaları (giriş, Hesabım, veri talebi, arama, veri seti detayı, kaynak)
   reporting/         TestListener, Allure/özet raporu, koşu arşivi
   tests/             Test sınıfları
   utils/             Ekran görüntüsü, video, ZIP, test verisi yardımcıları
@@ -168,9 +168,15 @@ Jenkinsfile                            Jenkins pipeline'ı (bkz. Jenkins)
 - **Test verisi:** Oluşturulan her kaynak ve veri setinin adı `otomasyon_` ile başlar ve zaman damgası içerir (`TestDataUtil.dinamikAdOlusturma`).
 - **Ortak veri:** Aynı veri setini kullanan sınıflar onu `@BeforeClass`'ta bir kez hazırlar (ör. `OpenDataUpdateCalendarTest`, `PublicOpenDataTest`). Bu testler veriyi yalnızca okur ve paralel çalışabilir. Veriyi değiştiren bir test kendi verisini oluşturmalıdır.
 - **API testleri:** Yalnızca API çağıran testler `@ApiTesti` ile işaretlenir. Bu testlerde tarayıcı açılmaz, `page()` null döner; kanıt Allure'daki istek/yanıt ekleridir.
-- **DataProvider:** İlk parametre okunabilir bir senaryo adı olmalıdır; rapordaki test adına eklenir (ör. `trendDonemSecimi [Haftalık]`). İlk parametre **hiçbir zaman parola olmamalıdır**.
+- **DataProvider:** İlk parametre okunabilir bir senaryo adı olmalıdır; rapordaki test adına eklenir (ör. `donemSecimi [Haftalık]`). İlk parametre **hiçbir zaman parola olmamalıdır**.
 - **Javadoc:** Her sınıf ve public metodun kısa bir Javadoc açıklaması bulunur.
 - **Yorumlar ve loglar:** Kısa tutulur; yorum "ne"yi değil "neden"i anlatır.
+
+## Kamuya açık portal: oturum ve robot doğrulaması
+
+- **Oturum tekrar kullanımı:** CKAN, kısa sürede çok giriş yapılınca `429 (RATE_LIMIT_EXCEEDED)` döner. Bu yüzden her rolün (TALEP, ONAY) oturum çerezleri ilk girişte `.automation-state/public-portal-<rol>.json` dosyasına yazılır ve sonraki testlerde yüklenir. Oturum geçersizse yeniden giriş yapılır. Bu davranış `auth.state.reuse`'dan bağımsızdır ve her zaman açıktır.
+- `PublicPortalLoginTest.cikisYapma` kayıtlı oturumu bozmamak için kendi gerçek girişini yapar (`gercekGirisYapma`).
+- **Robot doğrulaması (ALTCHA):** Giriş ve veri talebi formunda çıkabilir. Widget varsa `PublicPortalBasePage.robotDogrulamasiniTamamlama` kutuya tıklar ve `verified` durumunu en fazla 120 sn bekler. Chromium'da birkaç saniye sürer; WebKit'te 50–80 sn sürebilir.
 
 ## Raporlar
 
@@ -190,6 +196,8 @@ reports/
 ```
 
 - Video ve trace yalnızca kırılan UI testlerinde saklanır (`retain-on-failure`).
+- **Trace, form alanlarına girilen değerleri (parolalar dahil) açık metin olarak saklar.** Bu yüzden Jenkins'te kapalıdır (`BVAKP_TRACE_MODE=off`); yerel trace dosyaları paylaşılmamalıdır.
+- Sayfa, tarayıcının ekran görüntüsü sınırından uzunsa (WebKit: 32767 px) tam sayfa yerine görünen alanın ekran görüntüsü alınır.
 - Trace'i açmak için `trace.zip`'i https://trace.playwright.dev sayfasına sürükleyin; dosya tarayıcıda yerel olarak açılır.
 - Çok dosyalı Allure raporu için: `allure open "reports\kosular\<koşu>\teknik\allure-report"`
 - Sayfa yüklemesi 5xx dönerse logda `ORTAM HATASI | 503 | ...` satırı çıkar; bu, hatanın testte değil ortamda olduğunu gösterir.
@@ -208,7 +216,7 @@ Kırılan test `test.retry.count` kadar tekrar denenir (varsayılan `0`; Jenkins
 
 - **Rapor maili:** Koşu bittikten sonra `MailRunner` ayrı bir süreç olarak çalıştırılır. Ekte `BVA_KP_Test_Raporu_<tarih>.zip` vardır; içinde `ozet.html` ve ekran görüntüleri bulunur. `RAPOR.html`, video ve trace boyut ve hassas veri nedeniyle maile eklenmez.
 - **Rapor durumu:** Başarısız veya atlanan test varsa ya da hiç test koşmadıysa `HATALI`, aksi halde `BASARILI`.
-- **Hata alarm maili:** Bir test art arda `failure.alert.threshold` kez kırılırsa test koşarken gönderilir; aynı test için günde en fazla bir kez. Test geçince sayaç sıfırlanır.
+- **Hata alarm maili:** Varsayılan olarak kapalıdır (`failure.tracking.enabled=false`). Açıksa, bir test art arda `failure.alert.threshold` kez kırıldığında test koşarken gönderilir; aynı test için günde en fazla bir kez. Test geçince sayaç sıfırlanır.
 - SMTP ayarları önce ortam değişkenlerinden, yoksa proje kökündeki `.env.mail` dosyasından okunur:
 
 | Değişken | Açıklama |
@@ -241,6 +249,7 @@ Jenkins'te tanımlanması gerekenler:
 | Global Tool Configuration | `Maven` adında Maven kurulumu |
 
 - Parolalar yalnızca Credentials'ta tutulur; Global özelliklere parola yazılmaz (orada düz metin görünür).
+- Jenkinsfile `BVAKP_TRACE_MODE=off` tanımlar; trace Jenkins'te üretilmez.
 - `.env.mail` Jenkins çalışma alanına kopyalanmaz.
 - Jenkinsfile şu an Windows agent içindir (`bat`). Linux agent'ta `bat` yerine `sh`, `copy /Y` yerine `cp` kullanılır.
 - Jenkins makinesi test ortamına (VPN gerektirmeden) erişebilmeli; Maven ve Playwright indirmeleri ile SMTP çıkışı açık olmalıdır.
@@ -251,4 +260,4 @@ Jenkins'te tanımlanması gerekenler:
 
 ## Git'e eklenmeyenler
 
-`.env.mail`, `config.local.properties`, `.automation-state/`, `target/`, `reports/`. Trace ve videolar sayfa içeriği ve ağ verisi barındırabileceği için hassas kabul edilir.
+`.env.mail`, `config.local.properties`, `.automation-state/` (oturum çerezleri dahil), `target/`, `reports/`, `logs/`. Trace ve videolar sayfa içeriği ve ağ verisi barındırabileceği için hassas kabul edilir.
