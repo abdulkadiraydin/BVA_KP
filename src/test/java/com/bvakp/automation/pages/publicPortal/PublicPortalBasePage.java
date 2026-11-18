@@ -21,7 +21,7 @@ public abstract class PublicPortalBasePage extends BasePage {
   private static final int ALTCHA_BASLAMA_TIMEOUT_MS = 5_000;
 
   /** ALTCHA doğrulaması tarayıcıda hesaplama yapar; yoğun makinede 10 sn'yi aşabilir. */
-  private static final double ALTCHA_TIMEOUT_MS = 60_000;
+  private static final double ALTCHA_TIMEOUT_MS = 120_000;
 
   protected PublicPortalBasePage(Page page) {
     super(page);

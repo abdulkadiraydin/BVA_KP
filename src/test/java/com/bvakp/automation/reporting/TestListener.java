@@ -227,7 +227,7 @@ public class TestListener
     int basarisiz = 0;
     int atlanan = 0;
 
-    // testng.xml'deki her <test> bloğu ayrı sonuç tutar; hepsi toplanır.
+    // regression.xml'deki her <test> bloğu ayrı sonuç tutar; hepsi toplanır.
     for (ISuiteResult suiteResult : suite.getResults().values()) {
       basarili += suiteResult.getTestContext().getPassedTests().size();
       basarisiz += suiteResult.getTestContext().getFailedTests().size();

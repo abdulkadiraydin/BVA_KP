@@ -28,6 +28,7 @@ public class PublicPortalAccountTest extends BaseTest {
   private static final String TALEP_ACIK = "Açık";
   private static final String TALEP_KARSILANDI = "Kapanmış · Karşılandı";
   private static final String TALEP_REDDEDILDI = "Kapanmış · Reddedildi";
+  private static final String RET_GEREKCESI = "Otomasyon testi ret gerekçesi.";
 
   /** Tek bir testin kullandığı sayfa nesneleri. */
   private record TestContext(PublicPortalLoginPage loginPage, PublicPortalAccountPage hesapPage) {}
@@ -229,10 +230,12 @@ public class PublicPortalAccountTest extends BaseTest {
 
     onayKullanicisiylaTalebiAcma(ctx, baslik);
 
-    ReportManager.step("Talep reddediliyor: " + baslik);
-    ctx.hesapPage().talebiReddetme();
+    ReportManager.step("Talep gerekçeyle reddediliyor: " + baslik);
+    ctx.hesapPage().talebiReddetme(RET_GEREKCESI);
     Assert.assertTrue(
         ctx.hesapPage().reddedildiMesajiGorunurMu(), "\"Talep reddedildi\" mesajı görünmedi.");
+    Assert.assertTrue(
+        ctx.hesapPage().yorumGorunurMu(RET_GEREKCESI), "Ret gerekçesi yorum olarak eklenmedi.");
     Assert.assertEquals(
         ctx.hesapPage().talepDetayDurumuOkuma(),
         TALEP_REDDEDILDI,

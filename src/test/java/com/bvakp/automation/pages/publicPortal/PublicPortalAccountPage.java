@@ -39,6 +39,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   // Talep detayı (yönetici işlemleri)
   private final Locator talepDetayDurumu;
   private final Locator yoneticiIslemleri;
+  private final Locator retGerekcesiAlani;
 
   public PublicPortalAccountPage(Page page) {
     super(page);
@@ -88,6 +89,7 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
         page.getByRole(
             AriaRole.REGION,
             new Page.GetByRoleOptions().setName("Yönetici işlemleri").setExact(true));
+    this.retGerekcesiAlani = page.locator("#bvakp-confirm-note-field:visible");
   }
 
   // =====================================================================
@@ -254,9 +256,10 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   }
 
   /** Açık olan talep detayında Reddet'e tıklar ve onay penceresini onaylar. */
-  public void talebiReddetme() {
+  public void talebiReddetme(String gerekce) {
     sayfaHazirOlanaKadarBekleme();
     buton(yoneticiIslemleri, "Reddet").click();
+    retGerekcesiAlani.fill(gerekce);
     onayPenceresiOnayButonu.click();
   }
 

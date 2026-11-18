@@ -13,7 +13,7 @@ Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI
 | Maven | 3.10.0 (proje Maven Wrapper kullanmaz; Maven kurulu olmalı) |
 | Playwright (Java) | 1.64 |
 | TestNG | 7.12 |
-| Maven Surefire | 3.5.4 (3.6.0 ve üstü `testng.xml`'i okumuyor; yükseltilmemeli) |
+| Maven Surefire | 3.5.4 (3.6.0 ve üstü `regression.xml`'i okumuyor; yükseltilmemeli) |
 | Allure (kütüphane) | 2.35.5 |
 | Allure CLI | 2.24 veya üstü (tek dosyalık rapor için) |
 | Spotless / google-java-format | Kod biçimi (Google stili) |
@@ -44,7 +44,7 @@ Büyük Veri Analitiği Kurumsal Portalı (AVP) ve Açık Veri Portalı için UI
 ## Testleri çalıştırma
 
 ```powershell
-mvn test                                         # testng.xml (varsayılan)
+mvn test                                         # regression.xml (varsayılan)
 mvn test "-Dsuite.xml=smoke.xml"                 # hızlı kontrol
 mvn test "-Dsuite.xml=regresyon.xml"             # tam regresyon
 mvn test "-Dtest=PublicOpenDataTest"             # tek sınıf
@@ -58,7 +58,7 @@ mvn test "-Dtest.retry.count=1"                  # kırılan testi 1 kez tekrar 
 |---|---|---|
 | `smoke.xml` | Her modülün ana akışı (giriş, dashboard, kaynak oluşturma, onaya gönderme, yayın, portalda arama ve maske) | Her değişiklikten sonra |
 | `regresyon.xml` | Bütün test sınıfları | Gece, sürüm öncesi, büyük değişiklik sonrası |
-| `testng.xml` | Bütün test sınıfları (`parallel="methods"`) | IntelliJ'den ve `mvn test` ile varsayılan |
+| `regression.xml` | Bütün test sınıfları (`parallel="methods"`) | IntelliJ'den ve `mvn test` ile varsayılan |
 
 Paket `pom.xml`'deki `suite.xml` özelliğiyle seçilir; IntelliJ'de xml dosyasına sağ tık → *Run* de kullanılabilir.
 
@@ -155,7 +155,7 @@ src/test/java/com/bvakp/automation/
   utils/             Ekran görüntüsü, video, ZIP, test verisi yardımcıları
 scripts/
   Generate-AllureReport.ps1   Koşu sonunda Allure raporunu ve history'yi üretir
-testng.xml, smoke.xml, regresyon.xml   TestNG paketleri (bkz. Testleri çalıştırma)
+regression.xml, smoke.xml, regresyon.xml   TestNG paketleri (bkz. Testleri çalıştırma)
 Jenkinsfile                            Jenkins pipeline'ı (bkz. Jenkins)
 ```
 

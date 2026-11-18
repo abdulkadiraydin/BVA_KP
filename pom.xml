@@ -55,7 +55,7 @@
 
         <!-- Maven Plugins -->
         <compiler.plugin.version>3.16.0</compiler.plugin.version>
-        <!-- 3.6.0+ testng.xml'i okumuyor (TestNG'yi JUnit Platform'da çalıştırıyor); 3.5.x'te kalınmalı. -->
+        <!-- 3.6.0+ regression.xml'i okumuyor (TestNG'yi JUnit Platform'da çalıştırıyor); 3.5.x'te kalınmalı. -->
         <surefire.plugin.version>3.5.4</surefire.plugin.version>
 
         <!-- Koşturulacak TestNG paketi; -Dsuite.xml=smoke.xml ile değiştirilir -->
@@ -189,7 +189,7 @@
 
                 <configuration>
 
-                    <!-- TestNG test paketi (varsayılan testng.xml; -Dsuite.xml ile seçilir) -->
+                    <!-- TestNG test paketi (varsayılan regression.xml; -Dsuite.xml ile seçilir) -->
                     <suiteXmlFiles>
                         <suiteXmlFile>${project.basedir}/${suite.xml}</suiteXmlFile>
                     </suiteXmlFiles>
