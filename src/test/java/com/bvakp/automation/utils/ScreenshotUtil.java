@@ -4,6 +4,7 @@ import com.bvakp.automation.reporting.AllureArtifactCollector;
 import com.bvakp.automation.reporting.ReportManager;
 import com.bvakp.automation.reporting.TestListener;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,7 +48,7 @@ public final class ScreenshotUtil {
 
       Path screenshotPath = SCREENSHOT_DIRECTORY.resolve(fileName);
 
-      page.screenshot(new Page.ScreenshotOptions().setPath(screenshotPath).setFullPage(true));
+      sayfaGoruntusuAlma(page, screenshotPath);
 
       calisanTesteBaglama(screenshotPath, testName);
 
@@ -56,6 +57,20 @@ public final class ScreenshotUtil {
     } catch (Exception e) {
       ReportManager.error("Screenshot alınırken hata oluştu.", e);
       return null;
+    }
+  }
+
+  /**
+   * Tüm sayfanın görüntüsünü alır. Sayfa tarayıcının sınırından uzunsa (WebKit 32767 px) yalnızca
+   * görünen alanın görüntüsünü alır.
+   */
+  private static void sayfaGoruntusuAlma(Page page, Path yol) {
+    try {
+      page.screenshot(new Page.ScreenshotOptions().setPath(yol).setFullPage(true));
+    } catch (PlaywrightException e) {
+      ReportManager.warn(
+          "Tam sayfa screenshot alınamadı, görünen alan alınıyor | " + e.getMessage());
+      page.screenshot(new Page.ScreenshotOptions().setPath(yol).setFullPage(false));
     }
   }
 

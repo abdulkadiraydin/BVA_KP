@@ -417,7 +417,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
    * Ayrıntı çekmecesindeki Veri setine git bağlantısının doğru detay sayfasını açtığını doğrular.
    */
   @Test
-  public void veriSetineGitDogruSayfa() {
+  public void veriSetineGitDetaySayfasiniAcar() {
     TestContext ctx = testHazirligi();
 
     ReportManager.info("Veri seti: " + hazirVeriSeti);
@@ -433,7 +433,7 @@ public class OpenDataUpdateCalendarTest extends AvpBaseTest {
 
   /** Veri seti detayının Versiyonlar sekmesinde v2'nin Aktif, v1'in Arşiv olduğunu doğrular. */
   @Test
-  public void detaydaYeniVersiyonVar() {
+  public void guncellemeYeniVersiyonOlusturur() {
     TestContext ctx = testHazirligi();
 
     ReportManager.info("Veri seti: " + hazirVeriSeti);
