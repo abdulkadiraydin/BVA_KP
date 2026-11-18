@@ -191,8 +191,8 @@ public class TestListener
 
   /**
    * Raporda ve kanıt klasöründe görünen test adı. DataProvider'lı testlerde ilk parametre eklenir
-   * (ör. trendDonemSecimi [Haftalık]). İlk parametre bu yüzden okunabilir bir ad olmalı; parola
-   * gibi gizli değerler ilk sıraya konmaz.
+   * (ör. donemSecimi [Haftalık]). İlk parametre bu yüzden okunabilir bir ad olmalı; parola gibi
+   * gizli değerler ilk sıraya konmaz.
    */
   public static String getTestName(ITestResult result) {
     String ad = result.getMethod().getMethodName();
@@ -298,7 +298,8 @@ public class TestListener
           result.getStatus() == ITestResult.FAILURE || result.getThrowable() != null;
 
       String suffix = basarisiz ? "_hatali" : "_basarili";
-      Path screenshotPath = ScreenshotUtil.takeScreenshot(page, testName + suffix);
+      // Başarısız testte hata analizi için tam sayfa, başarılıda yalnızca görünen alan alınır.
+      Path screenshotPath = ScreenshotUtil.takeScreenshot(page, testName + suffix, basarisiz);
 
       if (screenshotPath == null) {
         ReportManager.warn("Screenshot oluşturulamadı | " + testName);

@@ -15,8 +15,9 @@ import org.testng.ITestResult;
 import org.testng.Reporter;
 
 /**
- * Tam sayfa ekran görüntüsü alır ve target/screenshots altına kaydeder. Hata durumunda exception
- * fırlatmaz, null döner; ekran görüntüsü alınamaması test sonucunu değiştirmemelidir.
+ * Ekran görüntüsü alır ve target/screenshots altına kaydeder. Başarısız testlerde tam sayfa,
+ * başarılı testlerde yalnızca görünen alan alınır. Hata durumunda exception fırlatmaz, null döner;
+ * ekran görüntüsü alınamaması test sonucunu değiştirmemelidir.
  */
 public final class ScreenshotUtil {
 
@@ -27,8 +28,18 @@ public final class ScreenshotUtil {
 
   private ScreenshotUtil() {}
 
-  /** Dosya adı: testAdi_basarili_2026-10-22_19-41-05_ab12cd34.png */
+  /** Tam sayfa ekran görüntüsü alır. */
   public static Path takeScreenshot(Page page, String testName) {
+    return takeScreenshot(page, testName, true);
+  }
+
+  /**
+   * Ekran görüntüsü alır. tamSayfa false ise yalnızca görünen alan alınır; başarılı testlerde rapor
+   * ve mail boyutunu küçültmek için kullanılır.
+   *
+   * <p>Dosya adı: testAdi_basarili_2026-10-22_19-41-05_ab12cd34.png
+   */
+  public static Path takeScreenshot(Page page, String testName, boolean tamSayfa) {
 
     if (page == null) {
       return null;
@@ -48,7 +59,11 @@ public final class ScreenshotUtil {
 
       Path screenshotPath = SCREENSHOT_DIRECTORY.resolve(fileName);
 
-      sayfaGoruntusuAlma(page, screenshotPath);
+      if (tamSayfa) {
+        sayfaGoruntusuAlma(page, screenshotPath);
+      } else {
+        page.screenshot(new Page.ScreenshotOptions().setPath(screenshotPath).setFullPage(false));
+      }
 
       calisanTesteBaglama(screenshotPath, testName);
 
