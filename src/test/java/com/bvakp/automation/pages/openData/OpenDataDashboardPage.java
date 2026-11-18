@@ -22,27 +22,27 @@ public class OpenDataDashboardPage extends BasePage {
   /** Format legend satırı: "CSV: 119 (78%)" → 119. */
   private static final Pattern FORMAT_SATIRI = Pattern.compile("^[A-Z]+: ([\\d.]+) \\(\\d+%\\)$");
 
-  /** Seçenekleri kodda yazım hatasına karşı tek yerde tutar. */
+  /** "Dönem" listesindeki seçenekler; ekrandaki adları tek yerde tutar. */
   public enum TrendDonemi {
     GUNLUK("Günlük"),
     HAFTALIK("Haftalık"),
     AYLIK("Aylık");
 
-    private final String butonAdi;
+    private final String secenekAdi;
 
-    TrendDonemi(String butonAdi) {
-      this.butonAdi = butonAdi;
+    TrendDonemi(String secenekAdi) {
+      this.secenekAdi = secenekAdi;
     }
 
-    /** Dönem butonunun ekrandaki adı. */
-    public String butonAdi() {
-      return butonAdi;
+    /** Dönem seçeneğinin ekrandaki adı. */
+    public String secenekAdi() {
+      return secenekAdi;
     }
 
     /** Raporda ve test adında HAFTALIK yerine Haftalık görünsün diye. */
     @Override
     public String toString() {
-      return butonAdi;
+      return secenekAdi;
     }
   }
 
@@ -52,7 +52,7 @@ public class OpenDataDashboardPage extends BasePage {
   private final Locator toplamVeriSetiKarti;
   private final Locator toplamIndirmeKarti;
   private final Locator apiCagrisiKarti;
-  private final Locator benzersizKullaniciKarti;
+  private final Locator portalZiyaretciKarti;
 
   private final Locator formatDagilimiBasligi;
   private final Locator formatDagilimiGrafikAlani;
@@ -84,7 +84,7 @@ public class OpenDataDashboardPage extends BasePage {
     apiCagrisiKarti =
         page.locator("p")
             .filter(new Locator.FilterOptions().setHasText(Pattern.compile("^API Çağrısı$")));
-    benzersizKullaniciKarti = tamMetin("Benzersiz Kullanıcı");
+    portalZiyaretciKarti = tamMetin("Portal Ziyaretçi Sayısı");
 
     formatDagilimiBasligi = tamMetin("Format Dağılımı");
     formatDagilimiGrafikAlani =
@@ -139,9 +139,9 @@ public class OpenDataDashboardPage extends BasePage {
     return gorunurMu(apiCagrisiKarti, DASHBOARD_TIMEOUT_MS);
   }
 
-  /** Benzersiz Kullanıcı kartı görünüyorsa true döner. */
-  public boolean tekilKullaniciKartiGorunurMu() {
-    return gorunurMu(benzersizKullaniciKarti, DASHBOARD_TIMEOUT_MS);
+  /** Portal Ziyaretçi Sayısı kartı görünüyorsa true döner. */
+  public boolean portalZiyaretciKartiGorunurMu() {
+    return gorunurMu(portalZiyaretciKarti, DASHBOARD_TIMEOUT_MS);
   }
 
   // =====================================================================
@@ -183,9 +183,9 @@ public class OpenDataDashboardPage extends BasePage {
     return kartDegeri(apiCagrisiKarti);
   }
 
-  /** Benzersiz Kullanıcı kartındaki sayı. */
-  public int benzersizKullaniciAlma() {
-    return kartDegeri(benzersizKullaniciKarti);
+  /** Portal Ziyaretçi Sayısı kartındaki sayı. */
+  public int portalZiyaretciAlma() {
+    return kartDegeri(portalZiyaretciKarti);
   }
 
   /**
@@ -229,21 +229,28 @@ public class OpenDataDashboardPage extends BasePage {
     return gorunurMu(indirmeApiTrendiBasligi, DASHBOARD_TIMEOUT_MS);
   }
 
-  /** Trend grafiğinde verilen dönemi seçer. */
+  /** "Dönem" listesinden verilen dönemi seçer. */
   public void trendDonemiSecme(TrendDonemi donem) {
-    trendButonu(donem).click();
+    donemSecici().click();
+    page.getByRole(
+            AriaRole.OPTION, new Page.GetByRoleOptions().setName(donem.secenekAdi()).setExact(true))
+        .click();
   }
 
-  /** Dönem butonu seçili hâle gelene kadar bekler; süre içinde seçilmezse false döner. */
+  /** "Dönem" listesinde verilen dönem görünene kadar bekler; süre içinde görünmezse false döner. */
   public boolean trendDonemiSeciliMi(TrendDonemi donem) {
     return gorunurMu(
-        trendButonu(donem).and(page.locator("[aria-pressed='true']")), DASHBOARD_TIMEOUT_MS);
+        donemSecici()
+            .filter(
+                new Locator.FilterOptions()
+                    .setHasText(Pattern.compile("^" + donem.secenekAdi() + "$"))),
+        DASHBOARD_TIMEOUT_MS);
   }
 
-  /** Verilen trend döneminin butonunu döndürür. */
-  private Locator trendButonu(TrendDonemi donem) {
+  /** "Dönem" açılır listesi; erişilebilir adı seçili değeri de içerir ("Dönem Aylık"). */
+  private Locator donemSecici() {
     return page.getByRole(
-        AriaRole.BUTTON, new Page.GetByRoleOptions().setName(donem.butonAdi()).setExact(true));
+        AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName(Pattern.compile("^Dönem")));
   }
 
   /**
@@ -343,9 +350,9 @@ public class OpenDataDashboardPage extends BasePage {
     return apiCagrisiKarti;
   }
 
-  /** Benzersiz Kullanıcı kartı. */
-  public Locator benzersizKullaniciKarti() {
-    return benzersizKullaniciKarti;
+  /** Portal Ziyaretçi Sayısı kartı. */
+  public Locator portalZiyaretciKarti() {
+    return portalZiyaretciKarti;
   }
 
   /** Format Dağılımı başlığı. */

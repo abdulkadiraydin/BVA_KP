@@ -55,11 +55,12 @@ public class OpenDataDashboardTest extends AvpBaseTest {
     Assert.assertTrue(
         dashboardPage.apiCagrisiKartiGorunurMu(), "API Çağrısı kartı görüntülenemedi.");
     Assert.assertTrue(
-        dashboardPage.tekilKullaniciKartiGorunurMu(), "Benzersiz Kullanıcı kartı görüntülenemedi.");
+        dashboardPage.portalZiyaretciKartiGorunurMu(),
+        "Portal Ziyaretçi Sayısı kartı görüntülenemedi.");
     int yayindakiVeriSeti = dashboardPage.yayindakiVeriSetiAlma();
     int toplamIndirme = dashboardPage.toplamIndirmeAlma();
     int apiCagrisi = dashboardPage.apiCagrisiAlma();
-    int benzersizKullanici = dashboardPage.benzersizKullaniciAlma();
+    int portalZiyaretci = dashboardPage.portalZiyaretciAlma();
     ReportManager.info(
         "Kartlar | Yayındaki: "
             + yayindakiVeriSeti
@@ -67,8 +68,8 @@ public class OpenDataDashboardTest extends AvpBaseTest {
             + toplamIndirme
             + " | API: "
             + apiCagrisi
-            + " | Kullanıcı: "
-            + benzersizKullanici);
+            + " | Ziyaretçi: "
+            + portalZiyaretci);
 
     // Ortamda otomasyonun yayınladığı veri setleri olduğu için en az 1 olmalı.
     Assert.assertTrue(
@@ -77,7 +78,7 @@ public class OpenDataDashboardTest extends AvpBaseTest {
         dashboardPage.toplamVeriSetiKarti(),
         dashboardPage.toplamIndirmeKarti(),
         dashboardPage.apiCagrisiKarti(),
-        dashboardPage.benzersizKullaniciKarti());
+        dashboardPage.portalZiyaretciKarti());
 
     ReportManager.info("PORTAL İSTATİSTİK KARTLARI DOĞRULANDI");
   }
@@ -119,8 +120,8 @@ public class OpenDataDashboardTest extends AvpBaseTest {
   }
 
   /**
-   * Seçilen dönemin sayfaya uygulandığını doğrular: buton seçili olur ve başlığın altındaki dönem
-   * satırı seçilen döneme göre değişir (ör. Haftalık: 29.10.2026 – 04.11.2026).
+   * Seçilen dönemin sayfaya uygulandığını doğrular: "Dönem" listesinde görünür ve başlığın
+   * altındaki dönem satırı seçilen döneme göre değişir (ör. Haftalık: 29.10.2026 – 04.11.2026).
    */
   @Test(dataProvider = "donemler")
   public void donemSecimi(TrendDonemi donem) {
@@ -130,7 +131,7 @@ public class OpenDataDashboardTest extends AvpBaseTest {
     ReportManager.step(donem + " dönemi seçiliyor.");
     dashboardPage.trendDonemiSecme(donem);
     Assert.assertTrue(
-        dashboardPage.trendDonemiSeciliMi(donem), donem + " seçildikten sonra buton aktif değil.");
+        dashboardPage.trendDonemiSeciliMi(donem), donem + " seçildikten sonra listede görünmüyor.");
 
     String bitis = TARIH.format(LocalDate.now());
     String baslangic = TARIH.format(LocalDate.now().minusDays(geriGunSayisi(donem)));
@@ -244,25 +245,25 @@ public class OpenDataDashboardTest extends AvpBaseTest {
         alan.first()
             .evaluate(
                 """
-                                element => {
-                                    let hedef = element.closest('.MuiCard-root, .MuiPaper-root');
-                                    if (!hedef) {
-                                        let parent = element.parentElement;
-                                        while (parent) {
-                                            const rect = parent.getBoundingClientRect();
-                                            if (rect.width >= 180 && rect.height >= 80) {
-                                                hedef = parent;
-                                                break;
+                                        element => {
+                                            let hedef = element.closest('.MuiCard-root, .MuiPaper-root');
+                                            if (!hedef) {
+                                                let parent = element.parentElement;
+                                                while (parent) {
+                                                    const rect = parent.getBoundingClientRect();
+                                                    if (rect.width >= 180 && rect.height >= 80) {
+                                                        hedef = parent;
+                                                        break;
+                                                    }
+                                                    parent = parent.parentElement;
+                                                }
                                             }
-                                            parent = parent.parentElement;
+                                            if (hedef) {
+                                                hedef.style.outline = '5px solid red';
+                                                hedef.style.outlineOffset = '-5px';
+                                            }
                                         }
-                                    }
-                                    if (hedef) {
-                                        hedef.style.outline = '5px solid red';
-                                        hedef.style.outlineOffset = '-5px';
-                                    }
-                                }
-                                """);
+                                        """);
       } catch (RuntimeException e) {
         ReportManager.warn("Alan çerçevelenemedi: " + e.getMessage());
       }
