@@ -23,7 +23,6 @@ import org.testng.annotations.Test;
 public class PublicPortalAccountTest extends BaseTest {
 
   private static final String TALEP_AMACI = "Otomasyon testi kapsamında oluşturulan talep.";
-  private static final String TALEP_KATEGORISI = "Altyapı ve İstasyonlar";
   private static final String TALEP_ONAY_BEKLIYOR = "Onay bekliyor";
   private static final String TALEP_ACIK = "Açık";
   private static final String TALEP_KARSILANDI = "Kapanmış · Karşılandı";
@@ -81,7 +80,7 @@ public class PublicPortalAccountTest extends BaseTest {
     TestContext ctx = hesabimAcikHazirlik();
 
     ctx.hesapPage().talepFormunuAcma();
-    ctx.hesapPage().talepBilgileriniGirme("", TALEP_AMACI, null, true);
+    ctx.hesapPage().talepBilgileriniGirme("", TALEP_AMACI, true);
     ctx.hesapPage().talebiGonderme();
 
     Assert.assertTrue(
@@ -128,7 +127,7 @@ public class PublicPortalAccountTest extends BaseTest {
     String baslik = TestDataUtil.dinamikAdOlusturma("otomasyon_talep");
 
     ctx.hesapPage().talepFormunuAcma();
-    ctx.hesapPage().talepBilgileriniGirme(baslik, TALEP_AMACI, TALEP_KATEGORISI, true);
+    ctx.hesapPage().talepBilgileriniGirme(baslik, TALEP_AMACI, true);
     ctx.hesapPage().talepVazgecme();
 
     Assert.assertTrue(ctx.hesapPage().talepFormuKapandiMi(), "Vazgeç'ten sonra form kapanmadı.");
@@ -163,7 +162,7 @@ public class PublicPortalAccountTest extends BaseTest {
     ReportManager.step("Veri talebi oluşturuluyor: " + baslik);
     ctx.hesapPage().talepFormunuAcma();
     Assert.assertTrue(ctx.hesapPage().talepFormuAcikMi(), "Ön koşul: talep formu açılmadı.");
-    ctx.hesapPage().talepBilgileriniGirme(baslik, TALEP_AMACI, TALEP_KATEGORISI, herkeseAcik);
+    ctx.hesapPage().talepBilgileriniGirme(baslik, TALEP_AMACI, herkeseAcik);
     ctx.hesapPage().talebiGonderme();
     Assert.assertTrue(
         ctx.hesapPage().talepAlindiMesajiGorunurMu(),

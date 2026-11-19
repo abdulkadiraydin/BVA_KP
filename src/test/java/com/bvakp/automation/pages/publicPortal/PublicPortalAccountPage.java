@@ -3,7 +3,6 @@ package com.bvakp.automation.pages.publicPortal;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
-import com.microsoft.playwright.options.SelectOption;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
@@ -24,7 +23,6 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
   private final Locator talepFormu;
   private final Locator talepBaslikAlani;
   private final Locator talepAmacAlani;
-  private final Locator talepKategoriSecimi;
   private final Locator talepHerkeseAcikKutusu;
   private final Locator talepGonderButonu;
   private final Locator talepVazgecButonu;
@@ -63,8 +61,6 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
             new Page.GetByRoleOptions().setName("Veri Talebi Oluştur").setExact(true));
     this.talepBaslikAlani = talepFormu.getByLabel("Hangi veriye ihtiyacınız var?");
     this.talepAmacAlani = talepFormu.getByLabel("Ne için kullanacaksınız?");
-    this.talepKategoriSecimi =
-        talepFormu.getByLabel("Kategori", new Locator.GetByLabelOptions().setExact(true));
     this.talepHerkeseAcikKutusu = talepFormu.getByLabel("Talebim herkese açık listelensin");
     this.talepGonderButonu = buton(talepFormu, "Talebi Gönder");
     this.talepVazgecButonu = buton(talepFormu, "Vazgeç");
@@ -140,17 +136,12 @@ public class PublicPortalAccountPage extends PublicPortalBasePage {
    * Talep formunu doldurur.
    *
    * @param amac boşsa (null) girilmez
-   * @param kategori seçenekte görünen ad (ör. "Altyapı ve İstasyonlar"); null ise seçilmez
    * @param herkeseAcik "Talebim herkese açık listelensin" işaretli olsun mu
    */
-  public void talepBilgileriniGirme(
-      String baslik, String amac, String kategori, boolean herkeseAcik) {
+  public void talepBilgileriniGirme(String baslik, String amac, boolean herkeseAcik) {
     talepBaslikAlani.fill(baslik);
     if (amac != null) {
       talepAmacAlani.fill(amac);
-    }
-    if (kategori != null) {
-      talepKategoriSecimi.selectOption(new SelectOption().setLabel(kategori));
     }
     talepHerkeseAcikKutusu.setChecked(herkeseAcik);
   }
