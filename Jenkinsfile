@@ -39,8 +39,6 @@ spec:
     parameters {
         // Listedeki ilk değer varsayılandır (zamanlanmış koşular da bunu kullanır).
         choice(name: 'SUITE', choices: ['regression.xml', 'smoke.xml'], description: 'Koşturulacak TestNG paketi')
-        // Hedef test ortamı: src/test/resources/config/env/<ENV>.properties
-        choice(name: 'ENV', choices: ['contabo', 'test'], description: 'Hedef test ortamı')
     }
 
     triggers {
@@ -67,8 +65,10 @@ spec:
         LANG                               = 'C.UTF-8'
         MAVEN_OPTS                         = '-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 -Duser.timezone=Europe/Istanbul'
 
-        // Hedef ortam parametreden gelir
-        BVAKP_ENV                          = "${params.ENV}"
+        // Hedef ortam (BVAKP_ENV) burada değil, her Jenkins'in kendi ayarında tanımlıdır:
+        // Jenkins'i Yönet → Sistem → Global properties → Environment variables
+        //   Contabo Jenkins'i: BVAKP_ENV=dev   |   VPN'li Jenkins: BVAKP_ENV=test
+        // Değer src/test/resources/config/env/<BVAKP_ENV>.properties dosyasını seçer.
 
         // Jenkins'e özel ayarlar
         BVAKP_HEADLESS                     = 'true'
@@ -98,6 +98,13 @@ spec:
     stages {
         stage('Testleri çalıştır') {
             steps {
+                script {
+                    // Tanımsızsa kod varsayılan "test" ortamına gider; erişilemeyen ortamda bütün
+                    // testler anlamsız şekilde düşmesin diye koşu baştan durdurulur.
+                    if (!env.BVAKP_ENV?.trim()) {
+                        error('BVAKP_ENV tanımlı değil. Jenkins\'i Yönet → Sistem → Global properties altında tanımlayın (dev / test).')
+                    }
+                }
                 echo "Suite: ${params.SUITE} | Ortam: ${env.BVAKP_ENV}"
                 sh "mvn -B clean test -Dsuite.xml=${params.SUITE}"
             }
