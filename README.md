@@ -44,10 +44,11 @@ Büyük Veri Analitiği ve Kaynak Planlama (BVA KP) projesinin Açık Veri Porta
 ## Testleri çalıştırma
 
 ```powershell
-mvn test                                         # regression.xml (varsayılan)
+mvn test                                         # regression.xml, test ortamı (varsayılan)
+mvn test "-Denv=dev"                             # aynı paket, dev ortamı
 mvn test "-Dsuite.xml=smoke.xml"                 # hızlı kontrol
-mvn test "-Dsuite.xml=regresyon.xml"             # tam regresyon
 mvn test "-Dtest=PublicOpenDataTest"             # tek sınıf
+mvn test "-Dtest=OpenDataPublishTest#veriSetiArama" # tek test
 mvn test "-Dtest=LoginTest,OpenDataDashboardTest" # birkaç sınıf
 mvn test "-Dtest=PublicOpenDataTest" "-Dheadless=false"  # tarayıcıyı izleyerek
 mvn test "-Dtest=PublicOpenDataTest" "-Dtrace.mode=on"   # bütün testlerin trace'ini sakla
@@ -57,12 +58,12 @@ mvn test "-Dtest.retry.count=1"                  # kırılan testi 1 kez tekrar 
 | Paket | İçerik | Ne zaman |
 |---|---|---|
 | `smoke.xml` | Her modülün ana akışı (giriş, dashboard, kaynak oluşturma, onaya gönderme, yayın, portalda arama ve maske) | Her değişiklikten sonra |
-| `regresyon.xml` | Bütün test sınıfları | Gece, sürüm öncesi, büyük değişiklik sonrası |
-| `regression.xml` | Bütün test sınıfları (`parallel="methods"`) | IntelliJ'den ve `mvn test` ile varsayılan |
+| `regression.xml` | Bütün test sınıfları (`parallel="methods"`, 3 thread) | Jenkins'te saat başı, sürüm öncesi; `mvn test` ile varsayılan |
 
 Paket `pom.xml`'deki `suite.xml` özelliğiyle seçilir; IntelliJ'de xml dosyasına sağ tık → *Run* de kullanılabilir.
 
-- `smoke.xml` ve `regresyon.xml` `parallel="classes"`, `thread-count="2"` ile koşar: aynı anda daha az giriş yapılır, Keycloak kilitlenmesi riski azalır.
+**IntelliJ'de dev ortamında koşmak:** Çalıştırma ayarında (*Edit Configurations*) **VM options** alanına `-ea -Denv=dev` yazılır. Sağ tık → *Run* ile oluşan ayarlar geçicidir ve bir sonraki sağ tıkta sıfırlanır; ayarı disket simgesiyle (*Save Configuration*) kaydedip üstteki listeden çalıştırın. Bütün yeni ayarların dev'e gitmesi için *Edit configuration templates → TestNG* kullanılabilir; iş bitince şablon `-ea`'ya geri alınmalıdır.
+
 - Test ortamı yüksek paralellikte yetişemiyor (5'te tablolar yüklenmedi); `thread-count` 3'ün üstüne çıkarılmamalı.
 - Smoke'ta yalnızca seçilen testler koşsa da sınıfın `@BeforeClass` hazırlığı yine çalışır.
 - `<include name="...">` içindeki metot adı yanlışsa TestNG hata vermez, testi atlar; metot adı değişirse `smoke.xml` de güncellenmelidir.
@@ -71,14 +72,36 @@ Paket `pom.xml`'deki `suite.xml` özelliğiyle seçilir; IntelliJ'de xml dosyas�
 
 ```
 src/test/resources/config/
-  config.properties              bütün ortamlarda ortak ayarlar          (Git'te)
-  env/test.properties            test ortamı: adresler, kullanıcı adı    (Git'te)
+  config.properties              bütün ortamlarda ortak ayarlar                     (Git'te)
+  env/test.properties            test ortamı (VPN): adresler, kullanıcılar, test verisi (Git'te)
+  env/dev.properties             dev ortamı (Contabo): adresler, kullanıcılar, test verisi (Git'te)
   config.local.properties        kişisel ayarlar, isteğe bağlı           (Git'e girmez)
   config.local.properties.ornek  kişisel ayar dosyası örneği
 ```
 
-Ortam `-Denv=test` (veya `BVAKP_ENV`) ile seçilir; verilmezse `test` kullanılır.
-Yeni bir ortam eklemek için `env/<ad>.properties` dosyası oluşturmak yeterlidir.
+Ortam `-Denv=<ad>` (veya `BVAKP_ENV`) ile seçilir; verilmezse `test` kullanılır.
+`config.local.properties` içine `env=...` yazmak işe yaramaz: ortam, dosyalar okunmadan önce belirlenir.
+
+| Ortam | Adresler | Erişim |
+|---|---|---|
+| `test` | `10.161.71.30` | VPN gerekir |
+| `dev` | `*.buyukverianalitigi.com` | İnternetten erişilir (Contabo Jenkins'i bunu koşar) |
+
+Yeni bir ortam eklemek için mevcut bir `env/<ad>.properties` dosyasını kopyalayıp değerlerini değiştirmek yeterlidir. Ayar dosyaları **UTF-8** okunur; Türkçe değerler doğrudan yazılabilir (IntelliJ'de *File Encodings → properties files* UTF-8 olmalı).
+
+### Ortama özgü test verisi
+
+Ortama göre değişen test verisi kodda değil, `env/<ortam>.properties` dosyasındadır ve `TestDataConfig` sınıfından okunur:
+
+| Anahtar | Açıklama | Boşsa |
+|---|---|---|
+| `testdata.kaynak.sema` | Kaynak Ekle'de seçilen şema (ör. `dwh`) | Zorunlu |
+| `testdata.kaynak.tablo` | Kaynak ve veri seti testlerinin tablosu (ör. `d_hat`); Hazır Sorgu ve UPDATE testlerinin sorgusu da bundan üretilir | Zorunlu |
+| `testdata.maskelenecek.kolon` | Maskele kuralı uygulanan kolon (ör. `hat`) | Zorunlu |
+| `testdata.sorumlu.birim`, `testdata.kategori`, `testdata.kullanim.lisansi` | Veri seti formunda seçilecek değerler | Listedeki ilk seçenek seçilir |
+| `testdata.duzenleme.sorumlu.birim`, `testdata.duzenleme.kategori` | Düzenleme testlerinde seçilecek yeni değerler | Mevcut değerden farklı ilk seçenek seçilir |
+
+Seçilen gerçek değer okunup saklanır; kamuya açık portal testleri bu değerle karşılaştırır. Yeni bir ortamda yalnızca ilk üç zorunlu anahtarın doldurulması yeterlidir.
 
 Bir değer şu öncelikle okunur:
 
@@ -141,7 +164,7 @@ src/test/java/com/bvakp/automation/
   base/              BaseTest, AvpBaseTest, @ApiTesti
   components/        Ekranlarda tekrar eden modallar (Kaynak Ekle/Düzenle/Sil...)
   core/
-    config/          ConfigManager
+    config/          ConfigManager, TestDataConfig (ortama özgü test verisi)
     playwright/      PlaywrightManager, BrowserFactory, TraceManager
     auth/            Oturum dosyası yönetimi (kamuya açık portalda rol bazlı oturum: PublicPortalAuthStateManager)
   flows/             İş adımları (kaynak oluştur, onaya gönder, yayınla, ön koşul hazırla)
@@ -154,9 +177,11 @@ src/test/java/com/bvakp/automation/
   tests/             Test sınıfları
   utils/             Ekran görüntüsü, video, ZIP, test verisi yardımcıları
 scripts/
-  Generate-AllureReport.ps1   Koşu sonunda Allure raporunu ve history'yi üretir
-regression.xml, smoke.xml, regresyon.xml   TestNG paketleri (bkz. Testleri çalıştırma)
-Jenkinsfile                            Jenkins pipeline'ı (bkz. Jenkins)
+  Generate-AllureReport.ps1   Yerelde (Windows) Allure raporunu ve history'yi üretir
+  generate-allure-report.sh   Aynı işin Linux/macOS karşılığı
+regression.xml, smoke.xml   TestNG paketleri (bkz. Testleri çalıştırma)
+Jenkinsfile                 Jenkins pipeline'ı, Linux/Kubernetes (bkz. Jenkins)
+.gitattributes              .sh dosyaları her zaman LF satır sonuyla saklanır
 ```
 
 ## Yazım kuralları
@@ -236,27 +261,42 @@ mvn exec:java "-Dexec.mainClass=com.bvakp.automation.mail.MailRunner" "-Dexec.cl
 
 ## Jenkins
 
-`Jenkinsfile` smoke paketini koşturur ve sonucu ne olursa olsun rapor mailini gönderir.
-1. `mvn clean test "-Dsuite.xml=smoke.xml"` (headless, `test.retry.count=1`; `RAPOR.html` üretilmez, Allure raporu Jenkins eklentisiyle oluşur).
-2. `post { always }`: JUnit sonuçları Jenkins'e yüklenir ve `MailRunner` çalışır. Mail gönderilemezse build **UNSTABLE** (sarı) olur; testler kırılırsa **FAILURE** (kırmızı).
+Tek bir `Jenkinsfile` vardır; Kubernetes üzerinde, Playwright'ın resmi Java imajıyla (`mcr.microsoft.com/playwright/java`) bir Linux pod'unda koşar. İmaj sürümü `pom.xml`'deki Playwright sürümüyle aynı olmalıdır.
+
+**Hangi ortamın test edileceği Jenkinsfile'da değil, her Jenkins'in kendi ayarındadır** (`BVAKP_ENV`). Aynı dosya iki Jenkins'te de değişmeden çalışır:
+
+| Jenkins | `BVAKP_ENV` | Okunan dosya |
+|---|---|---|
+| Contabo (Kubernetes) | `dev` | `env/dev.properties` |
+| VPN'li Jenkins (Kubernetes) | `test` | `env/test.properties` |
+
+`BVAKP_ENV` tanımlı değilse koşu en başta açık bir hata mesajıyla durur.
+
+Koşu adımları:
+1. `mvn -B clean test -Dsuite.xml=<SUITE>`: paket *Parametrelerle Yapılandır* ekranında seçilir (`regression.xml` varsayılan). Headless, `test.retry.count=1`, trace ve video kapalı; `RAPOR.html` üretilmez, Allure raporu Jenkins eklentisiyle oluşur.
+2. `post { always }`: JUnit sonuçları yüklenir, `ozet.html` ve ekran görüntüleri artefakt olarak saklanır, Allure raporu üretilir ve `MAIL_TO` tanımlıysa `MailRunner` çalışır. Mail gönderilemezse build **UNSTABLE** (sarı) olur; testler kırılırsa **FAILURE** (kırmızı).
+
+Zamanlama: yalnızca `main` dalında, hafta içi 08:00–18:00 arası saat başı regresyon. Diğer dallar (multibranch) yalnızca push ile koşar. Aynı anda tek koşu yapılır, bir koşu en fazla 50 dakika sürebilir. Pod UTC çalıştığı için saat dilimi `TZ` ve `-Duser.timezone` ile `Europe/Istanbul` yapılır; takvim testlerindeki "bugün" ve temizliğin yaş hesabı buna bağlıdır.
 
 Jenkins'te tanımlanması gerekenler:
 
 | Nerede | Ne |
 |---|---|
 | Jenkins'i Yönet → Credentials (*Secret text*) | `bvakp-password`, `bvakp-password-hazirlayan`, `bvakp-password-kvkk`, `bvakp-password-yayin`, `bvakp-portal-password-talep`, `bvakp-portal-password-onay`, `bvakp-mail-password` |
-| Jenkins'i Yönet → Sistem → Global özellikler → Ortam değişkenleri | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_FROM`, `MAIL_TO` |
-| Global Tool Configuration | `Maven` adında Maven kurulumu |
+| Jenkins'i Yönet → Credentials (*Secret text*) | ek olarak `bvakp-password-temizlik` |
+| Jenkins'i Yönet → Sistem → Global özellikler → Ortam değişkenleri | `BVAKP_ENV` (`dev` / `test`), `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_FROM`, `MAIL_TO` |
+| Eklentiler | Kubernetes, Allure (`allure` adında komut satırı aracı), JUnit |
 
 - Parolalar yalnızca Credentials'ta tutulur; Global özelliklere parola yazılmaz (orada düz metin görünür).
 - Jenkinsfile `BVAKP_TRACE_MODE=off` tanımlar; trace Jenkins'te üretilmez.
 - `.env.mail` Jenkins çalışma alanına kopyalanmaz.
-- Jenkinsfile şu an Windows agent içindir (`bat`). Linux agent'ta `bat` yerine `sh`, `copy /Y` yerine `cp` kullanılır.
-- Jenkins makinesi test ortamına (VPN gerektirmeden) erişebilmeli; Maven ve Playwright indirmeleri ile SMTP çıkışı açık olmalıdır.
+- Jenkinsfile'da Windows'a özgü komut yoktur (`bat`, `chcp`); bütün adımlar `sh` ile çalışır.
+- Kümenin, `BVAKP_ENV` ile seçilen ortama erişebilmesi gerekir (Contabo kümesi VPN'e erişemez, bu yüzden `dev`'i koşar). Maven indirmeleri ve SMTP çıkışı açık olmalıdır.
+- Chromium'un paralel koşuda çökmemesi için pod'a 1 GB `/dev/shm` bağlanır.
 
 ## Temizlik
 
-`cleanup.enabled=true` iken koşu sonunda `otomasyon_` önekli kaynaklar silinir. Temizlik yalnızca `cleanup.allowed.hosts` listesindeki ortamlarda çalışır; liste boşsa hiçbir şey silinmez. Canlı ortam bu listeye **eklenmemelidir**.
+`cleanup.enabled=true` iken koşu sonunda `otomasyon_` önekli kaynaklar silinir. Temizlik yalnızca `cleanup.allowed.hosts` listesindeki ortamlarda çalışır (her ortamın kendi dosyasında tanımlıdır); liste boşsa hiçbir şey silinmez. Canlı ortam bu listeye **eklenmemelidir**.
 
 ## Git'e eklenmeyenler
 
