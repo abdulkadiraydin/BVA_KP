@@ -121,6 +121,9 @@ spec:
 
             // Allure raporu: build sayfasında "Allure Report" linki olarak görünür.
             catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                // Testler playwright konteynerinde root olarak koşar; Allure eklentisi ise jnlp
+                // konteynerinde jenkins kullanıcısıyla çalışır ve klasöre yazamaz. Yazma izni ver.
+                sh 'chmod -R a+rwX target/allure-results || true'
                 allure commandline: 'allure', includeProperties: false, results: [[path: 'target/allure-results']]
             }
 
