@@ -5,6 +5,7 @@ import com.bvakp.automation.components.KaynakDuzenleModal;
 import com.bvakp.automation.components.KaynakEkleModal;
 import com.bvakp.automation.components.KaynakSilModal;
 import com.bvakp.automation.core.auth.PortalRol;
+import com.bvakp.automation.core.config.TestDataConfig;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.reporting.ReportManager;
@@ -25,15 +26,6 @@ import org.testng.asserts.SoftAssert;
  * oluşturulur; kaynak oluşturmanın kendisi kaynakOlusturma testinde adım adım doğrulanır.
  */
 public class OpenDataCreateTest extends AvpBaseTest {
-
-  /** Kaynak tablonun bulunduğu şema; Tablo alanı şema seçilmeden aktif olmaz. */
-  private static final String KAYNAK_SEMASI = "dwh";
-
-  private static final String KAYNAK_TABLOSU = "d_hat";
-  private static final String SORUMLU_BIRIM = "Bilgi Teknolojileri Daire Başkanlığı";
-  private static final String KATEGORI = "Yük Taşımacılığı";
-  private static final String KULLANIM_LISANSI = "Creative Commons Atıf (CC BY)";
-  private static final String MASKELENECEK_KOLON = "hat";
 
   /** Tek bir testin kullandığı Page, Page Object'ler ve flow. */
   private record TestContext(
@@ -80,9 +72,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
         "Test verisi | Kaynak: "
             + kaynakAdi
             + " | Şema: "
-            + KAYNAK_SEMASI
+            + TestDataConfig.kaynakSemasi()
             + " | Tablo: "
-            + KAYNAK_TABLOSU);
+            + TestDataConfig.kaynakTablosu());
 
     Assert.assertTrue(
         openDataPage.kaynakTabloSorguGoruntulendiMi(),
@@ -100,14 +92,16 @@ public class OpenDataCreateTest extends AvpBaseTest {
         kaynakEkleModal.kaynakAdiAlma(),
         kaynakAdi,
         "Kaynak adı alanındaki değer beklenenle uyuşmuyor.");
-    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
+    kaynakEkleModal.kaynakSemasiSecme(TestDataConfig.kaynakSemasi());
     Assert.assertEquals(
-        kaynakEkleModal.seciliSemayiAlma(), KAYNAK_SEMASI, "Seçilen şema beklenenle uyuşmuyor.");
+        kaynakEkleModal.seciliSemayiAlma(),
+        TestDataConfig.kaynakSemasi(),
+        "Seçilen şema beklenenle uyuşmuyor.");
 
-    kaynakEkleModal.kaynakTablosuSecme(KAYNAK_TABLOSU);
+    kaynakEkleModal.kaynakTablosuSecme(TestDataConfig.kaynakTablosu());
     Assert.assertEquals(
         kaynakEkleModal.seciliTabloyuAlma(),
-        KAYNAK_TABLOSU,
+        TestDataConfig.kaynakTablosu(),
         "Seçilen kaynak tablosu beklenenle uyuşmuyor.");
 
     kaynakEkleModal.kaynakAciklamasiGirme(kaynakAciklamasi);
@@ -146,7 +140,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
     String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_silinecek_kaynak");
     context
         .createFlow()
-        .createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon silme testi - " + kaynakAdi);
+        .createSource(
+            kaynakAdi, TestDataConfig.kaynakTablosu(), "Otomasyon silme testi - " + kaynakAdi);
 
     KaynakSilModal silModal = new KaynakSilModal(context.page());
 
@@ -179,7 +174,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
     context
         .createFlow()
         .createSource(
-            kaynakAdi, KAYNAK_TABLOSU, "Otomasyon kaynak görüntüleme testi - " + kaynakAdi);
+            kaynakAdi,
+            TestDataConfig.kaynakTablosu(),
+            "Otomasyon kaynak görüntüleme testi - " + kaynakAdi);
 
     ReportManager.step("Kaynak detayı açılıyor: " + kaynakAdi);
     openDataPage.kaynakGoruntulemeyeTiklama(kaynakAdi);
@@ -210,7 +207,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
     String yeniKaynakAdi = kaynakAdi + "_duzenlendi";
     String yeniAciklama = "Otomasyon kaynak düzenleme testi güncellendi - " + yeniKaynakAdi;
 
-    context.createFlow().createSource(kaynakAdi, KAYNAK_TABLOSU, aciklama);
+    context.createFlow().createSource(kaynakAdi, TestDataConfig.kaynakTablosu(), aciklama);
 
     KaynakDuzenleModal duzenleModal = new KaynakDuzenleModal(context.page());
 
@@ -257,7 +254,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
     String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_arama_kaynak");
     context
         .createFlow()
-        .createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon arama testi - " + kaynakAdi);
+        .createSource(
+            kaynakAdi, TestDataConfig.kaynakTablosu(), "Otomasyon arama testi - " + kaynakAdi);
 
     ReportManager.step("Pozitif arama: " + kaynakAdi);
     openDataPage.kaynakArama(kaynakAdi);
@@ -328,7 +326,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
     ReportManager.step("Ad girilip şema seçilerek, tablo boş bırakılarak Kaynak Ekle seçiliyor.");
     context.openDataPage().kaynakEklemeEkraniniAcma();
     kaynakEkleModal.kaynakAdiGirme(TestDataUtil.dinamikAdOlusturma("otomasyon_zorunlu_tablo"));
-    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
+    kaynakEkleModal.kaynakSemasiSecme(TestDataConfig.kaynakSemasi());
     kaynakEkleModal.kaynakEkleme();
 
     // Önce beklenen mesaj doğrulanır; ardından diğer mesajın olmadığı kontrol edilir.
@@ -353,8 +351,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
     ReportManager.step("Yalnızca şema ve tablo seçilerek Kaynak Ekle seçiliyor.");
     context.openDataPage().kaynakEklemeEkraniniAcma();
-    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
-    kaynakEkleModal.kaynakTablosuSecme(KAYNAK_TABLOSU);
+    kaynakEkleModal.kaynakSemasiSecme(TestDataConfig.kaynakSemasi());
+    kaynakEkleModal.kaynakTablosuSecme(TestDataConfig.kaynakTablosu());
     kaynakEkleModal.kaynakEkleme();
 
     Assert.assertTrue(
@@ -386,8 +384,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
     Assert.assertFalse(
         kaynakEkleModal.tabloAlaniAktifMi(), "Şema seçilmeden Tablo alanı aktif görünüyor.");
 
-    ReportManager.step("Şema seçiliyor: " + KAYNAK_SEMASI);
-    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
+    ReportManager.step("Şema seçiliyor: " + TestDataConfig.kaynakSemasi());
+    kaynakEkleModal.kaynakSemasiSecme(TestDataConfig.kaynakSemasi());
     Assert.assertTrue(
         kaynakEkleModal.tabloAlaniAktifMi(), "Şema seçildikten sonra Tablo alanı aktif olmadı.");
 
@@ -409,22 +407,12 @@ public class OpenDataCreateTest extends AvpBaseTest {
     String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_sorgu_kaynak");
     String aciklama = "Otomasyon hazır sorgu kaynak testi - " + kaynakAdi;
 
-    String sorgu =
-        """
-                SELECT
-                    EXTRACT(YEAR FROM planlanan_sefer_tarihi) AS yil,
-                    EXTRACT(MONTH FROM planlanan_sefer_tarihi) AS ay,
-                    yolcu_tren_tipi AS tren_turu,
-                    COUNT(*) AS toplam_sefer,
-                    ROUND(100.0 * SUM(CASE WHEN kalkis_tehiri_dk <= 0 THEN 1 ELSE 0 END)
-                        / NULLIF(COUNT(kalkis_tehiri_dk), 0), 2) AS zamaninda_kalkis_yuzdesi
-                FROM f_sefer_nakliye
-                WHERE planlanan_sefer_tarihi >= DATE '2026-07-01'
-                  AND planlanan_sefer_tarihi < DATE '2026-08-01'
-                GROUP BY
-                    EXTRACT(YEAR FROM planlanan_sefer_tarihi),
-                    EXTRACT(MONTH FROM planlanan_sefer_tarihi),
-                    yolcu_tren_tipi""";
+    String sema = TestDataConfig.kaynakSemasi();
+    String tablo = TestDataConfig.kaynakTablosu();
+    String kolon = TestDataConfig.maskelenecekKolon();
+
+    // Ortamdan bağımsız olsun diye sorgu ayardaki şema ve tablodan üretilir.
+    String sorgu = "SELECT * FROM " + sema + "." + tablo;
 
     ReportManager.step("Hazır Sorgu ile kaynak formu dolduruluyor: " + kaynakAdi);
     openDataPage.kaynakEklemeEkraniniAcma();
@@ -450,9 +438,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
     kaynakEkleModal.hazirSorguDogrulama();
 
     Assert.assertTrue(
-        kaynakEkleModal.hazirSorguKolonlariVarMi(
-            List.of("yil", "ay", "tren_turu", "toplam_sefer", "zamaninda_kalkis_yuzdesi")),
-        "Sorgu doğrulaması sonrasında beklenen kolonlar görüntülenemedi.");
+        kaynakEkleModal.hazirSorguKolonlariVarMi(List.of(kolon)),
+        "Sorgu doğrulaması sonrasında beklenen kolon görüntülenemedi: " + kolon);
     Assert.assertTrue(
         kaynakEkleModal.veriOnizlemeGoruntulendiMi(),
         "Hazır sorgu sonrasında Veri Önizleme bölümü görüntülenemedi.");
@@ -482,11 +469,13 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
     String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_update_kontrol");
 
+    String sema = TestDataConfig.kaynakSemasi();
+    String tablo = TestDataConfig.kaynakTablosu();
+    String kolon = TestDataConfig.maskelenecekKolon();
+
+    // WHERE 1 = 0: engellenmese bile hiçbir satırı değiştirmez.
     String sorgu =
-        """
-                    UPDATE yillik_hat_km
-                    SET yil = yil
-                    WHERE 1 = 0;""";
+        "UPDATE " + sema + "." + tablo + " SET " + kolon + " = " + kolon + " WHERE 1 = 0;";
 
     ReportManager.step("Hazır Sorgu alanına UPDATE sorgusu giriliyor: " + kaynakAdi);
     context.openDataPage().kaynakEklemeEkraniniAcma();
@@ -529,15 +518,18 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
     context
         .createFlow()
-        .createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon veri seti onay kaynağı - " + kaynakAdi);
+        .createSource(
+            kaynakAdi,
+            TestDataConfig.kaynakTablosu(),
+            "Otomasyon veri seti onay kaynağı - " + kaynakAdi);
 
     ReportManager.step("Kaynak veri seti için seçiliyor: " + kaynakAdi);
     openDataPage.kaynakSecme(kaynakAdi);
     Assert.assertTrue(openDataPage.kaynakSeciliMi(kaynakAdi), "Kaynak seçimi gerçekleştirilemedi.");
 
-    ReportManager.step(MASKELENECEK_KOLON + " alanına Maskele kuralı uygulanıyor.");
+    ReportManager.step(TestDataConfig.maskelenecekKolon() + " alanına Maskele kuralı uygulanıyor.");
     openDataPage.veriSetiIleriGitme();
-    openDataPage.kolonaMaskelemeKuraliUygulama(MASKELENECEK_KOLON);
+    openDataPage.kolonaMaskelemeKuraliUygulama(TestDataConfig.maskelenecekKolon());
 
     ReportManager.step("Katalog bilgileri dolduruluyor: " + veriSetiAdi);
     openDataPage.veriSetiAdiGirme(veriSetiAdi);
@@ -546,9 +538,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
         veriSetiAdi,
         "Veri Seti Adı alanındaki değer beklenenle uyuşmuyor.");
 
-    openDataPage.sorumluBirimSecme(SORUMLU_BIRIM);
-    openDataPage.kategoriSecme(KATEGORI);
-    openDataPage.kullanimLisansiSecme(KULLANIM_LISANSI);
+    openDataPage.sorumluBirimSecme(TestDataConfig.sorumluBirim());
+    openDataPage.kategoriSecme(TestDataConfig.kategori());
+    openDataPage.kullanimLisansiSecme(TestDataConfig.kullanimLisansi());
     openDataPage.veriSetiAciklamasiGirme(veriSetiAciklamasi);
     Assert.assertEquals(
         openDataPage.veriSetiAciklamasiAlma(),
@@ -582,7 +574,9 @@ public class OpenDataCreateTest extends AvpBaseTest {
     context
         .createFlow()
         .createSource(
-            kaynakAdi, KAYNAK_TABLOSU, "Otomasyon veri seti zorunlu alan testi - " + kaynakAdi);
+            kaynakAdi,
+            TestDataConfig.kaynakTablosu(),
+            "Otomasyon veri seti zorunlu alan testi - " + kaynakAdi);
 
     ReportManager.step("Kaynak seçiliyor ve katalog ekranına geçiliyor.");
     openDataPage.kaynakSecme(kaynakAdi);
@@ -604,8 +598,8 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
     ReportManager.step(
         "Sorumlu Birim ve Kategori seçiliyor, Veri Seti Adı boşken Önizle seçiliyor.");
-    openDataPage.sorumluBirimSecme(SORUMLU_BIRIM);
-    openDataPage.kategoriSecme(KATEGORI);
+    openDataPage.sorumluBirimSecme(TestDataConfig.sorumluBirim());
+    openDataPage.kategoriSecme(TestDataConfig.kategori());
     openDataPage.veriSetiAdiGirme("");
     Assert.assertEquals(openDataPage.veriSetiAdiAlma(), "", "Veri Seti Adı alanı boşaltılamadı.");
     openDataPage.veriSetiOnizleme();
@@ -631,26 +625,31 @@ public class OpenDataCreateTest extends AvpBaseTest {
 
     context
         .createFlow()
-        .createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon kolon maskeleme testi - " + kaynakAdi);
+        .createSource(
+            kaynakAdi,
+            TestDataConfig.kaynakTablosu(),
+            "Otomasyon kolon maskeleme testi - " + kaynakAdi);
 
     ReportManager.step(
-        "Kaynak seçiliyor ve " + MASKELENECEK_KOLON + " kolonuna Maskele kuralı uygulanıyor.");
+        "Kaynak seçiliyor ve "
+            + TestDataConfig.maskelenecekKolon()
+            + " kolonuna Maskele kuralı uygulanıyor.");
     openDataPage.kaynakSecme(kaynakAdi);
     Assert.assertTrue(
         openDataPage.kaynakSeciliMi(kaynakAdi), "Maskeleme testi için kaynak seçilemedi.");
     openDataPage.veriSetiIleriGitme();
-    openDataPage.kolonaMaskelemeKuraliUygulama(MASKELENECEK_KOLON);
+    openDataPage.kolonaMaskelemeKuraliUygulama(TestDataConfig.maskelenecekKolon());
 
     ReportManager.step("Katalog bilgileri dolduruluyor ve önizlemeye geçiliyor.");
     openDataPage.veriSetiAdiGirme(veriSetiAdi);
-    openDataPage.sorumluBirimSecme(SORUMLU_BIRIM);
-    openDataPage.kategoriSecme(KATEGORI);
+    openDataPage.sorumluBirimSecme(TestDataConfig.sorumluBirim());
+    openDataPage.kategoriSecme(TestDataConfig.kategori());
     openDataPage.veriSetiOnizleme();
 
     ReportManager.step("Önizlemede maskeleme doğrulanıyor.");
     Assert.assertTrue(
-        openDataPage.onizlemeKolonuGoruntulendiMi(MASKELENECEK_KOLON),
-        "Maskelenen kolon önizlemede görüntülenmedi: " + MASKELENECEK_KOLON);
+        openDataPage.onizlemeKolonuGoruntulendiMi(TestDataConfig.maskelenecekKolon()),
+        "Maskelenen kolon önizlemede görüntülenmedi: " + TestDataConfig.maskelenecekKolon());
     Assert.assertTrue(
         openDataPage.maskelendiBilgisiVarMi(),
         "Maskeleme uygulanan kolonda Maskelendi bilgisi görüntülenmedi.");
@@ -658,7 +657,7 @@ public class OpenDataCreateTest extends AvpBaseTest {
         openDataPage.maskelenmisVeriGoruntulendiMi(),
         "Anonimleştirilmiş önizlemede maskelenmiş veri bulunamadı.");
 
-    ReportManager.info("KOLON MASKELEME BAŞARILI | Kolon: " + MASKELENECEK_KOLON);
+    ReportManager.info("KOLON MASKELEME BAŞARILI | Kolon: " + TestDataConfig.maskelenecekKolon());
   }
 
   // =====================================================================

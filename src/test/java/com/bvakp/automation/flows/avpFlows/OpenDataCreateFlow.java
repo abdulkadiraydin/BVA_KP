@@ -3,6 +3,7 @@ package com.bvakp.automation.flows.avpFlows;
 import com.bvakp.automation.components.KaynakEkleModal;
 import com.bvakp.automation.core.auth.AvpOturum;
 import com.bvakp.automation.core.auth.PortalRol;
+import com.bvakp.automation.core.config.TestDataConfig;
 import com.bvakp.automation.model.KolonTanimi;
 import com.bvakp.automation.model.VeriSetiTanimi;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -25,9 +26,6 @@ public class OpenDataCreateFlow {
   private final Page page;
   private final OpenDataPage openDataPage;
   private final KaynakEkleModal kaynakEkleModal;
-
-  /** Kaynakların oluşturulduğu şema; test tablolarının (ör. d_hat) bulunduğu şema. */
-  private static final String KAYNAK_SEMASI = "dwh";
 
   public OpenDataCreateFlow(Page page) {
     this.page = page;
@@ -53,7 +51,7 @@ public class OpenDataCreateFlow {
         kaynakEkleModal.kaynakEkleFormuGoruntulendiMi(), "Ön koşul: Kaynak Ekle formu açılamadı.");
 
     kaynakEkleModal.kaynakAdiGirme(kaynakAdi);
-    kaynakEkleModal.kaynakSemasiSecme(KAYNAK_SEMASI);
+    kaynakEkleModal.kaynakSemasiSecme(TestDataConfig.kaynakSemasi());
     kaynakEkleModal.kaynakTablosuSecme(tabloAdi);
     kaynakEkleModal.kaynakAciklamasiGirme(aciklama);
 
@@ -110,9 +108,9 @@ public class OpenDataCreateFlow {
     List<KolonTanimi> kolonlar = openDataPage.alanTanimlariniOkuma();
 
     openDataPage.veriSetiAdiGirme(veriSetiAdi);
-    openDataPage.sorumluBirimSecme(sorumluBirim);
-    openDataPage.kategoriSecme(kategori);
-    openDataPage.kullanimLisansiSecme(kullanimLisansi);
+    String secilenSorumluBirim = openDataPage.sorumluBirimSecme(sorumluBirim);
+    String secilenKategori = openDataPage.kategoriSecme(kategori);
+    String secilenLisans = openDataPage.kullanimLisansiSecme(kullanimLisansi);
     openDataPage.veriSetiAciklamasiGirme(aciklama);
 
     openDataPage.veriSetiOnizleme();
@@ -126,9 +124,9 @@ public class OpenDataCreateFlow {
         veriSetiAdi,
         aciklama,
         kaynakAdi,
-        sorumluBirim,
-        kategori,
-        kullanimLisansi,
+        secilenSorumluBirim,
+        secilenKategori,
+        secilenLisans,
         kolonlar,
         onizlemeKayitlari,
         null);

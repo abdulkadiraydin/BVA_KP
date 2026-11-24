@@ -3,6 +3,7 @@ package com.bvakp.automation.tests.openData;
 import com.bvakp.automation.api.publicportal.PublicPortalApi;
 import com.bvakp.automation.base.AvpBaseTest;
 import com.bvakp.automation.core.auth.PortalRol;
+import com.bvakp.automation.core.config.TestDataConfig;
 import com.bvakp.automation.flows.avpFlows.OpenDataCreateFlow;
 import com.bvakp.automation.flows.avpFlows.OpenDataPublishFlow;
 import com.bvakp.automation.pages.openData.OpenDataPage;
@@ -22,15 +23,9 @@ import org.testng.annotations.Test;
  */
 public class OpenDataPublishTest extends AvpBaseTest {
 
-  private static final String KAYNAK_TABLOSU = "d_hat";
-  private static final String SORUMLU_BIRIM = "Bilgi Teknolojileri Daire Başkanlığı";
-  private static final String KATEGORI = "Yük Taşımacılığı";
-  private static final String KULLANIM_LISANSI = "Creative Commons Atıf (CC BY)";
-  private static final List<String> MASKELENECEK_KOLONLAR = List.of("hat");
-
   /** Detay ekranının Genel Bilgi sekmesinde bulunması gereken alanlar. */
   private static final List<String> DETAY_ALANLARI =
-      List.of("Açıklama", "Sorumlu Birim", "Kategori", "Versiyon", "Lisans");
+          List.of("Açıklama", "Sorumlu Birim", "Kategori", "Versiyon", "Lisans");
 
   /** Kamuya açık portala yansıma süresi (arama indeksi birkaç saniye geride kalabilir). */
   private static final int PORTAL_BEKLEME_SN = 60;
@@ -310,16 +305,18 @@ public class OpenDataPublishTest extends AvpBaseTest {
     String kaynakAdi = TestDataUtil.dinamikAdOlusturma("otomasyon_kaynak");
     String veriSeti = TestDataUtil.dinamikAdOlusturma(adOnEki);
 
-    ctx.createFlow().createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon kaynağı - " + kaynakAdi);
+    ctx.createFlow()
+        .createSource(
+            kaynakAdi, TestDataConfig.kaynakTablosu(), "Otomasyon kaynağı - " + kaynakAdi);
     ctx.createFlow()
         .createDataSetForApproval(
             kaynakAdi,
             veriSeti,
-            SORUMLU_BIRIM,
-            KATEGORI,
-            KULLANIM_LISANSI,
+            TestDataConfig.sorumluBirim(),
+            TestDataConfig.kategori(),
+            TestDataConfig.kullanimLisansi(),
             "Otomasyon veri seti - " + veriSeti,
-            MASKELENECEK_KOLONLAR);
+            List.of(TestDataConfig.maskelenecekKolon()));
 
     durumDogrulama(ctx, veriSeti, "KVKK Onayında");
     return veriSeti;

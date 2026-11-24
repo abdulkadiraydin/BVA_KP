@@ -353,6 +353,31 @@ public class OpenDataPublishPage extends BasePage {
         .click();
   }
 
+  /**
+   * Düzenleme ekranındaki açılır listede mevcut değerden farklı bir seçenek seçer ve seçilen metni
+   * döndürür. Tercih edilen değer verilmiş ve mevcut değerden farklıysa o seçilir; değilse mevcut
+   * değeri içermeyen ilk seçenek seçilir.
+   */
+  public String farkliSecenekSecme(String alanAdi, String tercih) {
+    Locator kutu = page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName(alanAdi));
+    String mevcut = kutu.innerText().trim();
+    kutu.click();
+
+    Locator secenekler = page.locator("li[role='option']:not([aria-disabled='true'])");
+    Locator secenek;
+    if (tercih != null && !tercih.isBlank() && !tercih.equals(mevcut)) {
+      secenek = secenekler.filter(new Locator.FilterOptions().setHasText(tercih)).first();
+    } else if (mevcut.isEmpty()) {
+      secenek = secenekler.first();
+    } else {
+      secenek = secenekler.filter(new Locator.FilterOptions().setHasNotText(mevcut)).first();
+    }
+
+    String secilen = secenek.innerText().trim();
+    secenek.click();
+    return secilen;
+  }
+
   /** Düzenleme ekranındaki açıklamayı doldurur. */
   public void enterDuzenlemeAciklama(String aciklama) {
     page.locator("textarea[name='description']").fill(aciklama);

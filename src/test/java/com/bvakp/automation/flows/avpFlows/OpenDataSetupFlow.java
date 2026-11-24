@@ -1,5 +1,6 @@
 package com.bvakp.automation.flows.avpFlows;
 
+import com.bvakp.automation.core.config.TestDataConfig;
 import com.bvakp.automation.model.VeriSetiTanimi;
 import com.bvakp.automation.model.YayinAyarlari;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
@@ -16,12 +17,6 @@ import org.testng.Assert;
  * yapar ve doğrular.
  */
 public class OpenDataSetupFlow {
-
-  private static final String KAYNAK_TABLOSU = "d_hat";
-  private static final String SORUMLU_BIRIM = "Bilgi Teknolojileri Daire Başkanlığı";
-  private static final String KATEGORI = "Yük Taşımacılığı";
-  private static final String KULLANIM_LISANSI = "Creative Commons Atıf (CC BY)";
-  private static final List<String> MASKELENECEK_KOLONLAR = List.of("hat");
 
   private final OpenDataCreateFlow createFlow;
   private final OpenDataPublishPage publishPage;
@@ -58,17 +53,18 @@ public class OpenDataSetupFlow {
 
     ReportManager.step("Ön koşul: yayında veri seti hazırlanıyor | " + veriSetiAdi);
 
-    createFlow.createSource(kaynakAdi, KAYNAK_TABLOSU, "Otomasyon kaynağı - " + kaynakAdi);
+    createFlow.createSource(
+        kaynakAdi, TestDataConfig.kaynakTablosu(), "Otomasyon kaynağı - " + kaynakAdi);
 
     VeriSetiTanimi tanim =
         createFlow.createDataSetForApproval(
             kaynakAdi,
             veriSetiAdi,
-            SORUMLU_BIRIM,
-            KATEGORI,
-            KULLANIM_LISANSI,
+            TestDataConfig.sorumluBirim(),
+            TestDataConfig.kategori(),
+            TestDataConfig.kullanimLisansi(),
             "Otomasyon veri seti - " + veriSetiAdi,
-            MASKELENECEK_KOLONLAR);
+            List.of(TestDataConfig.maskelenecekKolon()));
     Assert.assertTrue(
         publishPage.durumaGectiMi(veriSetiAdi, "KVKK Onayında"),
         "Ön koşul: veri seti KVKK Onayında olmadı.");

@@ -2,6 +2,9 @@ package com.bvakp.automation.core.config;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -133,13 +136,14 @@ public final class ConfigManager {
 
     try (InputStream classpath = ConfigManager.class.getClassLoader().getResourceAsStream(kaynak)) {
 
+      // Türkçe değerler için UTF-8 okunur; load(InputStream) dosyayı Latin-1 sanar.
       if (classpath != null) {
-        properties.load(classpath);
+        properties.load(new InputStreamReader(classpath, StandardCharsets.UTF_8));
         return;
       }
       if (Files.exists(dosya)) {
-        try (InputStream stream = Files.newInputStream(dosya)) {
-          properties.load(stream);
+        try (Reader okuyucu = Files.newBufferedReader(dosya, StandardCharsets.UTF_8)) {
+          properties.load(okuyucu);
         }
         return;
       }

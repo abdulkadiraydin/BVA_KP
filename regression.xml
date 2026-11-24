@@ -5,7 +5,7 @@
   Bütün test sınıfları, metot düzeyinde paralel (3 thread).
   Test ortamı 3'ten fazla paralel koşuya yetişemiyor (5'te tablolar yüklenmedi); artırmayın.
   AVP girişleri AvpOturum'da sıraya alındığı için Keycloak kilitlenmez.
-  Çalıştırma: mvn test "-Dsuite.xml=paralel.xml"
+  Çalıştırma: mvn test "-Dsuite.xml=regression.xml"
 -->
 <suite name="BVA KP - Paralel" parallel="methods" thread-count="3" verbose="1">
     <listeners>

@@ -2,6 +2,7 @@ package com.bvakp.automation.flows.avpFlows;
 
 import com.bvakp.automation.core.auth.AvpOturum;
 import com.bvakp.automation.core.auth.PortalRol;
+import com.bvakp.automation.core.config.TestDataConfig;
 import com.bvakp.automation.model.YayinAyarlari;
 import com.bvakp.automation.pages.openData.OpenDataPage;
 import com.bvakp.automation.pages.openData.OpenDataPublishPage;
@@ -20,8 +21,6 @@ import org.testng.Assert;
  */
 public class OpenDataPublishFlow {
 
-  private static final String DUZENLEME_SORUMLU_BIRIM = "Yolcu Taşımacılığı Daire Başkanlığı";
-  private static final String DUZENLEME_KATEGORI = "Yolcu İstatistikleri";
   private static final String YAYIN_ACIKLAMASI =
       "Otomasyon testi kapsamında yayınlama işlemi gerçekleştirilmiştir.";
 
@@ -118,16 +117,17 @@ public class OpenDataPublishFlow {
     rolIleVeriSetiYonetiminiAcma(rol);
     publishPage.clickDuzenle(dataSetName);
 
-    publishPage.selectDropdown("Sorumlu Birim", DUZENLEME_SORUMLU_BIRIM);
-    publishPage.selectDropdown("Kategori", DUZENLEME_KATEGORI);
+    String yeniSorumluBirim =
+        publishPage.farkliSecenekSecme("Sorumlu Birim", TestDataConfig.duzenlemeSorumluBirim());
+    String yeniKategori =
+        publishPage.farkliSecenekSecme("Kategori", TestDataConfig.duzenlemeKategori());
     publishPage.enterDuzenlemeAciklama(yeniAciklama);
 
     publishPage.clickDuzenlemeKaydet();
     publishPage.bildirimBekleme("Veri seti güncellendi");
 
     Assert.assertTrue(
-        publishPage.kaydedilenDegerlerGorunuyorMu(
-            DUZENLEME_SORUMLU_BIRIM, DUZENLEME_KATEGORI, yeniAciklama),
+        publishPage.kaydedilenDegerlerGorunuyorMu(yeniSorumluBirim, yeniKategori, yeniAciklama),
         "Ön koşul: düzenlenen değerler (sorumlu birim, kategori, açıklama) ekranda görünmedi.");
 
     ReportManager.step("Değişiklikler onaya gönderiliyor: " + dataSetName);

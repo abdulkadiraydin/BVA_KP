@@ -331,33 +331,38 @@ public class OpenDataPage extends BasePage {
     return page.getByLabel("Veri Seti Adı *").inputValue();
   }
 
-  /** Sorumlu birimi seçer. */
-  public void sorumluBirimSecme(String sorumluBirim) {
-    page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Sorumlu Birim")).click();
-
-    page.locator("[role='listbox'] [role='option']")
-        .filter(new Locator.FilterOptions().setHasText(sorumluBirim))
-        .click();
+  /** Sorumlu Birim seçer; değer boşsa ilk seçeneği seçer. Seçilen metni döndürür. */
+  public String sorumluBirimSecme(String sorumluBirim) {
+    return listedenSecme("Sorumlu Birim", sorumluBirim);
   }
 
-  /** Veri seti kategorisini seçer. */
-  public void kategoriSecme(String kategori) {
-
-    page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Kategori")).click();
-
-    page.locator("[role='listbox'] [role='option']")
-        .filter(new Locator.FilterOptions().setHasText(kategori))
-        .click();
+  /** Veri seti kategorisini seçer; değer boşsa ilk seçeneği seçer. Seçilen metni döndürür. */
+  public String kategoriSecme(String kategori) {
+    return listedenSecme("Kategori", kategori);
   }
 
-  /** Kullanım lisansını seçer. */
-  public void kullanimLisansiSecme(String lisans) {
-    page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Kullanım Lisansı"))
-        .click();
+  /** Kullanım lisansını seçer; değer boşsa ilk seçeneği seçer. Seçilen metni döndürür. */
+  public String kullanimLisansiSecme(String lisans) {
+    return listedenSecme("Kullanım Lisansı", lisans);
+  }
 
-    page.locator("[role='listbox'] [role='option']")
-        .filter(new Locator.FilterOptions().setHasText(lisans))
-        .click();
+  /**
+   * Açılır listeden verilen metni içeren seçeneği seçer; değer boşsa ilk seçilebilir seçeneği
+   * seçer. Ortamlar arasında liste içerikleri farklı olduğu için seçilen gerçek metin döndürülür.
+   */
+  private String listedenSecme(String alanAdi, String deger) {
+    page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName(alanAdi)).click();
+
+    Locator secenekler =
+        page.locator("[role='listbox'] [role='option']:not([aria-disabled='true'])");
+    Locator secenek =
+        (deger == null || deger.isBlank())
+            ? secenekler.first()
+            : secenekler.filter(new Locator.FilterOptions().setHasText(deger)).first();
+
+    String secilen = secenek.innerText().trim();
+    secenek.click();
+    return secilen;
   }
 
   /** Veri seti açıklamasını girer. */
