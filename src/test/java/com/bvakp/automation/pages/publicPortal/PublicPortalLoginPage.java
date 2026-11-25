@@ -105,6 +105,9 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
   public void gercekGirisYapma(PublicPortalRol rol) {
     anaSayfaAcma();
     girisEkraniniAcma();
+    // ALTCHA kutusu sayfayla birlikte yüklenir; ekran açılmadan forma geçilirse kutu bulunamaz
+    // ve form doğrulamasız gönderilir ("Robot olmadığınızı doğrulayın").
+    girisEkraniAcikMi();
     girisYapma(rol.kullaniciAdi(), rol.parola());
   }
 

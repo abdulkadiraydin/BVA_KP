@@ -37,7 +37,9 @@ public class LoginPage extends BasePage {
     this.sifreAlani = page.locator("#password");
     this.girisButonu = page.locator("#kc-login").or(page.locator("form button[type='submit']"));
 
-    this.girisHataMesaji = page.locator("#input-error-username");
+    // Keycloak'ın standart mesaj class'ı; dev ve test temalarında kutu id'leri farklı
+    // (#input-error-username / #input-error) ama mesaj ikisinde de bu class'ta.
+    this.girisHataMesaji = page.locator(".kc-feedback-text").first();
 
     this.gostergePanosu =
         page.getByLabel("breadcrumb")

@@ -4,6 +4,7 @@ import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.pages.BasePage;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.TimeoutError;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitForSelectorState;
@@ -111,8 +112,13 @@ public abstract class PublicPortalBasePage extends BasePage {
    * hata/süre dolumu durumunda kalırsa tıklanır.
    */
   protected void robotDogrulamasiniTamamlama(Locator kapsam) {
-    // Widget etiketi sunucudan gelir; sayfa yüklendiğinde ya vardır ya yoktur.
-    if (kapsam.locator("altcha-widget").count() == 0) {
+// ALTCHA kutusu giriş alanlarından biraz sonra yüklenir; count() beklemediği için kutu henüz
+// yokken 0 döner ve doğrulama atlanırdı. Kutu birkaç saniye beklenir, gelmezse sayfada ALTCHA yoktur.
+    try {
+      kapsam.locator("altcha-widget").first().waitFor(new Locator.WaitForOptions()
+              .setState(WaitForSelectorState.ATTACHED)
+              .setTimeout(10_000));
+    } catch (TimeoutError e) {
       return;
     }
 
