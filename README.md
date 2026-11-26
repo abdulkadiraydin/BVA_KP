@@ -239,7 +239,11 @@ Kırılan test `test.retry.count` kadar tekrar denenir (varsayılan `0`; Jenkins
 
 ## Mail
 
-- **Rapor maili:** Koşu bittikten sonra `MailRunner` ayrı bir süreç olarak çalıştırılır. Ekte `BVA_KP_Test_Raporu_<tarih>.zip` vardır; içinde `ozet.html` ve ekran görüntüleri bulunur. `RAPOR.html`, video ve trace boyut ve hassas veri nedeniyle maile eklenmez.
+- **Rapor maili:** Koşu bittikten sonra `MailRunner` ayrı bir süreç olarak çalıştırılır.
+  - Gövde: durum, ortam, sayılar; hatalı/atlanan testler hata mesajlarıyla; bütün testlerin sonuç ve süre tablosu. Jenkins'te build ve Allure rapor linkleri de eklenir (`BUILD_URL`).
+  - Ek: `BVA_KP_Test_Raporu_<tarih>.zip`; içinde `ozet.html` ve `kanitlar` altındaki bütün ekran görüntüleri (test sonu, test içinde alınan ve teste bağlanamayan) bulunur. `RAPOR.html`, video ve trace boyut ve hassas veri nedeniyle maile eklenmez.
+  - ZIP `MAIL_MAX_EK_MB` sınırını aşarsa mail eksiz gider; görüntüler Jenkins build arşivinde kalır.
+  - Test bazındaki sonuçlar koşu sonunda `target/test-sonuclari.json` dosyasına yazılır.
 - **Rapor durumu:** Başarısız veya atlanan test varsa ya da hiç test koşmadıysa `HATALI`, aksi halde `BASARILI`.
 - **Hata alarm maili:** Varsayılan olarak kapalıdır (`failure.tracking.enabled=false`). Açıksa, bir test art arda `failure.alert.threshold` kez kırıldığında test koşarken gönderilir; aynı test için günde en fazla bir kez. Test geçince sayaç sıfırlanır.
 - SMTP ayarları önce ortam değişkenlerinden, yoksa proje kökündeki `.env.mail` dosyasından okunur:
@@ -252,6 +256,7 @@ Kırılan test `test.retry.count` kadar tekrar denenir (varsayılan `0`; Jenkins
 | `MAIL_FROM` | Gönderen adres (Gmail'de `MAIL_USERNAME` ile aynı) |
 | `MAIL_TO` | Alıcılar, virgülle ayrılmış |
 | `MAIL_STARTTLS` | STARTTLS (varsayılan `true`) |
+| `MAIL_MAX_EK_MB` | Rapor ZIP'inin eklenebileceği en büyük boyut, MB (varsayılan `10`; ek base64 ile ~%33 büyür) |
 
 Rapor mailini elle göndermek için (son koşunun özeti):
 
