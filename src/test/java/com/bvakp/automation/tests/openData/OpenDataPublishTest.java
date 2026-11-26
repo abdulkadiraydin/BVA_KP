@@ -25,7 +25,7 @@ public class OpenDataPublishTest extends AvpBaseTest {
 
   /** Detay ekranının Genel Bilgi sekmesinde bulunması gereken alanlar. */
   private static final List<String> DETAY_ALANLARI =
-          List.of("Açıklama", "Sorumlu Birim", "Kategori", "Versiyon", "Lisans");
+      List.of("Açıklama", "Sorumlu Birim", "Kategori", "Versiyon", "Lisans");
 
   /** Kamuya açık portala yansıma süresi (arama indeksi birkaç saniye geride kalabilir). */
   private static final int PORTAL_BEKLEME_SN = 60;
