@@ -1,10 +1,12 @@
 package com.bvakp.automation.utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -17,6 +19,9 @@ import java.util.Properties;
 public final class TestResultSummaryUtil {
 
   private static final Path SUMMARY_FILE = Paths.get("target", "test-summary.properties");
+
+  /** TestSummaryWriter ile aynı dosya olmalıdır. */
+  static final Path SONUCLAR_DOSYASI = Paths.get("target", "test-sonuclari.json");
 
   private TestResultSummaryUtil() {}
 
@@ -45,6 +50,33 @@ public final class TestResultSummaryUtil {
       throw new RuntimeException("Test özet dosyası okunurken hata oluştu.", e);
     }
   }
+
+  /**
+   * Son koşudaki her testin sonucunu çalışma sırasıyla okur. Dosya yoksa veya okunamazsa boş liste
+   * döner; mail bu durumda yalnızca sayılarla gider.
+   */
+  public static List<TestSonucu> testSonuclariniAl() {
+
+    if (!Files.exists(SONUCLAR_DOSYASI)) {
+      System.err.println("Test sonuçları dosyası bulunamadı: " + SONUCLAR_DOSYASI.toAbsolutePath());
+      return List.of();
+    }
+
+    try {
+      return List.of(new ObjectMapper().readValue(SONUCLAR_DOSYASI.toFile(), TestSonucu[].class));
+    } catch (IOException e) {
+      System.err.println("Test sonuçları dosyası okunamadı: " + e.getMessage());
+      return List.of();
+    }
+  }
+
+  /**
+   * Tek bir testin sonucu.
+   *
+   * @param durum BASARILI, HATALI veya ATLANDI
+   * @param hata hata veya atlanma sebebi; başarılı testte null
+   */
+  public record TestSonucu(String sinif, String test, String durum, long sureMs, String hata) {}
 
   /** Koşudaki toplam, başarılı, başarısız ve atlanan test sayıları. */
   public record TestSummary(int toplam, int basarili, int basarisiz, int atlanan) {

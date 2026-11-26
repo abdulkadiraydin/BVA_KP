@@ -16,9 +16,10 @@ import java.util.zip.ZipOutputStream;
 /**
  * Son test koşusundan mail eki ZIP'i oluşturur.
  *
- * <p>ZIP'e yalnızca maille paylaşılması uygun içerik girer: ozet.html ve kanitlar altındaki ekran
- * görüntüleri (ozet.html bunları bağıl yolla gösterir). RAPOR.html, video, trace ve teknik klasörü
- * boyut ve hassas veri nedeniyle eklenmez; bunlar reports/kosular arşivinde kalır.
+ * <p>ZIP'e yalnızca maille paylaşılması uygun içerik girer: ozet.html ve kanitlar altındaki bütün
+ * ekran görüntüleri (ozet.html test sonu görüntülerini bağıl yolla gösterir). RAPOR.html, video,
+ * trace ve teknik klasörü boyut ve hassas veri nedeniyle eklenmez; bunlar reports/kosular arşivinde
+ * kalır.
  */
 public final class ReportZipUtil {
 
@@ -127,7 +128,11 @@ public final class ReportZipUtil {
     }
   }
 
-  /** Yalnızca kökteki ozet.html ve kanitlar altındaki ekran*.png dosyaları. */
+  /**
+   * Yalnızca kökteki ozet.html ve kanitlar altındaki bütün PNG'ler: test sonu ekran görüntüleri
+   * (ekran.png), test içinde elle alınanlar (kaynak_arama_pozitif.png) ve teste bağlanamayanlar
+   * (_eslesmeyen).
+   */
   private static boolean zipeEklensinMi(Path goreliYol) {
 
     String ad = goreliYol.getFileName().toString();
@@ -136,8 +141,6 @@ public final class ReportZipUtil {
       return "ozet.html".equals(ad);
     }
 
-    return "kanitlar".equals(goreliYol.getName(0).toString())
-        && ad.startsWith("ekran")
-        && ad.endsWith(".png");
+    return "kanitlar".equals(goreliYol.getName(0).toString()) && ad.endsWith(".png");
   }
 }
