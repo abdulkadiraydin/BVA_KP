@@ -112,12 +112,17 @@ public abstract class PublicPortalBasePage extends BasePage {
    * hata/süre dolumu durumunda kalırsa tıklanır.
    */
   protected void robotDogrulamasiniTamamlama(Locator kapsam) {
-// ALTCHA kutusu giriş alanlarından biraz sonra yüklenir; count() beklemediği için kutu henüz
-// yokken 0 döner ve doğrulama atlanırdı. Kutu birkaç saniye beklenir, gelmezse sayfada ALTCHA yoktur.
+    // ALTCHA kutusu giriş alanlarından biraz sonra yüklenir; count() beklemediği için kutu henüz
+    // yokken 0 döner ve doğrulama atlanırdı. Kutu birkaç saniye beklenir, gelmezse sayfada ALTCHA
+    // yoktur.
     try {
-      kapsam.locator("altcha-widget").first().waitFor(new Locator.WaitForOptions()
-              .setState(WaitForSelectorState.ATTACHED)
-              .setTimeout(10_000));
+      kapsam
+          .locator("altcha-widget")
+          .first()
+          .waitFor(
+              new Locator.WaitForOptions()
+                  .setState(WaitForSelectorState.ATTACHED)
+                  .setTimeout(10_000));
     } catch (TimeoutError e) {
       return;
     }

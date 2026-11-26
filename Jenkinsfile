@@ -42,9 +42,11 @@ spec:
     }
 
     triggers {
-        // Yalnızca main dalında, hafta içi 08:00–18:00 arası saat başı (H: Jenkins'in seçtiği sabit dakika).
-        // Multibranch'te her dal kendi job'ıdır; diğer dallar yalnızca push ile koşar.
-        cron(env.BRANCH_NAME == 'main' ? 'H 8-18 * * 1-5' : '')
+        // Yalnızca main dalında, her gece 02:00'de (Türkiye saati).
+        // Jenkins sunucusu UTC'de çalıştığı için saat dilimi cron'un başında belirtilir;
+        // yazılmazsa koşu Türkiye saatiyle 05:00'te başlar.
+        // Kod geldiğinde koşu ayrıca GitHub push bildirimiyle başlar (Jenkinsfile'dan bağımsız).
+        cron(env.BRANCH_NAME == 'main' ? 'TZ=Europe/Istanbul\n0 2 * * *' : '')
     }
 
     options {
