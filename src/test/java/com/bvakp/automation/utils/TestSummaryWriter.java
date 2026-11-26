@@ -1,11 +1,14 @@
 package com.bvakp.automation.utils;
 
 import com.bvakp.automation.reporting.ReportManager;
+import com.bvakp.automation.utils.TestResultSummaryUtil.TestSonucu;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -40,6 +43,22 @@ public final class TestSummaryWriter {
 
     } catch (IOException e) {
       throw new RuntimeException("Test özet dosyası oluşturulurken hata oluştu.", e);
+    }
+  }
+
+  /** Her testin sonucunu JSON olarak yazar; rapor maili test bazında tabloyu bundan üretir. */
+  public static void sonuclariYaz(List<TestSonucu> sonuclar) {
+
+    Path dosya = TestResultSummaryUtil.SONUCLAR_DOSYASI;
+
+    try {
+      Files.createDirectories(dosya.getParent());
+      new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(dosya.toFile(), sonuclar);
+
+      ReportManager.info("Test sonuçları dosyası oluşturuldu: " + dosya.toAbsolutePath());
+
+    } catch (IOException e) {
+      throw new RuntimeException("Test sonuçları dosyası oluşturulurken hata oluştu.", e);
     }
   }
 }

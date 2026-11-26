@@ -243,6 +243,7 @@ public class TestListener
 
     try {
       TestSummaryWriter.yaz(toplam, basarili, basarisiz, atlanan);
+      TestSummaryWriter.sonuclariYaz(HtmlReportManager.getSonuclar());
     } catch (RuntimeException e) {
       ReportManager.error("Test özet dosyası yazılamadı: " + e.getMessage(), e);
     }

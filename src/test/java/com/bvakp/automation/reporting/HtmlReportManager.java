@@ -1,5 +1,6 @@
 package com.bvakp.automation.reporting;
 
+import com.bvakp.automation.utils.TestResultSummaryUtil.TestSonucu;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -126,6 +127,16 @@ public final class HtmlReportManager {
     }
 
     return new ArrayList<>(classNames);
+  }
+
+  /** Bütün testlerin sonucunu başlama sırasıyla döndürür (rapor maili için). */
+  public static List<TestSonucu> getSonuclar() {
+    return getAllTestsInOrder().stream()
+        .map(
+            test ->
+                new TestSonucu(
+                    test.className, test.testName, test.status, test.duration, test.errorMessage))
+        .toList();
   }
 
   /**

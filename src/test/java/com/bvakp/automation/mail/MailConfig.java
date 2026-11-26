@@ -14,6 +14,8 @@ public final class MailConfig {
   private static final Dotenv DOTENV =
       Dotenv.configure().filename(".env.mail").ignoreIfMissing().load();
 
+  private static final long VARSAYILAN_MAX_EK_MB = 10L;
+
   private MailConfig() {}
 
   /** SMTP sunucu adresi. */
@@ -55,6 +57,22 @@ public final class MailConfig {
   public static boolean startTlsEnabled() {
     String value = getValue("MAIL_STARTTLS");
     return value == null || Boolean.parseBoolean(value);
+  }
+
+  /**
+   * Rapor ZIP'inin maile eklenebileceği en büyük boyut (MB). Ek base64 ile yaklaşık %33 büyür; SMTP
+   * sunucusunun mesaj sınırı bunu karşılamalıdır. Tanımlı değilse 10.
+   */
+  public static long maxEkBoyutuMb() {
+    String value = getValue("MAIL_MAX_EK_MB");
+    if (value == null) {
+      return VARSAYILAN_MAX_EK_MB;
+    }
+    try {
+      return Long.parseLong(value);
+    } catch (NumberFormatException e) {
+      throw new IllegalStateException("Geçersiz MAIL_MAX_EK_MB değeri: " + value, e);
+    }
   }
 
   /** Önce ortam değişkeninde, sonra .env.mail dosyasında arar; bulamazsa null döner. */
