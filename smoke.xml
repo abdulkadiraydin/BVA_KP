@@ -36,6 +36,12 @@
                     <include name="apiKayitlariMaskelidir"/>
                 </methods>
             </class>
+            <class name="com.bvakp.automation.tests.publicPortal.PublicPortalLoginTest">
+                <methods>
+                    <include name="basariliGirisYapma"/>
+                    <include name="hataliSifreIleGirisEngellenir"/>
+                </methods>
+            </class>
         </classes>
     </test>
 </suite>

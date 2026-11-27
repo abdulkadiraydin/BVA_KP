@@ -2,6 +2,7 @@ package com.bvakp.automation.pages.publicPortal;
 
 import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.pages.BasePage;
+import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.TimeoutError;
@@ -23,6 +24,11 @@ public abstract class PublicPortalBasePage extends BasePage {
 
   /** ALTCHA doğrulaması tarayıcıda hesaplama yapar; yoğun makinede 10 sn'yi aşabilir. */
   private static final double ALTCHA_TIMEOUT_MS = 120_000;
+
+  /**
+   * ALTCHA kutusunun sayfaya eklenmesi için üst sınır (yavaş CI makinesinde script geç yüklenir).
+   */
+  private static final double ALTCHA_EKLENME_TIMEOUT_MS = 30_000;
 
   protected PublicPortalBasePage(Page page) {
     super(page);
@@ -112,9 +118,6 @@ public abstract class PublicPortalBasePage extends BasePage {
    * hata/süre dolumu durumunda kalırsa tıklanır.
    */
   protected void robotDogrulamasiniTamamlama(Locator kapsam) {
-    // ALTCHA kutusu giriş alanlarından biraz sonra yüklenir; count() beklemediği için kutu henüz
-    // yokken 0 döner ve doğrulama atlanırdı. Kutu birkaç saniye beklenir, gelmezse sayfada ALTCHA
-    // yoktur.
     try {
       kapsam
           .locator("altcha-widget")
@@ -122,11 +125,11 @@ public abstract class PublicPortalBasePage extends BasePage {
           .waitFor(
               new Locator.WaitForOptions()
                   .setState(WaitForSelectorState.ATTACHED)
-                  .setTimeout(10_000));
+                  .setTimeout(ALTCHA_EKLENME_TIMEOUT_MS));
     } catch (TimeoutError e) {
+      ReportManager.warn("ALTCHA kutusu sayfada bulunamadı; robot doğrulaması atlandı.");
       return;
     }
-
     kapsam
         .locator("altcha-widget .altcha")
         .waitFor(
@@ -146,5 +149,6 @@ public abstract class PublicPortalBasePage extends BasePage {
     kapsam
         .locator("altcha-widget .altcha[data-state='verified']")
         .waitFor(new Locator.WaitForOptions().setTimeout(ALTCHA_TIMEOUT_MS));
+    ReportManager.info("ALTCHA doğrulandı.");
   }
 }

@@ -2,6 +2,7 @@ package com.bvakp.automation.pages.publicPortal;
 
 import com.bvakp.automation.core.auth.PublicPortalAuthStateManager;
 import com.bvakp.automation.core.auth.PublicPortalRol;
+import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -83,7 +84,8 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     String kullanici = rol.kullaniciAdi();
 
     synchronized (PublicPortalAuthStateManager.kilit(rol)) {
-      if (PublicPortalAuthStateManager.oturumuYukleme(page.context(), rol)) {
+      if (kayitliOturumKullanilsinMi()
+          && PublicPortalAuthStateManager.oturumuYukleme(page.context(), rol)) {
         anaSayfaAcma();
         if (girisYapildiMi(kullanici)) {
           ReportManager.info("Kayıtlı oturumla açıldı | Rol: " + rol + " | " + kullanici);
@@ -99,6 +101,12 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
         ReportManager.info("Giriş yapıldı, oturum kaydedildi | Rol: " + rol + " | " + kullanici);
       }
     }
+  }
+
+  /** public.portal.auth.state.reuse=false ise kayıtlı oturum kullanılmaz; her test giriş yapar. */
+  private static boolean kayitliOturumKullanilsinMi() {
+    return Boolean.parseBoolean(
+        ConfigManager.getOrDefault("public.portal.auth.state.reuse", "true"));
   }
 
   /** Kayıtlı oturum kullanmadan giriş ekranından giriş yapar. */
