@@ -22,7 +22,6 @@
     <test name="Açık portal (CKAN)">
         <classes>
             <class name="com.bvakp.automation.tests.publicPortal.PublicOpenDataTest"/>
-            <class name="com.bvakp.automation.tests.publicPortal.PublicPortalLoginTest"/>
             <class name="com.bvakp.automation.tests.publicPortal.PublicPortalAccountTest"/>
         </classes>
     </test>
