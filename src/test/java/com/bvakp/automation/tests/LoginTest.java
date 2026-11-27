@@ -17,7 +17,7 @@ public class LoginTest extends BaseTest {
 
   private static final String HATALI_KULLANICI_ADI = "hatali.kullaniciadi";
   private static final String HATALI_SIFRE = "HataliSifre123!";
-  private static final String GIRIS_HATA_MESAJI = "Invalid username or password.";
+  private static final String GIRIS_HATA_MESAJI = "Kullanıcı adı veya şifre hatalı.";
 
   /** Giriş ekranını açar ve temel alanların görüntülendiğini doğrular. */
   private LoginPage girisEkraniniAc() {
