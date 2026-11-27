@@ -127,7 +127,17 @@ public abstract class PublicPortalBasePage extends BasePage {
                   .setState(WaitForSelectorState.ATTACHED)
                   .setTimeout(ALTCHA_EKLENME_TIMEOUT_MS));
     } catch (TimeoutError e) {
-      ReportManager.warn("ALTCHA kutusu sayfada bulunamadı; robot doğrulaması atlandı.");
+      // GEÇİCİ TEŞHİS: Jenkins'te robot doğrulaması yerine ne geldiğini görmek için
+      String html = page.content();
+      int konum = html.toLowerCase().indexOf("robot");
+      ReportManager.warn(
+          "ALTCHA kutusu sayfada bulunamadı; robot doğrulaması atlandı. Adres: "
+              + page.url()
+              + " | Robot bölümü: "
+              + (konum < 0
+                  ? "sayfada 'robot' geçmiyor"
+                  : html.substring(
+                      Math.max(0, konum - 800), Math.min(html.length(), konum + 300))));
       return;
     }
     kapsam
