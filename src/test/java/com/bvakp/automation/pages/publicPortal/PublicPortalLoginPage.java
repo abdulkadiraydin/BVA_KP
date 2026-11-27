@@ -6,6 +6,7 @@ import com.bvakp.automation.core.config.ConfigManager;
 import com.bvakp.automation.reporting.ReportManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.TimeoutError;
 import com.microsoft.playwright.options.AriaRole;
 import java.util.regex.Pattern;
 
@@ -16,6 +17,9 @@ import java.util.regex.Pattern;
  * metot yeniden çağrılır.
  */
 public class PublicPortalLoginPage extends PublicPortalBasePage {
+
+  /** Giriş gönderildikten sonra sonucun (hesap menüsü ya da uyarı) gelmesi için üst sınır. */
+  private static final double GIRIS_SONUCU_TIMEOUT_MS = 15_000;
 
   private final Locator girisLinki;
   private final Locator kullaniciAdiAlani;
@@ -67,12 +71,21 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     girisLinki.click();
   }
 
-  /** Kullanıcı adı ve şifreyi girer, robot doğrulamasını bekler ve Giriş Yap'a tıklar. */
+  /**
+   * Kullanıcı adı ve şifreyi girer, robot doğrulamasını bekler ve Giriş Yap'a tıklar.
+   *
+   * <p>Sunucu, aynı IP'den çok başarısız giriş gelince ALTCHA'yı giriş sayfasında göstermeden
+   * zorunlu tutabiliyor; form "Robot olmadığınızı doğrulayın" ile döner ve kutu ancak o zaman
+   * görünür. Bu durumda gerçek kullanıcı gibi form tekrar doldurulup doğrulanarak gönderilir.
+   */
   public void girisYapma(String kullaniciAdi, String sifre) {
-    kullaniciAdiAlani.fill(kullaniciAdi);
-    sifreAlani.fill(sifre);
-    robotDogrulamasiniTamamlama(page.getByRole(AriaRole.MAIN));
-    girisButonu.click();
+    formuDoldurupGonderme(kullaniciAdi, sifre);
+
+    if (robotUyarisiGeldiMi()) {
+      ReportManager.warn(
+          "Sunucu robot doğrulaması istedi; ALTCHA tamamlanıp form tekrar gönderiliyor.");
+      formuDoldurupGonderme(kullaniciAdi, sifre);
+    }
   }
 
   /**
@@ -103,18 +116,10 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
     }
   }
 
-  /** public.portal.auth.state.reuse=false ise kayıtlı oturum kullanılmaz; her test giriş yapar. */
-  private static boolean kayitliOturumKullanilsinMi() {
-    return Boolean.parseBoolean(
-        ConfigManager.getOrDefault("public.portal.auth.state.reuse", "true"));
-  }
-
   /** Kayıtlı oturum kullanmadan giriş ekranından giriş yapar. */
   public void gercekGirisYapma(PublicPortalRol rol) {
     anaSayfaAcma();
     girisEkraniniAcma();
-    // ALTCHA kutusu sayfayla birlikte yüklenir; ekran açılmadan forma geçilirse kutu bulunamaz
-    // ve form doğrulamasız gönderilir ("Robot olmadığınızı doğrulayın").
     girisEkraniAcikMi();
     girisYapma(rol.kullaniciAdi(), rol.parola());
   }
@@ -167,6 +172,36 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
   // =====================================================================
   // Yardımcılar
   // =====================================================================
+
+  /** Formu doldurur, robot doğrulaması varsa tamamlar ve Giriş Yap'a tıklar. */
+  private void formuDoldurupGonderme(String kullaniciAdi, String sifre) {
+    kullaniciAdiAlani.fill(kullaniciAdi);
+    sifreAlani.fill(sifre);
+    robotDogrulamasiniTamamlama(page.getByRole(AriaRole.MAIN));
+    girisButonu.click();
+  }
+
+  /**
+   * Gönderimden sonra hesap menüsü ya da uyarı gelene kadar bekler; uyarı robot doğrulamasıysa
+   * true. Giriş başarılıysa hesap menüsü geldiği anda döner, boşuna beklenmez.
+   */
+  private boolean robotUyarisiGeldiMi() {
+    try {
+      hesapMenusu
+          .or(hataMesaji)
+          .first()
+          .waitFor(new Locator.WaitForOptions().setTimeout(GIRIS_SONUCU_TIMEOUT_MS));
+    } catch (TimeoutError e) {
+      return false;
+    }
+    return hataMesaji.isVisible() && hataMesaji.innerText().contains("Robot");
+  }
+
+  /** public.portal.auth.state.reuse=false ise kayıtlı oturum kullanılmaz; her test giriş yapar. */
+  private static boolean kayitliOturumKullanilsinMi() {
+    return Boolean.parseBoolean(
+        ConfigManager.getOrDefault("public.portal.auth.state.reuse", "true"));
+  }
 
   /** Görünen adı birebir eşleşen link. */
   private Locator link(String ad) {

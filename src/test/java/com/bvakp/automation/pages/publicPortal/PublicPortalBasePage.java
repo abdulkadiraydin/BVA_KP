@@ -26,9 +26,9 @@ public abstract class PublicPortalBasePage extends BasePage {
   private static final double ALTCHA_TIMEOUT_MS = 120_000;
 
   /**
-   * ALTCHA kutusunun sayfaya eklenmesi için üst sınır (yavaş CI makinesinde script geç yüklenir).
+   * ALTCHA kutusunun sayfaya eklenmesi için üst sınır; kutu giriş alanlarından biraz sonra gelir.
    */
-  private static final double ALTCHA_EKLENME_TIMEOUT_MS = 30_000;
+  private static final double ALTCHA_EKLENME_TIMEOUT_MS = 10_000;
 
   protected PublicPortalBasePage(Page page) {
     super(page);
@@ -118,6 +118,8 @@ public abstract class PublicPortalBasePage extends BasePage {
    * hata/süre dolumu durumunda kalırsa tıklanır.
    */
   protected void robotDogrulamasiniTamamlama(Locator kapsam) {
+    // Kutu giriş alanlarından biraz sonra yüklenir; count() beklemediği için kutu henüz yokken 0
+    // döner ve doğrulama atlanırdı. Kutu kısa süre beklenir, gelmezse sayfada ALTCHA yoktur.
     try {
       kapsam
           .locator("altcha-widget")
@@ -127,19 +129,10 @@ public abstract class PublicPortalBasePage extends BasePage {
                   .setState(WaitForSelectorState.ATTACHED)
                   .setTimeout(ALTCHA_EKLENME_TIMEOUT_MS));
     } catch (TimeoutError e) {
-      // GEÇİCİ TEŞHİS: Jenkins'te robot doğrulaması yerine ne geldiğini görmek için
-      String html = page.content();
-      int konum = html.toLowerCase().indexOf("robot");
-      ReportManager.warn(
-          "ALTCHA kutusu sayfada bulunamadı; robot doğrulaması atlandı. Adres: "
-              + page.url()
-              + " | Robot bölümü: "
-              + (konum < 0
-                  ? "sayfada 'robot' geçmiyor"
-                  : html.substring(
-                      Math.max(0, konum - 800), Math.min(html.length(), konum + 300))));
+      ReportManager.info("ALTCHA kutusu sayfada yok; robot doğrulaması atlandı.");
       return;
     }
+
     kapsam
         .locator("altcha-widget .altcha")
         .waitFor(
