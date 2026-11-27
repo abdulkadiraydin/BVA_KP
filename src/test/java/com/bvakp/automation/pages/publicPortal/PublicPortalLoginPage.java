@@ -105,9 +105,11 @@ public class PublicPortalLoginPage extends PublicPortalBasePage {
           return;
         }
         ReportManager.info("Kayıtlı oturum geçersiz, yeniden giriş yapılıyor | Rol: " + rol);
-        PublicPortalAuthStateManager.portalCerezleriniSilme(page.context());
       }
 
+      // Başka bir rolle açık oturum varsa sağ üstte "Giriş Yap" linki olmaz ve giriş ekranına
+      // geçilemez; gerçek girişten önce portal çerezleri temizlenip oturum kapatılır.
+      PublicPortalAuthStateManager.portalCerezleriniSilme(page.context());
       gercekGirisYapma(rol);
       if (girisYapildiMi(kullanici)) {
         PublicPortalAuthStateManager.oturumuKaydetme(page.context(), rol);
